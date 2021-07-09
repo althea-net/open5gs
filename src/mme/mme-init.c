@@ -75,6 +75,7 @@ int mme_initialize()
 
     initialized = 1;
 
+    ogs_write_file_start("mme_start_time");
     return OGS_OK;
 }
 
