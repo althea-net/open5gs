@@ -177,7 +177,7 @@ void ogs_write_file_value(const char *filename, const char *value) {
         return;
     }
 
-    fprintf(fp, value);
+    fprintf(fp, "%s" value);
     fclose(fp);
     return;
 }
@@ -186,7 +186,7 @@ void ogs_write_file_start(const char *filename) {
     char buf[256];
     time_t mytime = time(NULL);
     sprintf(buf, "%s%d\n", ctime(&mytime), (int)mytime);
-    ogs_log_file(filename, buf);
+    ogs_write_file_value(filename, buf);
 }
 // END SPENCERS FILE-LOG SYSTEM
 
