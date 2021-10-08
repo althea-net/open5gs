@@ -177,7 +177,7 @@ void ogs_write_file_value(const char *filename, const char *value) {
         return;
     }
 
-    fprintf(fp, "%s" value);
+    fprintf(fp, "%s", value);
     fclose(fp);
     return;
 }
