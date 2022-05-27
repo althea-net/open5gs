@@ -192,15 +192,27 @@ void ogs_write_file_start(const char *filename) {
 
 void ogs_add_line_file(const char *filename, const char *value) {
 // grep -qx "$VALUE" $FILENAME || echo "$VALUE" >> $FILENAME
+
+    char filestring[50];
+    strcpy(filestring, BASEFILE);
+    strcat(filestring, "/");
+    strcat(filestring, filename);
+
     char cmd[256];
-    sprintf(cmd, "grep -qx \"%s\" %s || echo \"%s\" >> %s\n", value, filename, value, filename);
+    sprintf(cmd, "grep -qx \"%s\" %s || echo \"%s\" >> %s\n", value, filestring, value, filestring);
     system(cmd);
 }
 
 void ogs_remove_line_file(const char *filename, const char *value) {
 // sed -i '/$VALUE/d' $FILENAME
+
+    char filestring[50];
+    strcpy(filestring, BASEFILE);
+    strcat(filestring, "/");
+    strcat(filestring, filename);
+
     char cmd[256];
-    sprintf(cmd, "sed -i '/%s/d' %s\n", value, filename);
+    sprintf(cmd, "sed -i '/%s/d' %s\n", value, filestring);
     system(cmd);
 }
 // END SPENCERS FILE-LOG SYSTEM

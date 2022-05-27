@@ -54,8 +54,8 @@ static int context_initialized = 0;
 static int num_of_enb_ue = 0;
 static int num_of_mme_sess = 0;
 
-static void stats_add_enb_ue(void);
-static void stats_remove_enb_ue(void);
+static void stats_add_enb_ue(enb_ue_t *enb_ue);
+static void stats_remove_enb_ue(enb_ue_t *enb_ue);
 static void stats_add_mme_session(void);
 static void stats_remove_mme_session(void);
 
@@ -1969,7 +1969,7 @@ enb_ue_t *enb_ue_add(mme_enb_t *enb, uint32_t enb_ue_s1ap_id)
 
     ogs_list_add(&enb->enb_ue_list, enb_ue);
 
-    stats_add_enb_ue();
+    stats_add_enb_ue(enb_ue);
 
     return enb_ue;
 }
@@ -1989,7 +1989,7 @@ void enb_ue_remove(enb_ue_t *enb_ue)
 
     ogs_pool_free(&enb_ue_pool, enb_ue);
 
-    stats_remove_enb_ue();
+    stats_remove_enb_ue(enb_ue);
 }
 
 void enb_ue_switch_to_enb(enb_ue_t *enb_ue, mme_enb_t *new_enb)
@@ -3491,7 +3491,7 @@ uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue)
     return 0;
 }
 
-static void stats_add_enb_ue(void)
+static void stats_add_enb_ue(enb_ue_t *enb_ue)
 {
     num_of_enb_ue = num_of_enb_ue + 1;
     ogs_info("[Added] Number of eNB-UEs is now %d", num_of_enb_ue);
@@ -3499,9 +3499,10 @@ static void stats_add_enb_ue(void)
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
     ogs_write_file_value("enb_ues", buffer);
+    ogs_add_line_file("list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
-static void stats_remove_enb_ue(void)
+static void stats_remove_enb_ue(enb_ue_t *enb_ue)
 {
     num_of_enb_ue = num_of_enb_ue - 1;
     ogs_info("[Removed] Number of eNB-UEs is now %d", num_of_enb_ue);
@@ -3509,6 +3510,7 @@ static void stats_remove_enb_ue(void)
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
     ogs_write_file_value("enb_ues", buffer);
+    ogs_remove_line_file("list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
 static void stats_add_mme_session(void)
