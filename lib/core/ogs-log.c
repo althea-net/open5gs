@@ -190,14 +190,14 @@ void ogs_write_file_start(const char *filename) {
     ogs_write_file_value(filename, buf);
 }
 
-void ogs_add_line_file(const char *value, const char *filename) {
+void ogs_add_line_file(const char *filename, const char *value) {
 // grep -qx "$VALUE" $FILENAME || echo "$VALUE" >> $FILENAME
     char cmd[256];
     sprintf(cmd, "grep -qx \"%s\" %s || echo \"%s\" >> %s\n", value, filename, value, filename);
     system(cmd);
 }
 
-void ogs_remove_line_file(const char *value, const char *filename) {
+void ogs_remove_line_file(const char *filename, const char *value) {
 // sed -i '/$VALUE/d' $FILENAME
     char cmd[256];
     sprintf(cmd, "sed -i '/%s/d' %s\n", value, filename);
