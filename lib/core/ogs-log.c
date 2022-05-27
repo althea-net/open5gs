@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <time.h>
+#include <stdlib.h>
 // END SPENCERS FILE-LOG SYSTEM
 
 #define TA_NOR              "\033[0m"       /* all off */
@@ -187,6 +188,20 @@ void ogs_write_file_start(const char *filename) {
     time_t mytime = time(NULL);
     sprintf(buf, "%s%d\n", ctime(&mytime), (int)mytime);
     ogs_write_file_value(filename, buf);
+}
+
+void ogs_add_line_file(const char *value, const char *filename) {
+// grep -qx "$VALUE" $FILENAME || echo "$VALUE" >> $FILENAME
+    char cmd[256];
+    sprintf(cmd, "grep -qx \"%s\" %s || echo \"%s\" >> %s\n", value, filename, value, filename);
+    system(cmd);
+}
+
+void ogs_remove_line_file(const char *value, const char *filename) {
+// sed -i '/$VALUE/d' $FILENAME
+    char cmd[256];
+    sprintf(cmd, "sed -i '/%s/d' %s\n", value, filename);
+    system(cmd);
 }
 // END SPENCERS FILE-LOG SYSTEM
 
