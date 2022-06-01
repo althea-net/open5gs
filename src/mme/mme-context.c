@@ -3498,8 +3498,8 @@ static void stats_add_enb_ue(enb_ue_t *enb_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
-    ogs_write_file_value("enb_ues", buffer);
-    ogs_add_line_file("list_ues", enb_ue->mme_ue->imsi_bcd);
+    ogs_write_file_value("mme/enb_ues", buffer);
+    ogs_add_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
 static void stats_remove_enb_ue(enb_ue_t *enb_ue)
@@ -3509,8 +3509,8 @@ static void stats_remove_enb_ue(enb_ue_t *enb_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
-    ogs_write_file_value("enb_ues", buffer);
-    ogs_remove_line_file("list_ues", enb_ue->mme_ue->imsi_bcd);
+    ogs_write_file_value("mme/enb_ues", buffer);
+    ogs_remove_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
 static void stats_add_mme_session(mme_sess_t *sess)
@@ -3523,14 +3523,14 @@ static void stats_add_mme_session(mme_sess_t *sess)
     ogs_info("[Added] Number of MME-Sessions is now %d", num_of_mme_sess);
 
     sprintf(buffer, "%d\n", num_of_mme_sess);
-    ogs_write_file_value("mme_sessions", buffer);
+    ogs_write_file_value("mme/sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->mme_ue->imsi_bcd,
         sess->session->name,
         sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
         sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
-    ogs_add_line_file("list_sessions", buffer);
+    ogs_add_line_file("mme/list_sessions", buffer);
 }
 
 static void stats_remove_mme_session(mme_sess_t *sess)
@@ -3543,12 +3543,12 @@ static void stats_remove_mme_session(mme_sess_t *sess)
     ogs_info("[Removed] Number of MME-Sessions is now %d", num_of_mme_sess);
 
     sprintf(buffer, "%d\n", num_of_mme_sess);
-    ogs_write_file_value("mme_sessions", buffer);
+    ogs_write_file_value("mme/sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->mme_ue->imsi_bcd,
         sess->session->name,
         sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
         sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
-    ogs_remove_line_file("list_sessions", buffer);
+    ogs_remove_line_file("mme/list_sessions", buffer);
 }

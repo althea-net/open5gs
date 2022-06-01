@@ -25,6 +25,9 @@
 #include "pfcp-path.h"
 #include "n4-handler.h"
 
+static void stats_associate_pfcp(void);
+static void stats_deassociate_pfcp(void);
+
 static void node_timeout(ogs_pfcp_xact_t *xact, void *data);
 
 void upf_pfcp_state_initial(ogs_fsm_t *s, upf_event_t *e)
@@ -171,11 +174,13 @@ void upf_pfcp_state_associated(ogs_fsm_t *s, upf_event_t *e)
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
         ogs_info("PFCP associated");
+        stats_associate_pfcp();
         ogs_timer_start(node->t_no_heartbeat,
                 ogs_app()->time.message.pfcp.no_heartbeat_duration);
         break;
     case OGS_FSM_EXIT_SIG:
         ogs_info("PFCP de-associated");
+        stats_deassociate_pfcp();
         ogs_timer_stop(node->t_no_heartbeat);
         break;
     case UPF_EVT_N4_MESSAGE:
@@ -310,4 +315,12 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
         ogs_error("Not implemented [type:%d]", type);
         break;
     }
+}
+
+static void stats_associate_pfcp(void) {
+    ogs_write_file_value("upf/pfcp", "1");
+}
+
+static void stats_deassociate_pfcp(void) {
+    ogs_write_file_value("upf/pfcp", "0");
 }

@@ -190,6 +190,21 @@ void ogs_write_file_start(const char *filename) {
     ogs_write_file_value(filename, buf);
 }
 
+void ogs_write_file_subdir(const char *filename) {
+    struct stat st = {0};
+    char filestring[256];
+
+    strcpy(filestring, BASEFILE);
+    strcat(filestring, "/");
+    strcat(filestring, filename);
+
+    if (stat(filestring, &st) == -1) {
+        mkdir(filestring, 0744);
+    }
+
+    return;
+}
+
 void ogs_add_line_file(const char *filename, const char *value) {
 // grep -qx "$VALUE" $FILENAME || echo "$VALUE" >> $FILENAME
 
