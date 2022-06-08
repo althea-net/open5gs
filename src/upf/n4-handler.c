@@ -472,7 +472,7 @@ void upf_n4_handle_session_set_deletion_request(
 
     ogs_debug("Session Set Deletion Request");
 
-    ogs_list_for_each_safe(node->sess_list, next, sess) {
+    ogs_list_for_each_safe(&node->sess_list, next, sess) {
         upf_sess_remove(sess);
     }
 

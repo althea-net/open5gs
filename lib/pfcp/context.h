@@ -77,7 +77,7 @@ typedef struct ogs_pfcp_context_s {
         ogs_assert((__cTX)); \
         ogs_assert((__pNODE)); \
         (__cTX)->pfcp_node = __pNODE; \
-        ogs_list_add((__pNODE)->sess_list, (__cTX)); \
+        ogs_list_add(&(__pNODE)->sess_list, (__cTX)); \
     } while(0)
 
 typedef struct ogs_pfcp_node_s {

@@ -1097,14 +1097,14 @@ void smf_epc_n4_handle_session_set_deletion_response(
         ogs_pfcp_node_t *node, ogs_pfcp_xact_t *xact,
         ogs_pfcp_session_set_deletion_response_t *req)
 {
-    upf_sess_t *sess = NULL, *next = NULL;;
+    smf_sess_t *sess = NULL, *next = NULL;;
     ogs_assert(node);
     ogs_assert(xact);
     ogs_assert(req);
 
     ogs_debug("Session Set Deletion Response");
 
-    ogs_list_for_each_safe(node->sess_list, next, sess) {
+    ogs_list_for_each_safe(&node->sess_list, next, sess) {
         smf_sess_remove(sess);
     }
 }

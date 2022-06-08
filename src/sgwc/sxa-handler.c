@@ -1316,7 +1316,7 @@ void sgwc_sxa_handle_session_set_deletion_response(
 
     ogs_debug("Session Set Deletion Response");
 
-    ogs_list_for_each_safe(node->sess_list, next, sess) {
+    ogs_list_for_each_safe(&node->sess_list, next, sess) {
         sgwc_sess_remove(sess);
     }
 }
