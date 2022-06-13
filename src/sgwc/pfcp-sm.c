@@ -146,6 +146,8 @@ void sgwc_pfcp_state_will_associate(ogs_fsm_t *s, sgwc_event_t *e)
     }
 }
 
+sgwc_sess_t *temp_sess = NULL;
+
 void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
 {
     char buf[OGS_ADDRSTRLEN];
@@ -185,6 +187,9 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
 
         if (message->h.seid_presence && message->h.seid != 0)
             sess = sgwc_sess_find_by_seid(message->h.seid);
+        if (sess) {
+            temp_sess = sess;
+        }
 
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
@@ -201,6 +206,9 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             ogs_warn("PFCP[REQ] has already been associated");
             ogs_pfcp_cp_handle_association_setup_request(node, xact,
                     &message->pfcp_association_setup_request);
+
+            ogs_warn("SPENCER: SGWC re-sending last session!");
+            sgwc_pfcp_send_session_establishment_request(temp_sess, NULL, NULL);
             break;
         case OGS_PFCP_ASSOCIATION_SETUP_RESPONSE_TYPE:
             ogs_warn("PFCP[RSP] has already been associated");
@@ -210,6 +218,11 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             if (!message->h.seid_presence) {
                 ogs_error("No SEID");
+                break;
+            }
+
+            if (!e->gtp_message) {
+                ogs_warn("SPENCER GOT HERE DO NOTHING");
                 break;
             }
 
