@@ -1126,28 +1126,6 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
         break;
 
-// SPENCER START
-    case SMF_EVT_N4_MESSAGE:
-        ogs_warn("SPENCER GOT HERE! NOW DOING NOTHING.\n");
-        // pfcp_xact = e->pfcp_xact;
-        // ogs_assert(pfcp_xact);
-        // pfcp_message = e->pfcp_message;
-        // ogs_assert(pfcp_message);
-
-        // if (pfcp_message->h.type == OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE) {
-        //     ogs_warn("SPENCER GOT HERE 2! NOW DOING NOTHING.\n");
-            // if (pfcp_xact->epc) {        
-            //     pfcp_xact->assoc_xact = 1;
-            //     pfcp_cause = smf_epc_n4_handle_session_establishment_response(
-            //             sess, pfcp_xact,
-            //             &pfcp_message->pfcp_session_establishment_response);
-            // }
-        // } else {
-        //     ogs_warn("PROBLEM, WHAT MESSSAGE DID WE GET?\n");
-        // }
-        break;
-// SPENCER FIN
-
     default:
         ogs_error("Unknown event [%s]", smf_event_get_name(e));
     }

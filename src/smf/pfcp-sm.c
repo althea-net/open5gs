@@ -148,8 +148,6 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
     }
 }
 
-smf_sess_t *temp_sess = NULL;
-
 void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
 {
     char buf[OGS_ADDRSTRLEN];
@@ -189,10 +187,8 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
 
         if (message->h.seid_presence && message->h.seid != 0)
             sess = smf_sess_find_by_seid(message->h.seid);
-        if (sess) {
+        if (sess)
             e->sess = sess;
-            temp_sess = sess;
-        }
 
 
         switch (message->h.type) {
@@ -210,9 +206,6 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             ogs_warn("PFCP[REQ] has already been associated");
             ogs_pfcp_cp_handle_association_setup_request(node, xact,
                     &message->pfcp_association_setup_request);
-
-            ogs_warn("SPENCER: SMF re-sending last session!");
-            smf_epc_pfcp_send_session_establishment_request(temp_sess, NULL);
             break;
         case OGS_PFCP_ASSOCIATION_SETUP_RESPONSE_TYPE:
             ogs_warn("PFCP[RSP] has already been associated");
