@@ -41,9 +41,6 @@ void sgwc_sxa_handle_session_deletion_response(
 void sgwc_sxa_handle_session_report_request(
         sgwc_sess_t *sess, ogs_pfcp_xact_t *pfcp_xact,
         ogs_pfcp_session_report_request_t *pfcp_req);
-void sgwc_sxa_handle_session_set_deletion_response(
-        ogs_pfcp_node_t *node, ogs_pfcp_xact_t *xact,
-        ogs_pfcp_session_set_deletion_response_t *req);
 
 #ifdef __cplusplus
 }

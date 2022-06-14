@@ -252,8 +252,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             break;
 
         case OGS_PFCP_SESSION_SET_DELETION_RESPONSE_TYPE:
-            smf_epc_n4_handle_session_set_deletion_response(
-                node, xact, &message->pfcp_session_set_deletion_response);
+            ogs_debug("Session Set Deletion Response");
             break;
 
         case OGS_PFCP_SESSION_REPORT_REQUEST_TYPE:
