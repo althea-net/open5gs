@@ -190,7 +190,6 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         if (sess)
             e->sess = sess;
 
-
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
             ogs_assert(true ==
