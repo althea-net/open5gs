@@ -521,7 +521,7 @@ typedef struct ogs_eps_tai0_list_s {
     struct {
     ED3(uint8_t spare:1;,
         uint8_t type:2;,
-        uint8_t num:5;)
+        uint16_t num:16;)
         /*
          * Do not change 'ogs_plmn_id_t' to 'ogs_nas_plmn_id_t'.
          * Use 'ogs_plmn_id_t' for easy implementation.
@@ -536,7 +536,7 @@ typedef struct ogs_eps_tai0_list_s {
 typedef struct ogs_eps_tai2_list_s {
 ED3(uint8_t spare:1;,
     uint8_t type:2;,
-    uint8_t num:5;)
+    uint16_t num:16;)
     /*
      * Do not change 'ogs_eps_tai_t' to 'ogs_nas_tracking_area_identity_t'.
      * Use 'ogs_eps_tai_t' for easy implementation.
