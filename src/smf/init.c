@@ -82,6 +82,13 @@ int smf_initialize()
     initialized = 1;
 
     ogs_write_file_start("smf_start_time");
+    ogs_write_file_subdir("smf");
+
+    char buffer[25];
+    sprintf(buffer, "%d\n", 0);
+    ogs_write_file_value("smf/sessions", buffer);
+    ogs_remove_line_file("smf/list_sessions", "List of Active Sessions\n");
+
     return OGS_OK;
 }
 

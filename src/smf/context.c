@@ -36,8 +36,8 @@ static int context_initialized = 0;
 
 static int num_of_smf_sess = 0;
 
-static void stats_add_smf_session(void);
-static void stats_remove_smf_session(void);
+static void stats_add_smf_session(smf_sess_t *sess);
+static void stats_remove_smf_session(smf_sess_t *sess);
 
 int smf_ctf_config_init(smf_ctf_config_t *ctf_config)
 {
@@ -1066,7 +1066,7 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     ogs_list_add(&smf_ue->sess_list, sess);
 
-    stats_add_smf_session();
+    stats_add_smf_session(sess);
 
     return sess;
 }
@@ -1274,7 +1274,7 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
 
     ogs_list_add(&smf_ue->sess_list, sess);
 
-    stats_add_smf_session();
+    stats_add_smf_session(sess);
 
     return sess;
 }
@@ -1622,7 +1622,7 @@ void smf_sess_remove(smf_sess_t *sess)
 
     ogs_pool_free(&smf_sess_pool, sess);
 
-    stats_remove_smf_session();
+    stats_remove_smf_session(sess);
 }
 
 void smf_sess_remove_all(smf_ue_t *smf_ue)
@@ -2862,14 +2862,42 @@ void smf_pf_precedence_pool_final(smf_sess_t *sess)
     ogs_index_final(&sess->pf_precedence_pool);
 }
 
-static void stats_add_smf_session(void)
+static void stats_add_smf_session(smf_sess_t *sess)
 {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buffer[150];
+
     num_of_smf_sess = num_of_smf_sess + 1;
     ogs_info("[Added] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    sprintf(buffer, "%d\n", num_of_smf_sess);
+    ogs_write_file_value("smf/sessions", buffer);
+
+    sprintf(buffer, "apn:%s ip4:%s ip6:%s\n",
+    sess->session.name,
+    sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
+    sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+    ogs_add_line_file("smf/list_sessions", buffer);
+
 }
 
-static void stats_remove_smf_session(void)
+static void stats_remove_smf_session(smf_sess_t *sess)
 {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buffer[150];
+
     num_of_smf_sess = num_of_smf_sess - 1;
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    sprintf(buffer, "%d\n", num_of_smf_sess);
+    ogs_write_file_value("smf/sessions", buffer);
+
+    sprintf(buffer, "apn:%s ip4:%s ip6:%s\n",
+        sess->session.name,
+        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
+        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+    ogs_remove_line_file("smf/list_sessions", buffer);
+}
 }
