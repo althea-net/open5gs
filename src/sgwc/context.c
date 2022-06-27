@@ -34,8 +34,8 @@ static int context_initialized = 0;
 
 static int num_of_sgwc_sess = 0;
 
-static void stats_add_sgwc_session(void);
-static void stats_remove_sgwc_session(void);
+static void stats_add_sgwc_session(sgwc_sess_t *sess);
+static void stats_remove_sgwc_session(sgwc_sess_t *sess);
 
 void sgwc_context_init(void)
 {
@@ -297,7 +297,7 @@ sgwc_sess_t *sgwc_sess_add(sgwc_ue_t *sgwc_ue, char *apn)
 
     ogs_list_add(&sgwc_ue->sess_list, sess);
 
-    stats_add_sgwc_session();
+    stats_add_sgwc_session(sess);
 
     return sess;
 }
@@ -412,7 +412,7 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
 
     ogs_pool_free(&sgwc_sess_pool, sess);
 
-    stats_remove_sgwc_session();
+    stats_remove_sgwc_session(sess);
 
     return OGS_OK;
 }
@@ -865,14 +865,40 @@ sgwc_tunnel_t *sgwc_ul_tunnel_in_bearer(sgwc_bearer_t *bearer)
             OGS_GTP2_F_TEID_S1_U_SGW_GTP_U);
 }
 
-static void stats_add_sgwc_session(void)
+static void stats_add_sgwc_session(sgwc_sess_t *sess)
 {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buffer[150];
+
     num_of_sgwc_sess = num_of_sgwc_sess + 1;
     ogs_info("[Added] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
+
+    sprintf(buffer, "%d\n", num_of_sgwc_sess);
+    ogs_write_file_value("sgwc/sessions", buffer);
+
+    sprintf(buffer, "apn:%s ip4:%s ip6:%s\n",
+    sess->session.name,
+    sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
+    sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+    ogs_add_line_file("sgwc/list_sessions", buffer);
 }
 
-static void stats_remove_sgwc_session(void)
+static void stats_remove_sgwc_session(sgwc_sess_t *sess)
 {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buffer[150];
+
     num_of_sgwc_sess = num_of_sgwc_sess - 1;
     ogs_info("[Removed] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
+
+    sprintf(buffer, "%d\n", num_of_sgwc_sess);
+    ogs_write_file_value("sgwc/sessions", buffer);
+
+    sprintf(buffer, "apn:%s ip4:%s ip6:%s\n",
+        sess->session.name,
+        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
+        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+    ogs_remove_line_file("sgwc/list_sessions", buffer);
 }

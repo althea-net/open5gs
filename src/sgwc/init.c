@@ -68,6 +68,13 @@ int sgwc_initialize()
     initialized = 1;
 
     ogs_write_file_start("sgwc_start_time");
+    ogs_write_file_subdir("sgwc");
+
+    char buffer[25];
+    sprintf(buffer, "%d\n", 0);
+    ogs_write_file_value("sgwc/sessions", buffer);
+    ogs_remove_line_file("sgwc/list_sessions", "List of Active Sessions\n");
+
     return OGS_OK;
 }
 
