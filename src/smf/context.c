@@ -34,10 +34,13 @@ static OGS_POOL(smf_pf_pool, smf_pf_t);
 
 static int context_initialized = 0;
 
+static int num_of_smf_ue = 0;
 static int num_of_smf_sess = 0;
 
 static void stats_add_smf_session(smf_sess_t *sess);
 static void stats_remove_smf_session(smf_sess_t *sess);
+static void stats_add_smf_ue(smf_ue_t *smf_ue);
+static void stats_remove_smf_ue(smf_ue_t *smf_ue);
 
 int smf_ctf_config_init(smf_ctf_config_t *ctf_config)
 {
@@ -843,6 +846,8 @@ smf_ue_t *smf_ue_add_by_supi(char *supi)
 
     ogs_list_add(&self.smf_ue_list, smf_ue);
 
+    stats_add_smf_ue(smf_ue);
+
     ogs_info("[Added] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
 
@@ -873,6 +878,8 @@ smf_ue_t *smf_ue_add_by_imsi(uint8_t *imsi, int imsi_len)
 
     ogs_list_add(&self.smf_ue_list, smf_ue);
 
+    stats_add_smf_ue(smf_ue);
+
     ogs_info("[Added] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
 
@@ -897,6 +904,8 @@ void smf_ue_remove(smf_ue_t *smf_ue)
     }
 
     ogs_pool_free(&smf_ue_pool, smf_ue);
+
+    stats_remove_smf_ue(smf_ue);
 
     ogs_info("[Removed] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
@@ -2860,6 +2869,28 @@ void smf_pf_precedence_pool_final(smf_sess_t *sess)
     ogs_assert(sess);
 
     ogs_index_final(&sess->pf_precedence_pool);
+}
+
+static void stats_add_smf_ue(smf_ue_t *smf_ue)
+{
+    num_of_smf_ue = num_of_smf_ue + 1;
+    ogs_info("[Added] Number of SMF-UEs is now %d", num_of_smf_ue);
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_smf_ue);
+    ogs_write_file_value("smf/smf_ues", buffer);
+    ogs_add_line_file("smf/list_ues", smf_ue->imsi_bcd);
+}
+
+static void stats_remove_smf_ue(smf_ue_t *smf_ue)
+{
+    num_of_smf_ue = num_of_smf_ue - 1;
+    ogs_info("[Removed] Number of SMF-UEs is now %d", num_of_smf_ue);
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_smf_ue);
+    ogs_write_file_value("smf/smf_ues", buffer);
+    ogs_remove_line_file("smf/list_ues", smf_ue->imsi_bcd);
 }
 
 static void stats_add_smf_session(smf_sess_t *sess)
