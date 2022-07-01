@@ -909,8 +909,8 @@ static void stats_add_sgwc_session(sgwc_sess_t *sess)
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
     sess->sgwc_ue->imsi_bcd,
     sess->session.name,
-    sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
-    sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+    sess->session.ue_ip.ipv4 ? OGS_INET_NTOP(sess->session.ue_ip.addr, buf1) : "",
+    sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session.ue_ip.addr6, buf2) : "");
     ogs_add_line_file("sgwc/list_sessions", buffer);
 }
 
@@ -929,7 +929,7 @@ static void stats_remove_sgwc_session(sgwc_sess_t *sess)
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->sgwc_ue->imsi_bcd,
         sess->session.name,
-        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf1) : "",
-        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf2) : "");
+        sess->session.ue_ip.ipv4 ? OGS_INET_NTOP(sess->session.ue_ip.addr, buf1) : "",
+        sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session.ue_ip.addr6, buf2) : "");
     ogs_remove_line_file("sgwc/list_sessions", buffer);
 }
