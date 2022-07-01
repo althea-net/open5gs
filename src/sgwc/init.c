@@ -74,6 +74,9 @@ int sgwc_initialize()
     sprintf(buffer, "%d\n", 0);
     ogs_write_file_value("sgwc/sessions", buffer);
     ogs_remove_line_file("sgwc/list_sessions", "List of Active Sessions\n");
+    sprintf(buffer, "List of Attached UEs\n");
+    ogs_write_file_value("sgwc/list_ues", buffer);
+    ogs_write_file_value("sgwc/sgwc_ues", buffer);
 
     return OGS_OK;
 }
