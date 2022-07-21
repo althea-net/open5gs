@@ -212,9 +212,6 @@ sgwc_ue_t *sgwc_ue_add(uint8_t *imsi, int imsi_len)
 
     stats_add_sgwc_ue(sgwc_ue);
 
-    ogs_info("[Added] Number of SGWC-UEs is now %d",
-            ogs_list_count(&self.sgw_ue_list));
-
     return sgwc_ue;
 }
 
@@ -232,9 +229,6 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
 
     stats_remove_sgwc_ue(sgwc_ue);
     
-    ogs_info("[Removed] Number of SGWC-UEs is now %d",
-            ogs_list_count(&self.sgw_ue_list));
-
     return OGS_OK;
 }
 
