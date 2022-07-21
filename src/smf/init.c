@@ -86,11 +86,13 @@ int smf_initialize()
 
     char buffer[25];
     sprintf(buffer, "%d\n", 0);
-    ogs_write_file_value("smf/sessions", buffer);
-    ogs_remove_line_file("smf/list_sessions", "List of Active Sessions\n");
+    ogs_write_file_value("smf/num_sessions", buffer);
+    ogs_write_file_value("smf/num_ues", buffer);
+
+    sprintf(buffer, "List of Active Sessions\n");    
+    ogs_write_file_value("smf/list_sessions", buffer);
     sprintf(buffer, "List of Attached UEs\n");
     ogs_write_file_value("smf/list_ues", buffer);
-    ogs_write_file_value("smf/smf_ues", buffer);
 
     return OGS_OK;
 }

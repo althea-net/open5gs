@@ -873,7 +873,7 @@ static void stats_add_sgwc_ue(sgwc_ue_t *sgwc_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_sgwc_ue);
-    ogs_write_file_value("sgwc/sgwc_ues", buffer);
+    ogs_write_file_value("sgwc/num_ues", buffer);
     ogs_add_line_file("sgwc/list_ues", sgwc_ue->imsi_bcd);
 }
 
@@ -884,7 +884,7 @@ static void stats_remove_sgwc_ue(sgwc_ue_t *sgwc_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_sgwc_ue);
-    ogs_write_file_value("sgwc/sgwc_ues", buffer);
+    ogs_write_file_value("sgwc/num_ues", buffer);
     ogs_remove_line_file("sgwc/list_ues", sgwc_ue->imsi_bcd);
 }
 
@@ -898,7 +898,7 @@ static void stats_add_sgwc_session(sgwc_sess_t *sess)
     ogs_info("[Added] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
 
     sprintf(buffer, "%d\n", num_of_sgwc_sess);
-    ogs_write_file_value("sgwc/sessions", buffer);
+    ogs_write_file_value("sgwc/num_sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
     sess->sgwc_ue->imsi_bcd,
@@ -918,7 +918,7 @@ static void stats_remove_sgwc_session(sgwc_sess_t *sess)
     ogs_info("[Removed] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
 
     sprintf(buffer, "%d\n", num_of_sgwc_sess);
-    ogs_write_file_value("sgwc/sessions", buffer);
+    ogs_write_file_value("sgwc/num_sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->sgwc_ue->imsi_bcd,

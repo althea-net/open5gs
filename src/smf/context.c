@@ -2878,7 +2878,7 @@ static void stats_add_smf_ue(smf_ue_t *smf_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_smf_ue);
-    ogs_write_file_value("smf/smf_ues", buffer);
+    ogs_write_file_value("smf/num_ues", buffer);
     ogs_add_line_file("smf/list_ues", smf_ue->imsi_bcd);
 }
 
@@ -2889,7 +2889,7 @@ static void stats_remove_smf_ue(smf_ue_t *smf_ue)
 
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_smf_ue);
-    ogs_write_file_value("smf/smf_ues", buffer);
+    ogs_write_file_value("smf/num_ues", buffer);
     ogs_remove_line_file("smf/list_ues", smf_ue->imsi_bcd);
 }
 
@@ -2903,7 +2903,7 @@ static void stats_add_smf_session(smf_sess_t *sess)
     ogs_info("[Added] Number of SMF-Sessions is now %d", num_of_smf_sess);
 
     sprintf(buffer, "%d\n", num_of_smf_sess);
-    ogs_write_file_value("smf/sessions", buffer);
+    ogs_write_file_value("smf/num_sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->smf_ue->imsi_bcd,
@@ -2924,7 +2924,7 @@ static void stats_remove_smf_session(smf_sess_t *sess)
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
 
     sprintf(buffer, "%d\n", num_of_smf_sess);
-    ogs_write_file_value("smf/sessions", buffer);
+    ogs_write_file_value("smf/num_sessions", buffer);
 
     sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
         sess->smf_ue->imsi_bcd,
