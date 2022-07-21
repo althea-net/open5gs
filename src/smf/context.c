@@ -36,10 +36,13 @@ static OGS_POOL(smf_pf_pool, smf_pf_t);
 
 static int context_initialized = 0;
 
+static int num_of_smf_ue = 0;
 static int num_of_smf_sess = 0;
 
-static void stats_add_smf_session(void);
-static void stats_remove_smf_session(void);
+static void stats_add_smf_session(smf_sess_t *sess);
+static void stats_remove_smf_session(smf_sess_t *sess);
+static void stats_add_smf_ue(smf_ue_t *smf_ue);
+static void stats_remove_smf_ue(smf_ue_t *smf_ue);
 
 int smf_ctf_config_init(smf_ctf_config_t *ctf_config)
 {
@@ -895,6 +898,9 @@ static smf_ue_t *smf_ue_add(void)
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
     ogs_info("[Added] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
+
+    stats_add_smf_ue(smf_ue);
+
     return smf_ue;
 }
 
@@ -952,6 +958,8 @@ void smf_ue_remove(smf_ue_t *smf_ue)
     ogs_pool_free(&smf_ue_pool, smf_ue);
 
     smf_metrics_inst_global_dec(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
+    stats_remove_smf_ue(smf_ue);
+
     ogs_info("[Removed] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
 }
@@ -1119,7 +1127,7 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
 
     ogs_list_add(&smf_ue->sess_list, sess);
 
-    stats_add_smf_session();
+    stats_add_smf_session(sess);
 
     return sess;
 }
@@ -1328,7 +1336,7 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
 
     ogs_list_add(&smf_ue->sess_list, sess);
 
-    stats_add_smf_session();
+    stats_add_smf_session(sess);
 
     return sess;
 }
@@ -1686,6 +1694,8 @@ void smf_sess_remove(smf_sess_t *sess)
     }
     stats_remove_smf_session();
     ogs_pool_free(&smf_sess_pool, sess);
+
+    stats_remove_smf_session(sess);
 }
 
 void smf_sess_remove_all(smf_ue_t *smf_ue)
@@ -2966,16 +2976,58 @@ void smf_pf_precedence_pool_final(smf_sess_t *sess)
     ogs_index_final(&sess->pf_precedence_pool);
 }
 
-static void stats_add_smf_session(void)
+static void stats_add_smf_ue(smf_ue_t *smf_ue)
 {
-    smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_SESSIONS_ACTIVE);
-    num_of_smf_sess = num_of_smf_sess + 1;
-    ogs_info("[Added] Number of SMF-Sessions is now %d", num_of_smf_sess);
+    num_of_smf_ue = num_of_smf_ue + 1;
+    ogs_info("[Added] Number of SMF-UEs is now %d", num_of_smf_ue);
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_smf_ue);
+    ogs_write_file_value("smf/num_ues", buffer);
+    ogs_add_line_file("smf/list_ues", smf_ue->imsi_bcd);
 }
 
-static void stats_remove_smf_session(void)
+static void stats_remove_smf_ue(smf_ue_t *smf_ue)
+{
+    num_of_smf_ue = num_of_smf_ue - 1;
+    ogs_info("[Removed] Number of SMF-UEs is now %d", num_of_smf_ue);
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_smf_ue);
+    ogs_write_file_value("smf/num_ues", buffer);
+    ogs_remove_line_file("smf/list_ues", smf_ue->imsi_bcd);
+}
+
+static void stats_add_smf_session(smf_sess_t *sess)
+{
+    smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_SESSIONS_ACTIVE);
+    char buffer[150];
+
+    num_of_smf_sess = num_of_smf_sess + 1;
+    ogs_info("[Added] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    sprintf(buffer, "%d\n", num_of_smf_sess);
+    ogs_write_file_value("smf/num_sessions", buffer);
+}
+
+static void stats_remove_smf_session(smf_sess_t *sess)
 {
     smf_metrics_inst_global_dec(SMF_METR_GLOB_GAUGE_SESSIONS_ACTIVE);
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buffer[150];
+
     num_of_smf_sess = num_of_smf_sess - 1;
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    sprintf(buffer, "%d\n", num_of_smf_sess);
+    ogs_write_file_value("smf/num_sessions", buffer);
+
+    sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s sgw_teid:%x smf_teid:%x",
+        sess->smf_ue->imsi_bcd ? sess->smf_ue->imsi_bcd : "",
+        sess->session.name ? sess->session.name : "",
+        sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
+        sess->ipv6 ? OGS_INET6_NTOP(sess->ipv6->addr, buf2) : "",
+        sess->sgw_s5c_teid, sess->smf_n4_teid);
+    ogs_remove_line_file("smf/list_sessions", buffer);
 }
