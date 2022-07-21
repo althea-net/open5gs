@@ -68,11 +68,6 @@ int upf_initialize()
     initialized = 1;
 
     ogs_write_file_start("upf_start_time");
-    ogs_write_file_subdir("upf");
-    ogs_write_file_value("upf/pfcp", "0\n");
-    ogs_write_file_value("upf/num_sessions", "0\n");
-    ogs_write_file_value("upf/list_sessions", "");
-
     return OGS_OK;
 }
 

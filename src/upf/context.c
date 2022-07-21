@@ -30,9 +30,6 @@ static int context_initialized = 0;
 
 static void upf_sess_urr_acc_remove_all(upf_sess_t *sess);
 
-static void stats_add_session(char *buffer);
-static void stats_remove_session(char *buffer);
-
 void upf_context_init(void)
 {
     ogs_assert(context_initialized == 0);
@@ -403,13 +400,6 @@ uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
 
-    char buffer[250];
-    sprintf(buffer, "apn:%s ip4:%s ip6:%s\n",
-        pdr->dnn,
-        sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
-        sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
-    stats_add_session(buffer);
-
     return cause_value;
 }
 
@@ -536,12 +526,4 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
             sess->urr_acc[i].t_time_threshold = NULL;
         }
     }
-}
-
-static void stats_add_session(char *buffer) {
-    ogs_add_line_file("upf/list_sessions", buffer);
-}
-
-static void stats_remove_session(char *buffer) {
-    ogs_remove_line_file("upf/list_sessions", buffer);
 }
