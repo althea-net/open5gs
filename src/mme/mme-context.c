@@ -1839,7 +1839,7 @@ mme_enb_t *mme_enb_add(ogs_sock_t *sock, ogs_sockaddr_t *addr)
 
     char buffer[20];
     sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("num_enbs", buffer);
+    ogs_write_file_value("mme/num_enbs", buffer);
 
     return enb;
 }
@@ -1878,7 +1878,7 @@ int mme_enb_remove(mme_enb_t *enb)
 
     char buffer[20];
     sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("num_enbs", buffer);
+    ogs_write_file_value("mme/num_enbs", buffer);
 
     return OGS_OK;
 }
