@@ -1841,7 +1841,7 @@ mme_enb_t *mme_enb_add(ogs_sock_t *sock, ogs_sockaddr_t *addr)
 
     char buffer[20];
     sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("num_enbs", buffer);
+    ogs_write_file_value("mme/num_enbs", buffer);
 
     return enb;
 }
@@ -1879,7 +1879,7 @@ int mme_enb_remove(mme_enb_t *enb)
 
     char buffer[20];
     sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("num_enbs", buffer);
+    ogs_write_file_value("mme/num_enbs", buffer);
 
     return OGS_OK;
 }
@@ -3545,7 +3545,7 @@ static void stats_add_enb_ue(enb_ue_t *enb_ue)
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
     ogs_write_file_value("mme/num_ues", buffer);
-    ogs_add_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
+//    ogs_add_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
 static void stats_remove_enb_ue(enb_ue_t *enb_ue)
@@ -3557,7 +3557,7 @@ static void stats_remove_enb_ue(enb_ue_t *enb_ue)
     char buffer[20];
     sprintf(buffer, "%d\n", num_of_enb_ue);
     ogs_write_file_value("mme/num_ues", buffer);
-    ogs_remove_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
+//    ogs_remove_line_file("mme/list_ues", enb_ue->mme_ue->imsi_bcd);
 }
 
 static void stats_add_mme_session(mme_sess_t *sess)
@@ -3573,12 +3573,12 @@ static void stats_add_mme_session(mme_sess_t *sess)
     sprintf(buffer, "%d\n", num_of_mme_sess);
     ogs_write_file_value("mme/num_sessions", buffer);
 
-    sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
-        sess->mme_ue->imsi_bcd,
-        sess->session->name,
-        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
-        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
-    ogs_add_line_file("mme/list_sessions", buffer);
+//    sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
+//        sess->mme_ue->imsi_bcd,
+//        sess->session->name,
+//        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
+//        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
+//    ogs_add_line_file("mme/list_sessions", buffer);
 }
 
 static void stats_remove_mme_session(mme_sess_t *sess)
@@ -3594,10 +3594,10 @@ static void stats_remove_mme_session(mme_sess_t *sess)
     sprintf(buffer, "%d\n", num_of_mme_sess);
     ogs_write_file_value("mme/num_sessions", buffer);
 
-    sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
-        sess->mme_ue->imsi_bcd,
-        sess->session->name,
-        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
-        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
-    ogs_remove_line_file("mme/list_sessions", buffer);
+//    sprintf(buffer, "imsi:%s apn:%s ip4:%s ip6:%s\n",
+//        sess->mme_ue->imsi_bcd,
+//        sess->session->name,
+//        sess->session->ue_ip.ipv4 ? OGS_INET_NTOP(sess->session->ue_ip.addr, buf1) : "",
+//        sess->session->ue_ip.ipv6 ? OGS_INET6_NTOP(sess->session->ue_ip.addr6, buf2) : "");
+//    ogs_remove_line_file("mme/list_sessions", buffer);
 }
