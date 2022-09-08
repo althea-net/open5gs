@@ -104,6 +104,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
     }
 
     sess->sm_data.gx_ccr_init_in_flight = true;
+    ogs_timer_start(sess->timer_gx_cca, ogs_time_from_sec(5));
     smf_gx_send_ccr(sess, e->gtp_xact,
         OGS_DIAM_GX_CC_REQUEST_TYPE_INITIAL_REQUEST);
 
@@ -111,6 +112,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_init_in_flight = true;
+        ogs_timer_start(sess->timer_gy_cca, ogs_time_from_sec(5));
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST);
     }
@@ -242,6 +244,14 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
         sess->sm_data.gy_ccr_init_in_flight = false;
         sess->sm_data.gx_cca_init_err = ER_DIAMETER_SUCCESS;
         sess->sm_data.gy_cca_init_err = ER_DIAMETER_SUCCESS;
+
+        sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_gx_no_cca, sess);
+        sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_gy_no_cca, sess);
+        ogs_assert(sess->timer_gx_cca);
+        ogs_assert(sess->timer_gy_cca);
+
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -410,6 +420,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 diam_err = smf_gx_handle_cca_initial_request(sess,
                                 gx_message, e->gtp_xact);
                 sess->sm_data.gx_ccr_init_in_flight = false;
+                ogs_timer_stop(sess->timer_gx_cca);
                 sess->sm_data.gx_cca_init_err = diam_err;
                 goto test_can_proceed;
             }
@@ -429,10 +440,27 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 diam_err = smf_gy_handle_cca_initial_request(sess,
                                 gy_message, e->gtp_xact);
                 sess->sm_data.gy_ccr_init_in_flight = false;
+                ogs_timer_stop(sess->timer_gy_cca);
                 sess->sm_data.gy_cca_init_err = diam_err;
                 goto test_can_proceed;
             }
             break;
+        }
+        break;
+
+    case SMF_EVT_DIAMETER_TIMER:
+        switch(e->timer_id) {
+        case SMF_TIMER_GX_CCA:
+            ogs_error("Gx timeout waiting for CCA");
+            ogs_timer_stop(sess->timer_gx_cca);
+            sess->sm_data.gx_ccr_init_in_flight = false;
+            send_gtp_create_err_msg(sess, e->gtp_xact, OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING);
+            // teardown any existing structs/sessions??? we are rejecting now...
+        case SMF_TIMER_GY_CCA:
+            ogs_error("Gy timeout waiting for CCA");
+            ogs_timer_stop(sess->timer_gy_cca);
+            sess->sm_data.gy_ccr_init_in_flight = false;
+            // send GTP error? Unclear exactly where Gy fits-in to call flow...
         }
         break;
     }
@@ -1617,6 +1645,9 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
+        ogs_timer_delete(sess->timer_gx_cca);
+        ogs_timer_delete(sess->timer_gy_cca);    
+
         SMF_SESS_CLEAR(sess);
         break;
 
@@ -1646,6 +1677,9 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
+        ogs_timer_delete(sess->timer_gx_cca);
+        ogs_timer_delete(sess->timer_gy_cca);    
+
         ogs_error("[%s:%d] State machine exception", smf_ue->supi, sess->psi);
         SMF_SESS_CLEAR(sess);
         break;
@@ -1660,5 +1694,5 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 }
 
 void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
-{
+{ 
 }

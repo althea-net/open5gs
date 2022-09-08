@@ -84,6 +84,13 @@ static void timer_send_event(int timer_id, void *data)
         e->timer_id = timer_id;
         e->sbi.data = data;
         break;
+    case SMF_TIMER_GX_CCA:
+    case SMF_TIMER_GY_CCA:
+        e = smf_event_new(SMF_EVT_DIAMETER_TIMER);
+        ogs_assert(e);
+        e->timer_id = timer_id;
+        e->sess = data;
+        break;
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);
         ogs_assert_if_reached();
@@ -136,4 +143,14 @@ void smf_timer_subscription_validity(void *data)
 void smf_timer_sbi_client_wait_expire(void *data)
 {
     timer_send_event(SMF_TIMER_SBI_CLIENT_WAIT, data);
+}
+
+void smf_timer_gx_no_cca(void *data)
+{
+    timer_send_event(SMF_TIMER_GX_CCA, data);
+}
+
+void smf_timer_gy_no_cca(void *data)
+{
+    timer_send_event(SMF_TIMER_GY_CCA, data);
 }
