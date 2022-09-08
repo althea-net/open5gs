@@ -732,6 +732,7 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *sess = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
+    ogs_pfcp_message_t *pfcp_message = NULL;
 
     ogs_nas_5gs_message_t *nas_message = NULL;
 
@@ -1123,6 +1124,21 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
         default:
             ogs_error("Unknown message[%d]", e->ngap.type);
+        }
+        break;
+
+    case SMF_EVT_N4_MESSAGE:
+        pfcp_message = e->pfcp_message;
+        ogs_assert(pfcp_message);
+
+        switch (pfcp_message->h.type) {
+        case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
+            ogs_warn("PFCP session is already established; ignoring PFCP-SER");
+            break;
+
+        default:
+            ogs_error("cannot handle PFCP message type[%d]",
+                    pfcp_message->h.type);
         }
         break;
 
