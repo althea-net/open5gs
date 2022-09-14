@@ -409,6 +409,11 @@ typedef struct smf_sess_s {
 
     ogs_timer_t *timer_gx_cca;
     ogs_timer_t *timer_gy_cca;
+
+    bool teardown_pfcp;
+    bool teardown_diameter;
+    bool teardown_5gc;
+    bool teardown_gtp;
 } smf_sess_t;
 
 void smf_context_init(void);
