@@ -35,7 +35,7 @@ logger:
 #          - ::0
 #        port: 7777
 #
-#  o SBI Server(https://<all address avaiable>:443)
+#  o SBI Server(https://<all address available>:443)
 #    sbi:
 #      - tls:
 #          key: amf.key
@@ -85,9 +85,42 @@ logger:
 #          l_onoff: true
 #          l_linger: 10
 #
+#  <NF Service>
+#
+#  o NF Service Name(Default : all NF services available)
+#    service_name:
+#
+#  o NF Service Name(Only some NF services are available)
+#    service_name:
+#      - namf-comm
+#
+#  <NF Discovery Query Parameter>
+#
+#  o (Default) If you do not set Query Parameter as shown below,
+#
+#    sbi:
+#      - addr: 127.0.0.5
+#        port: 7777
+#
+#    - 'service-names' is included.
+#
+#    sbi:
+#      - addr: 127.0.0.5
+#        port: 7777
+#    discovery:
+#      option:
+#        no_service_names: false
+#
+#  o To remove 'service-names' from URI query parameters in NS Discovery
+#         no_service_names: true
+#
+#    * For Indirect Communication with Delegated Discovery,
+#      'service-names' is always included in the URI query parameter.
+#    * That is, 'no_service_names' has no effect.
+#
 #  <NGAP Server>>
 #
-#  o NGAP Server(all address avaiable)
+#  o NGAP Server(all address available)
 #    ngap:
 #
 #  o NGAP Server(0.0.0.0:38412)
@@ -104,7 +137,7 @@ logger:
 #      - addr: 127.0.0.5
 #        port: 38413
 #
-#  o NGAP Server(address avaiable in `eth0` interface)
+#  o NGAP Server(address available in `eth0` interface)
 #    ngap:
 #      dev: eth0
 #
@@ -150,7 +183,7 @@ logger:
 #  o Multiple GUAMI
 #    guami:
 #      - plmn_id:
-#          mcc: 901
+#          mcc: 999
 #          mnc: 70
 #        amf_id:
 #          region: 2
@@ -199,13 +232,13 @@ logger:
 #  o Multiple PLMN Support
 #    plmn_support:
 #      - plmn_id:
-#          mcc: 901
+#          mcc: 999
 #          mnc: 70
 #        s_nssai:
 #          - sst: 1
 #            sd: 010000
 #      - plmn_id:
-#          mcc: 901
+#          mcc: 999
 #          mnc: 70
 #        s_nssai:
 #          - sst: 1
@@ -218,7 +251,7 @@ logger:
 #
 #  <AMF Name>
 #
-#    amf_name: amf1.open5gs.amf.5gc.mnc70.mcc901.3gppnetwork.org
+#    amf_name: amf1.open5gs.amf.5gc.mnc70.mcc999.3gppnetwork.org
 #
 #  <Relative Capacity> - Default(255)
 #
@@ -232,19 +265,19 @@ amf:
       - addr: 127.0.0.5
     guami:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         amf_id:
           region: 2
           set: 1
     tai:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         tac: 1
     plmn_support:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         s_nssai:
           - sst: 1
@@ -317,10 +350,10 @@ parameter:
 #
 # max:
 #
-# o Maximum Number of UE per AMF/MME
+# o Maximum Number of UE
 #    ue: 1024
-# o Maximum Number of gNB/eNB per AMF/MME
-#    gnb: 64
+# o Maximum Number of Peer(S1AP/NGAP, DIAMETER, GTP, PFCP or SBI)
+#    peer: 64
 #
 max:
 
@@ -358,3 +391,17 @@ usrsctp:
 #    handover:
 #        duration: 500
 time:
+
+#
+# metrics:
+#
+#  <Metrics Server>
+#
+#  o Metrics Server(http://<any address>:9090)
+#    metrics:
+#      addr: 0.0.0.0
+#      port: 9090
+#
+metrics:
+    addr: 127.0.0.5
+    port: 9090

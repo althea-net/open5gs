@@ -18,7 +18,6 @@
  */
 
 #include "sbi-path.h"
-#include "nnrf-handler.h"
 #include "nudr-handler.h"
 
 bool udr_nudr_dr_handle_subscription_authentication(
@@ -303,6 +302,30 @@ bool udr_nudr_dr_handle_subscription_context(
 
             return true;
 
+        CASE(OGS_SBI_HTTP_METHOD_PATCH)
+            OpenAPI_list_t *PatchItemList;
+
+            PatchItemList = recvmsg->PatchItemList;
+            if (!PatchItemList) {
+                ogs_error("[%s] No PatchItemList", supi);
+                ogs_assert(true ==
+                    ogs_sbi_server_send_error(
+                        stream, OGS_SBI_HTTP_STATUS_BAD_REQUEST,
+                        recvmsg, "No PatchItemList", supi));
+                return false;
+            }
+
+            /* TODO: parse PatchItemList */
+
+            memset(&sendmsg, 0, sizeof(sendmsg));
+
+            response = ogs_sbi_build_response(
+                    &sendmsg, OGS_SBI_HTTP_STATUS_NO_CONTENT);
+            ogs_assert(response);
+            ogs_assert(true == ogs_sbi_server_send_response(stream, response));
+
+            return true;
+
         DEFAULT
             ogs_error("Invalid HTTP method [%s]", recvmsg->h.method);
             ogs_assert(true ==
@@ -515,13 +538,26 @@ bool udr_nudr_dr_handle_subscription_provisioned(
         ogs_assert(SubscribedSnssaiInfoList);
 
         for (i = 0; i < subscription_data.num_of_slice; i++) {
+            if (i >= OGS_MAX_NUM_OF_SLICE) {
+                ogs_warn("Ignore max slice count overflow [%d>=%d]",
+                    subscription_data.num_of_slice, OGS_MAX_NUM_OF_SLICE);
+                break;
+            }
             slice_data = &subscription_data.slice[i];
 
             DnnInfoList = OpenAPI_list_create();
             ogs_assert(DnnInfoList);
 
             for (j = 0; j < slice_data->num_of_session; j++) {
-                ogs_session_t *session = &slice_data->session[j];
+                ogs_session_t *session = NULL;
+
+                if (j >= OGS_MAX_NUM_OF_SESS) {
+                    ogs_warn("Ignore max session count overflow [%d>=%d]",
+                        slice_data->num_of_session, OGS_MAX_NUM_OF_SESS);
+                    break;
+                }
+
+                session = &slice_data->session[j];
                 ogs_assert(session);
                 ogs_assert(session->name);
 
@@ -638,7 +674,15 @@ bool udr_nudr_dr_handle_subscription_provisioned(
         dnnConfigurationList = OpenAPI_list_create();
 
         for (i = 0; i < slice_data->num_of_session; i++) {
-            ogs_session_t *session = &slice_data->session[i];
+            ogs_session_t *session = NULL;
+
+            if (i >= OGS_MAX_NUM_OF_SESS) {
+                ogs_warn("Ignore max session count overflow [%d>=%d]",
+                    slice_data->num_of_session, OGS_MAX_NUM_OF_SESS);
+                break;
+            }
+
+            session = &slice_data->session[i];
             ogs_assert(session);
             ogs_assert(session->name);
 
@@ -1000,7 +1044,15 @@ bool udr_nudr_dr_handle_policy_data(
                 slice_data = &subscription_data.slice[0];
 
                 for (i = 0; i < slice_data->num_of_session; i++) {
-                    ogs_session_t *session = &slice_data->session[i];
+                    ogs_session_t *session = NULL;
+
+                    if (i >= OGS_MAX_NUM_OF_SESS) {
+                        ogs_warn("Ignore max session count overflow [%d>=%d]",
+                            slice_data->num_of_session, OGS_MAX_NUM_OF_SESS);
+                        break;
+                    }
+
+                    session = &slice_data->session[i];
                     ogs_assert(session);
                     ogs_assert(session->name);
 

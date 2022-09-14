@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -27,38 +27,47 @@ static int server_cb(ogs_sbi_request_t *request, void *data)
     ogs_assert(request);
     ogs_assert(data);
 
-    e = pcf_event_new(PCF_EVT_SBI_SERVER);
+    e = pcf_event_new(OGS_EVENT_SBI_SERVER);
     ogs_assert(e);
 
-    e->sbi.request = request;
-    e->sbi.data = data;
+    e->h.sbi.request = request;
+    e->h.sbi.data = data;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
-        pcf_event_free(e);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        ogs_sbi_request_free(request);
+        ogs_event_free(e);
         return OGS_ERROR;
     }
 
     return OGS_OK;
 }
 
-static int client_cb(ogs_sbi_response_t *response, void *data)
+static int client_cb(int status, ogs_sbi_response_t *response, void *data)
 {
     pcf_event_t *e = NULL;
     int rv;
 
+    if (status != OGS_OK) {
+        ogs_log_message(
+                status == OGS_DONE ? OGS_LOG_DEBUG : OGS_LOG_WARN, 0,
+                "client_cb() failed [%d]", status);
+        return OGS_ERROR;
+    }
+
     ogs_assert(response);
 
-    e = pcf_event_new(PCF_EVT_SBI_CLIENT);
+    e = pcf_event_new(OGS_EVENT_SBI_CLIENT);
     ogs_assert(e);
-    e->sbi.response = response;
-    e->sbi.data = data;
+    e->h.sbi.response = response;
+    e->h.sbi.data = data;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
-        pcf_event_free(e);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        ogs_sbi_response_free(response);
+        ogs_event_free(e);
         return OGS_ERROR;
     }
 
@@ -68,51 +77,79 @@ static int client_cb(ogs_sbi_response_t *response, void *data)
 int pcf_sbi_open(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
+    ogs_sbi_nf_service_t *service = NULL;
 
-    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
-        return OGS_ERROR;
+    bool smpolicycontrol_enabled = false;
+    bool policyauthorization_enabled = false;
 
-    /*
-     * The connection between NF and NRF is a little special.
-     *
-     * NF and NRF share nf_instance. I get the NRF EndPoint(client) information
-     * the configuration file via lib/sbi/context.c.
-     * And, the NFService information will be transmitted to NRF.
-     *
-     * ogs_sbi_self()->nf_instance_id means NF's InstanceId.
-     */
-    ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance) {
-        ogs_sbi_nf_service_t *service = NULL;
-        ogs_sbi_client_t *client = NULL;
+    /* Add SELF NF instance */
+    nf_instance = ogs_sbi_self()->nf_instance;
+    ogs_assert(nf_instance);
+    ogs_sbi_nf_fsm_init(nf_instance);
 
-        /* Build NF instance information. It will be transmitted to NRF. */
-        ogs_sbi_nf_instance_build_default(nf_instance, pcf_self()->nf_type);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_AMF);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_SMF);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_NEF);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_AF);
+    /* Build NF instance information. It will be transmitted to NRF. */
+    ogs_sbi_nf_instance_build_default(nf_instance, OpenAPI_nf_type_PCF);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_AMF);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_SMF);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_SCP);
 
-        /* Build NF service information. It will be transmitted to NRF. */
-        service = ogs_sbi_nf_service_build_default(nf_instance,
-                (char*)OGS_SBI_SERVICE_NAME_NPCF_AM_POLICY_CONTROL);
+    /* Build NF service information. It will be transmitted to NRF. */
+    if (ogs_sbi_nf_service_is_available(
+                OGS_SBI_SERVICE_NAME_NPCF_AM_POLICY_CONTROL)) {
+        service = ogs_sbi_nf_service_build_default(
+                    nf_instance, OGS_SBI_SERVICE_NAME_NPCF_AM_POLICY_CONTROL);
         ogs_assert(service);
-        ogs_sbi_nf_service_add_version(service, (char*)OGS_SBI_API_V1,
-                (char*)OGS_SBI_API_V1_0_0, NULL);
+        ogs_sbi_nf_service_add_version(
+                    service, OGS_SBI_API_V1, OGS_SBI_API_V1_0_0, NULL);
         ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_AMF);
-        ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_NEF);
+    }
 
-        service = ogs_sbi_nf_service_build_default(nf_instance,
-                (char*)OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL);
+    if (ogs_sbi_nf_service_is_available(
+                OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)) {
+        service = ogs_sbi_nf_service_build_default(
+                    nf_instance, OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL);
         ogs_assert(service);
-        ogs_sbi_nf_service_add_version(service, (char*)OGS_SBI_API_V1,
-                (char*)OGS_SBI_API_V1_0_0, NULL);
+        ogs_sbi_nf_service_add_version(
+                    service, OGS_SBI_API_V1, OGS_SBI_API_V1_0_0, NULL);
         ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_SMF);
-        ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_NEF);
-        ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_AF);
+
+        smpolicycontrol_enabled = true;
+    }
+
+    if (ogs_sbi_nf_service_is_available(
+                OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION)) {
+        service = ogs_sbi_nf_service_build_default(
+                    nf_instance, OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION);
+        ogs_assert(service);
+        ogs_sbi_nf_service_add_version(
+                    service, OGS_SBI_API_V1, OGS_SBI_API_V1_0_0, NULL);
+
+        policyauthorization_enabled = true;
+    }
+
+    if ((smpolicycontrol_enabled == true &&
+            policyauthorization_enabled == false) ||
+        (smpolicycontrol_enabled == false &&
+            policyauthorization_enabled == true)) {
+        ogs_fatal("CHECK CONFIGURATION:");
+        ogs_fatal("   %s - %s",
+            OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL,
+            smpolicycontrol_enabled ? "enabled" : "disabled");
+        ogs_fatal("   %s - %s",
+            OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION,
+            policyauthorization_enabled ? "enabled" : "disabled");
+        ogs_fatal("Only one of %s and %s cannot be enabled.",
+            OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL,
+            OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION);
+        ogs_fatal("They can be enabled or disabled together.");
+
+        return OGS_ERROR;
+    }
+
+    /* Initialize NRF NF Instance */
+    nf_instance = ogs_sbi_self()->nrf_instance;
+    if (nf_instance) {
+        ogs_sbi_client_t *client = NULL;
 
         /* Client callback is only used when NF sends to NRF */
         client = nf_instance->client;
@@ -121,58 +158,56 @@ int pcf_sbi_open(void)
 
         /* NFRegister is sent and the response is received
          * by the above client callback. */
-        pcf_nf_fsm_init(nf_instance);
+        ogs_sbi_nf_fsm_init(nf_instance);
     }
+
+    /* Build Subscription-Data */
+    ogs_sbi_subscription_data_build_default(
+            OpenAPI_nf_type_BSF, OGS_SBI_SERVICE_NAME_NBSF_MANAGEMENT);
+    ogs_sbi_subscription_data_build_default(
+            OpenAPI_nf_type_UDR, OGS_SBI_SERVICE_NAME_NUDR_DR);
+
+    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
+        return OGS_ERROR;
 
     return OGS_OK;
 }
 
 void pcf_sbi_close(void)
 {
+    ogs_sbi_client_stop_all();
     ogs_sbi_server_stop_all();
 }
 
-bool pcf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
+bool pcf_sbi_send_request(ogs_sbi_nf_instance_t *nf_instance, void *data)
 {
-    ogs_sbi_request_t *request = NULL;
-    ogs_sbi_client_t *client = NULL;
-
     ogs_assert(nf_instance);
-    client = nf_instance->client;
-    ogs_assert(client);
 
-    request = pcf_nnrf_nfm_build_register(nf_instance);
-    ogs_expect_or_return_val(request, false);
-
-    return ogs_sbi_client_send_request(
-            client, client->cb, request, nf_instance);
+    return ogs_sbi_send_request(nf_instance, client_cb, data);
 }
 
-bool pcf_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact)
-{
-    return ogs_sbi_send(nf_instance, client_cb, xact);
-}
-
-static bool pcf_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        ogs_sbi_object_t *sbi_object, ogs_sbi_stream_t *stream,
-        ogs_sbi_build_f build, void *context, void *data)
+static bool pcf_sbi_discover_and_send(
+        ogs_sbi_object_t *sbi_object,
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_build_f build,
+        void *context, ogs_sbi_stream_t *stream, void *data)
 {
     ogs_sbi_xact_t *xact = NULL;
 
-    ogs_assert(target_nf_type);
+    ogs_assert(service_type);
     ogs_assert(sbi_object);
     ogs_assert(stream);
     ogs_assert(build);
 
-    xact = ogs_sbi_xact_add(target_nf_type, sbi_object,
-                            build, context, data,
-                            pcf_timer_sbi_client_wait_expire);
+    xact = ogs_sbi_xact_add(
+            sbi_object, service_type, discovery_option,
+            build, context, data);
     ogs_expect_or_return_val(xact, false);
 
     xact->assoc_stream = stream;
 
-    if (ogs_sbi_discover_and_send(xact,
-            (ogs_fsm_handler_t)pcf_nf_state_registered, client_cb) != true) {
+    if (ogs_sbi_discover_and_send(xact, client_cb) != true) {
         ogs_error("ogs_sbi_discover_and_send() failed");
         ogs_sbi_xact_remove(xact);
         return false;
@@ -181,12 +216,15 @@ static bool pcf_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
     return true;
 }
 
-bool pcf_ue_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        pcf_ue_t *pcf_ue, ogs_sbi_stream_t *stream, void *data,
-        ogs_sbi_request_t *(*build)(pcf_ue_t *pcf_ue, void *data))
+bool pcf_ue_sbi_discover_and_send(
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_request_t *(*build)(pcf_ue_t *pcf_ue, void *data),
+        pcf_ue_t *pcf_ue, ogs_sbi_stream_t *stream, void *data)
 {
-    if (pcf_sbi_discover_and_send(target_nf_type, &pcf_ue->sbi, stream,
-                (ogs_sbi_build_f)build, pcf_ue, data) != true) {
+    if (pcf_sbi_discover_and_send(
+                &pcf_ue->sbi, service_type, discovery_option,
+                (ogs_sbi_build_f)build, pcf_ue, stream, data) != true) {
         ogs_error("pcf_ue_sbi_discover_and_send() failed");
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
@@ -198,12 +236,32 @@ bool pcf_ue_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
     return true;
 }
 
-bool pcf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        pcf_sess_t *sess, ogs_sbi_stream_t *stream, void *data,
-        ogs_sbi_request_t *(*build)(pcf_sess_t *sess, void *data))
+bool pcf_sess_sbi_discover_only(
+        pcf_sess_t *sess, ogs_sbi_stream_t *stream,
+        ogs_sbi_service_type_e service_type)
 {
-    if (pcf_sbi_discover_and_send(target_nf_type, &sess->sbi, stream,
-                (ogs_sbi_build_f)build, sess, data) != true) {
+    ogs_sbi_xact_t *xact = NULL;
+
+    ogs_assert(sess);
+    ogs_assert(service_type);
+
+    xact = ogs_sbi_xact_add(&sess->sbi, service_type, NULL, NULL, NULL, NULL);
+    ogs_expect_or_return_val(xact, false);
+
+    xact->assoc_stream = stream;
+
+    return ogs_sbi_discover_only(xact, client_cb);
+}
+
+bool pcf_sess_sbi_discover_and_send(
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_request_t *(*build)(pcf_sess_t *sess, void *data),
+        pcf_sess_t *sess, ogs_sbi_stream_t *stream, void *data)
+{
+    if (pcf_sbi_discover_and_send(
+                &sess->sbi, service_type, discovery_option,
+                (ogs_sbi_build_f)build, sess, stream, data) != true) {
         ogs_error("pcf_sess_sbi_discover_and_send() failed");
         ogs_assert(true ==
             ogs_sbi_server_send_error(stream,
@@ -215,11 +273,18 @@ bool pcf_sess_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
     return true;
 }
 
-static int client_notify_cb(ogs_sbi_response_t *response, void *data)
+static int client_notify_cb(
+        int status, ogs_sbi_response_t *response, void *data)
 {
     int rv;
-
     ogs_sbi_message_t message;
+
+    if (status != OGS_OK) {
+        ogs_log_message(
+                status == OGS_DONE ? OGS_LOG_DEBUG : OGS_LOG_WARN, 0,
+                "client_notify_cb() failed [%d]", status);
+        return OGS_ERROR;
+    }
 
     ogs_assert(response);
 
@@ -240,12 +305,13 @@ static int client_notify_cb(ogs_sbi_response_t *response, void *data)
     return OGS_OK;
 }
 
-static int client_delete_notify_cb(ogs_sbi_response_t *response, void *data)
+static int client_delete_notify_cb(
+        int status, ogs_sbi_response_t *response, void *data)
 {
     pcf_app_t *app_session = data;
 
     ogs_assert(app_session);
-    client_notify_cb(response, data);
+    client_notify_cb(status, response, data);
 
     pcf_app_remove(app_session);
 

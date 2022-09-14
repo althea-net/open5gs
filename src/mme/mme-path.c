@@ -19,19 +19,32 @@
 
 #include "s1ap-path.h"
 #include "nas-path.h"
+#include "sgsap-path.h"
 #include "mme-gtp-path.h"
 #include "mme-path.h"
+#include "mme-sm.h"
 
 void mme_send_delete_session_or_detach(mme_ue_t *mme_ue)
 {
     ogs_assert(mme_ue);
 
-    if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue)) {
-        mme_gtp_send_delete_all_sessions(mme_ue,
-                OGS_GTP_DELETE_SEND_DETACH_ACCEPT);
-    } else {
-        ogs_assert(OGS_OK ==
-            nas_eps_send_detach_accept(mme_ue));
+    switch (mme_ue->nas_eps.detach_type) {
+    case MME_EPS_TYPE_DETACH_REQUEST_FROM_UE:
+        if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue)) {
+            mme_gtp_send_delete_all_sessions(
+                    mme_ue, OGS_GTP_DELETE_SEND_DETACH_ACCEPT);
+        } else {
+            ogs_assert(OGS_OK == nas_eps_send_detach_accept(mme_ue));
+        }
+        break;
+    case MME_EPS_TYPE_DETACH_REQUEST_TO_UE:
+        if (SESSION_CONTEXT_IS_AVAILABLE(mme_ue)) {
+            mme_gtp_send_delete_all_sessions(mme_ue, OGS_GTP_DELETE_NO_ACTION);
+        }
+        break;
+    default:
+        ogs_fatal("    Invalid OGS_NAS_EPS TYPE[%d]", mme_ue->nas_eps.type);
+        ogs_assert_if_reached();
     }
 }
 
@@ -75,72 +88,127 @@ void mme_send_release_access_bearer_or_ue_context_release(enb_ue_t *enb_ue)
     }
 }
 
-void mme_send_after_paging(mme_ue_t *mme_ue, uint8_t cause_value)
+void mme_send_after_paging(mme_ue_t *mme_ue, bool failed)
 {
-    mme_sess_t *sess = NULL;
     mme_bearer_t *bearer = NULL;
 
     ogs_assert(mme_ue);
 
-    ogs_list_for_each(&mme_ue->sess_list, sess) {
-        ogs_list_for_each(&sess->bearer_list, bearer) {
-            ogs_gtp_xact_t *xact = NULL;
-            uint8_t type;
+    switch (mme_ue->paging.type) {
+    case MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION:
+        bearer = mme_bearer_cycle(mme_ue->paging.data);
+        if (!bearer) {
+            ogs_error("No Bearer [%d]", mme_ue->paging.type);
+            goto cleanup;
+        }
 
-            xact = ogs_gtp_xact_cycle(bearer->current.xact);
-            if (xact) {
-                /*
-                 * It may conflict with GTP transaction already used.
-                 * To avoid this, check `xact->step` to see if
-                 * the transaction has already been committed.
-                 */
-                type = xact->seq[xact->step-1].type;
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_downlink_data_notification_ack(
+                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
+        } else {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_downlink_data_notification_ack(
+                    bearer, OGS_GTP2_CAUSE_REQUEST_ACCEPTED));
+        }
+        break;
+    case MME_PAGING_TYPE_CREATE_BEARER:
+        bearer = mme_bearer_cycle(mme_ue->paging.data);
+        if (!bearer) {
+            ogs_error("No Bearer [%d]", mme_ue->paging.type);
+            goto cleanup;
+        }
 
-                switch (type) {
-                case OGS_GTP2_DOWNLINK_DATA_NOTIFICATION_TYPE:
-                    ogs_assert(OGS_OK ==
-                        mme_gtp_send_downlink_data_notification_ack(
-                            bearer, cause_value));
-                    break;
-                case OGS_GTP2_CREATE_BEARER_REQUEST_TYPE:
-                    if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-                        ogs_assert(OGS_OK ==
-                        nas_eps_send_activate_dedicated_bearer_context_request(
-                                bearer));
-                    } else {
-                        ogs_assert(OGS_OK ==
-                            mme_gtp_send_create_bearer_response(
-                                bearer, cause_value));
-                    }
-                    break;
-                case OGS_GTP2_UPDATE_BEARER_REQUEST_TYPE:
-                    if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-                        ogs_assert(OGS_OK ==
-                            nas_eps_send_modify_bearer_context_request(bearer,
-                                (xact->update_flags &
-                                    OGS_GTP_MODIFY_QOS_UPDATE) ? 1 : 0,
-                                (xact->update_flags &
-                                    OGS_GTP_MODIFY_TFT_UPDATE) ? 1 : 0));
-                    } else {
-                        ogs_assert(OGS_OK ==
-                            mme_gtp_send_update_bearer_response(
-                                bearer, cause_value));
-                    }
-                    break;
-                case OGS_GTP2_DELETE_BEARER_REQUEST_TYPE:
-                    if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-                        ogs_assert(OGS_OK ==
-                        nas_eps_send_deactivate_bearer_context_request(bearer));
-                    } else {
-                        ogs_assert(OGS_OK ==
-                            mme_gtp_send_delete_bearer_response(
-                                bearer, cause_value));
-                    }
-                    break;
-                default:
-                    break;
-                }
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_create_bearer_response(
+                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
+        } else {
+            ogs_assert(OGS_OK ==
+                nas_eps_send_activate_dedicated_bearer_context_request(bearer));
+        }
+        break;
+    case MME_PAGING_TYPE_UPDATE_BEARER:
+        bearer = mme_bearer_cycle(mme_ue->paging.data);
+        if (!bearer) {
+            ogs_error("No Bearer [%d]", mme_ue->paging.type);
+            goto cleanup;
+        }
+
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_update_bearer_response(
+                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
+        } else {
+            ogs_gtp_xact_t *xact = ogs_gtp_xact_cycle(bearer->update.xact);
+            if (!xact) {
+                ogs_error("No GTP xact");
+                goto cleanup;
+            }
+
+            ogs_assert(OGS_OK ==
+                nas_eps_send_modify_bearer_context_request(bearer,
+                    (xact->update_flags &
+                        OGS_GTP_MODIFY_QOS_UPDATE) ? 1 : 0,
+                    (xact->update_flags &
+                        OGS_GTP_MODIFY_TFT_UPDATE) ? 1 : 0));
+        }
+        break;
+    case MME_PAGING_TYPE_DELETE_BEARER:
+        bearer = mme_bearer_cycle(mme_ue->paging.data);
+        if (!bearer) {
+            ogs_error("No Bearer [%d]", mme_ue->paging.type);
+            goto cleanup;
+        }
+
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                mme_gtp_send_delete_bearer_response(
+                    bearer, OGS_GTP2_CAUSE_UNABLE_TO_PAGE_UE));
+        } else {
+            ogs_assert(OGS_OK ==
+                nas_eps_send_deactivate_bearer_context_request(bearer));
+        }
+        break;
+    case MME_PAGING_TYPE_CS_CALL_SERVICE:
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                sgsap_send_paging_reject(
+                    mme_ue, SGSAP_SGS_CAUSE_UE_UNREACHABLE));
+        } else {
+            /* Nothing */
+        }
+        break;
+    case MME_PAGING_TYPE_SMS_SERVICE:
+        if (failed == true) {
+            ogs_assert(OGS_OK ==
+                sgsap_send_paging_reject(
+                    mme_ue, SGSAP_SGS_CAUSE_UE_UNREACHABLE));
+        } else {
+            ogs_assert(OGS_OK ==
+                sgsap_send_service_request(
+                    mme_ue, SGSAP_EMM_CONNECTED_MODE));
+        }
+        break;
+    case MME_PAGING_TYPE_DETACH_TO_UE:
+        if (failed == true) {
+            /* Nothing */
+            ogs_warn("MME-initiated Detach cannot be invoked");
+        } else {
+            ogs_assert(OGS_OK == nas_eps_send_detach_request(mme_ue));
+            if (MME_P_TMSI_IS_AVAILABLE(mme_ue)) {
+                ogs_assert(OGS_OK == sgsap_send_detach_indication(mme_ue));
+            } else {
+                mme_send_delete_session_or_detach(mme_ue);
             }
         }
+        break;
+    default:
+        ogs_fatal("Invalid Paging Type[%d]", mme_ue->paging.type);
+        ogs_assert_if_reached();
     }
+
+cleanup:
+    CLEAR_SERVICE_INDICATOR(mme_ue);
+    MME_CLEAR_PAGING_INFO(mme_ue);
 }

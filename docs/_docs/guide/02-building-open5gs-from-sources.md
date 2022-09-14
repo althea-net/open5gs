@@ -97,8 +97,8 @@ Modify [install/etc/open5gs/amf.yaml](https://github.com/{{ site.github_username
 
 ```diff
 $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
---- amf.yaml	2020-09-05 20:52:28.652234967 -0400
-+++ amf.yaml.new	2020-09-05 20:55:07.453114885 -0400
+--- amf.yaml    2020-09-05 20:52:28.652234967 -0400
++++ amf.yaml.new    2020-09-05 20:55:07.453114885 -0400
 @@ -165,23 +165,23 @@
        - addr: 127.0.0.5
          port: 7777
@@ -107,7 +107,7 @@ $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
 +      - addr: 10.10.0.5
      guami:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 +          mcc: 001
 +          mnc: 01
@@ -116,7 +116,7 @@ $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
            set: 1
      tai:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 -        tac: 1
 +          mcc: 001
@@ -124,7 +124,7 @@ $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
 +        tac: 2
      plmn_support:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 +          mcc: 001
 +          mnc: 01
@@ -136,8 +136,8 @@ $ diff -u /etc/open5gs/amf.yaml.old /etc/open5gs/amf.yaml
 Modify [install/etc/open5gs/upf.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/upf.yaml.in) to set the GTP-U and PFCP IP address.
 ```diff
 $ diff -u /etc/open5gs/upf.yaml.old /etc/open5gs/upf.yaml
---- upf.yaml	2020-09-05 20:52:28.652234967 -0400
-+++ upf.yaml.new	2020-09-05 20:52:55.279052142 -0400
+--- upf.yaml    2020-09-05 20:52:28.652234967 -0400
++++ upf.yaml.new    2020-09-05 20:52:55.279052142 -0400
 @@ -137,9 +137,7 @@
      pfcp:
        - addr: 127.0.0.7
@@ -156,8 +156,8 @@ Modify [install/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username
 
 ```diff
 $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
---- mme.yaml	2020-09-05 20:52:28.648235143 -0400
-+++ mme.yaml.new	2020-09-05 20:56:05.434484208 -0400
+--- mme.yaml    2020-09-05 20:52:28.648235143 -0400
++++ mme.yaml.new    2020-09-05 20:56:05.434484208 -0400
 @@ -204,20 +204,20 @@
  mme:
      freeDiameter: /home/acetcom/Documents/git/open5gs/install/etc/freeDiameter/mme.conf
@@ -168,7 +168,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        addr: 127.0.0.2
      gummei:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 +        mcc: 001
 +        mnc: 01
@@ -176,7 +176,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        mme_code: 1
      tai:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 -      tac: 1
 +        mcc: 001
@@ -190,8 +190,8 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
 Modify [install/etc/open5gs/sgwu.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/sgwu.yaml.in) to set the GTP-U IP address.
 ```diff
 $ diff -u /etc/open5gs/sgwu.yaml.old /etc/open5gs/sgwu.yaml
---- sgwu.yaml	2020-09-05 20:50:39.393022566 -0400
-+++ sgwu.yaml.new	2020-09-05 20:51:06.667838823 -0400
+--- sgwu.yaml    2020-09-05 20:50:39.393022566 -0400
++++ sgwu.yaml.new    2020-09-05 20:51:06.667838823 -0400
 @@ -51,7 +51,7 @@
  #
  sgwu:
@@ -425,7 +425,7 @@ To add subscriber information, you can do WebUI operations in the following orde
   3. Fill the IMSI, security context(K, OPc, AMF), and APN of the subscriber.
   4. Click `SAVE` Button
 
-**Tip:** This addition immediately affects Open5GS without restarting any daemon.
+**Note:** Subscribers added with this tool immediately register in the Open5GS HSS/UDR without the need to restart any daemon. However, if you use the WebUI to change subscriber profile, you must restart the Open5GS AMF/MME daemon for the changes to take effect.
 {: .notice--warning}
 
 ### IP routing + NAT for UE internet connectivity

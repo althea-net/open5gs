@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -26,7 +26,6 @@
 #include "ogs-dbi.h"
 
 #include "pcf-sm.h"
-#include "timer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -40,30 +39,12 @@ extern int __pcf_log_domain;
 #define OGS_LOG_DOMAIN __pcf_log_domain
 
 typedef struct pcf_context_s {
-    OpenAPI_nf_type_e   nf_type;
-
     ogs_list_t      pcf_ue_list;
     ogs_hash_t      *supi_hash;
 
     ogs_hash_t      *ipv4addr_hash;
     ogs_hash_t      *ipv6prefix_hash;
 } pcf_context_t;
-
-#define PCF_NF_INSTANCE_CLEAR(_cAUSE, _nFInstance) \
-    do { \
-        ogs_assert(_nFInstance); \
-        if ((_nFInstance)->reference_count == 1) { \
-            ogs_info("[%s] (%s) NF removed", (_nFInstance)->id, (_cAUSE)); \
-            pcf_nf_fsm_fini((_nFInstance)); \
-        } else { \
-            /* There is an assocation with other context */ \
-            ogs_info("[%s:%d] (%s) NF suspended", \
-                    _nFInstance->id, _nFInstance->reference_count, (_cAUSE)); \
-            OGS_FSM_TRAN(&_nFInstance->sm, pcf_nf_state_de_registered); \
-            ogs_fsm_dispatch(&_nFInstance->sm, NULL); \
-        } \
-        ogs_sbi_nf_instance_remove(_nFInstance); \
-    } while(0)
 
 struct pcf_ue_s {
     ogs_sbi_object_t sbi;
@@ -185,9 +166,6 @@ int pcf_sessions_number_by_snssai_and_dnn(
 
 pcf_ue_t *pcf_ue_cycle(pcf_ue_t *pcf_ue);
 pcf_sess_t *pcf_sess_cycle(pcf_sess_t *sess);
-
-void pcf_ue_select_nf(pcf_ue_t *pcf_ue, OpenAPI_nf_type_e nf_type);
-void pcf_sess_select_nf(pcf_sess_t *sess, OpenAPI_nf_type_e nf_type);
 
 pcf_app_t *pcf_app_add(pcf_sess_t *sess);
 int pcf_app_remove(pcf_app_t *app);

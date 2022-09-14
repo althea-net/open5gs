@@ -30,9 +30,8 @@ void nrf_nf_fsm_init(ogs_sbi_nf_instance_t *nf_instance)
     memset(&e, 0, sizeof(e));
     e.nf_instance = nf_instance;
 
-    ogs_fsm_create(&nf_instance->sm,
-            nrf_nf_state_initial, nrf_nf_state_final);
-    ogs_fsm_init(&nf_instance->sm, &e);
+    ogs_fsm_init(&nf_instance->sm,
+        nrf_nf_state_initial, nrf_nf_state_final, &e);
 }
 
 void nrf_nf_fsm_fini(ogs_sbi_nf_instance_t *nf_instance)
@@ -44,7 +43,6 @@ void nrf_nf_fsm_fini(ogs_sbi_nf_instance_t *nf_instance)
     e.nf_instance = nf_instance;
 
     ogs_fsm_fini(&nf_instance->sm, &e);
-    ogs_fsm_delete(&nf_instance->sm);
 }
 
 void nrf_nf_state_initial(ogs_fsm_t *s, nrf_event_t *e)
@@ -189,7 +187,7 @@ void nrf_nf_state_registered(ogs_fsm_t *s, nrf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        ogs_info("[%s] NF registred [Heartbeat:%ds]",
+        ogs_info("[%s] NF registered [Heartbeat:%ds]",
                 nf_instance->id, nf_instance->time.heartbeat_interval);
         if (nf_instance->time.heartbeat_interval) {
             ogs_timer_start(nf_instance->t_no_heartbeat,

@@ -94,7 +94,7 @@ static bool maximum_number_of_gnbs_is_reached(void)
         }
     }
 
-    return number_of_gnbs_online >= ogs_app()->max.gnb;
+    return number_of_gnbs_online >= ogs_app()->max.peer;
 }
 
 void ngap_handle_ng_setup_request(amf_gnb_t *gnb, ogs_ngap_message_t *message)
@@ -904,9 +904,10 @@ void ngap_handle_initial_context_setup_response(
         ogs_pkbuf_put_data(param.n2smbuf, transfer->buf, transfer->size);
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_ACTIVATED, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_ACTIVATED, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -1643,9 +1644,10 @@ void ngap_handle_pdu_session_resource_setup_response(
             ogs_pkbuf_put_data(param.n2smbuf, transfer->buf, transfer->size);
 
             ogs_assert(true ==
-                amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                    sess, AMF_UPDATE_SM_CONTEXT_ACTIVATED, &param,
-                    amf_nsmf_pdusession_build_update_sm_context));
+                amf_sess_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                    amf_nsmf_pdusession_build_update_sm_context,
+                    sess, AMF_UPDATE_SM_CONTEXT_ACTIVATED, &param));
 
             ogs_pkbuf_free(param.n2smbuf);
         }
@@ -1762,9 +1764,10 @@ void ngap_handle_pdu_session_resource_setup_response(
             amf_ue->deactivation.cause = NGAP_CauseNas_normal_release;
 
             ogs_assert(true ==
-                amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                    sess, AMF_UPDATE_SM_CONTEXT_SETUP_FAIL, &param,
-                    amf_nsmf_pdusession_build_update_sm_context));
+                amf_sess_sbi_discover_and_send(
+                    OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                    amf_nsmf_pdusession_build_update_sm_context,
+                    sess, AMF_UPDATE_SM_CONTEXT_SETUP_FAIL, &param));
 
             ogs_pkbuf_free(param.n2smbuf);
         }
@@ -1942,9 +1945,10 @@ void ngap_handle_pdu_session_resource_modify_response(
         ogs_pkbuf_put_data(param.n2smbuf, transfer->buf, transfer->size);
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_MODIFIED, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_MODIFIED, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -2117,9 +2121,10 @@ void ngap_handle_pdu_session_resource_release_response(
         ogs_pkbuf_put_data(param.n2smbuf, transfer->buf, transfer->size);
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_N2_RELEASED, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_N2_RELEASED, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -2539,9 +2544,10 @@ void ngap_handle_path_switch_request(
         ogs_pkbuf_put_data(param.n2smbuf, transfer->buf, transfer->size);
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_PATH_SWITCH_REQUEST, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_PATH_SWITCH_REQUEST, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -2855,9 +2861,10 @@ void ngap_handle_handover_required(
         param.TargetID = TargetID;
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_REQUIRED, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_REQUIRED, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -3079,9 +3086,10 @@ void ngap_handle_handover_request_ack(
         param.hoState = OpenAPI_ho_state_PREPARED;
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_REQ_ACK, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_REQ_ACK, &param));
 
         ogs_pkbuf_free(param.n2smbuf);
     }
@@ -3324,9 +3332,10 @@ void ngap_handle_handover_cancel(
         param.ngApCause.value = (int)Cause->choice.radioNetwork;
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_CANCEL, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_CANCEL, &param));
     }
 }
 
@@ -3604,9 +3613,10 @@ void ngap_handle_handover_notification(
         param.hoState = OpenAPI_ho_state_COMPLETED;
 
         ogs_assert(true ==
-            amf_sess_sbi_discover_and_send(OpenAPI_nf_type_SMF,
-                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_NOTIFY, &param,
-                amf_nsmf_pdusession_build_update_sm_context));
+            amf_sess_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NSMF_PDUSESSION, NULL,
+                amf_nsmf_pdusession_build_update_sm_context,
+                sess, AMF_UPDATE_SM_CONTEXT_HANDOVER_NOTIFY, &param));
     }
 }
 
@@ -4022,7 +4032,8 @@ void ngap_handle_ng_reset(
          * where PartOfNG_interface was requested
          * REMOVED */
         ogs_assert(gnb->ng_reset_ack);
-        ngap_send_to_gnb(gnb, gnb->ng_reset_ack, NGAP_NON_UE_SIGNALLING);
+        ogs_expect(OGS_OK ==
+            ngap_send_to_gnb(gnb, gnb->ng_reset_ack, NGAP_NON_UE_SIGNALLING));
 
         /* Clear NG-Reset Ack Buffer */
         gnb->ng_reset_ack = NULL;

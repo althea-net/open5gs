@@ -55,6 +55,6 @@ void hss_terminate(void)
 
     ogs_dbi_final();
     hss_context_final();
-	
-	return;
+
+    return;
 }

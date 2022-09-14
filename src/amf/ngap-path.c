@@ -50,8 +50,15 @@ int ngap_send_to_gnb(amf_gnb_t *gnb, ogs_pkbuf_t *pkbuf, uint16_t stream_no)
 {
     char buf[OGS_ADDRSTRLEN];
 
-    ogs_assert(gnb);
     ogs_assert(pkbuf);
+
+    gnb = amf_gnb_cycle(gnb);
+    if (!gnb) {
+        ogs_warn("gNB has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
     ogs_assert(gnb->sctp.sock);
     if (gnb->sctp.sock->fd == INVALID_SOCKET) {
         ogs_fatal("gNB SCTP socket has already been destroyed");
@@ -76,13 +83,16 @@ int ngap_send_to_gnb(amf_gnb_t *gnb, ogs_pkbuf_t *pkbuf, uint16_t stream_no)
 
 int ngap_send_to_ran_ue(ran_ue_t *ran_ue, ogs_pkbuf_t *pkbuf)
 {
-    amf_gnb_t *gnb = NULL;
+    ogs_assert(pkbuf);
 
-    ogs_assert(ran_ue);
-    gnb = ran_ue->gnb;
-    ogs_assert(gnb);
+    ran_ue = ran_ue_cycle(ran_ue);
+    if (!ran_ue) {
+        ogs_warn("NG context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
 
-    return ngap_send_to_gnb(gnb, pkbuf, ran_ue->gnb_ostream_id);
+    return ngap_send_to_gnb(ran_ue->gnb, pkbuf, ran_ue->gnb_ostream_id);
 }
 
 int ngap_delayed_send_to_ran_ue(
@@ -94,7 +104,7 @@ int ngap_delayed_send_to_ran_ue(
     if (duration) {
         amf_event_t *e = NULL;
 
-        e = amf_event_new(AMF_EVT_NGAP_TIMER);
+        e = amf_event_new(AMF_EVENT_NGAP_TIMER);
         ogs_assert(e);
         e->timer = ogs_timer_add(
                 ogs_app()->timer_mgr, amf_timer_ng_delayed_send, e);
@@ -122,15 +132,15 @@ int ngap_send_to_5gsm(amf_ue_t *amf_ue, ogs_pkbuf_t *esmbuf)
     ogs_assert(amf_ue);
     ogs_assert(esmbuf);
 
-    e = amf_event_new(AMF_EVT_5GSM_MESSAGE);
+    e = amf_event_new(AMF_EVENT_5GSM_MESSAGE);
     ogs_assert(e);
     e->amf_ue = amf_ue;
     e->pkbuf = esmbuf;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_pkbuf_free(e->pkbuf);
-        amf_event_free(e);
+        ogs_event_free(e);
     }
 
     return rv;
@@ -193,7 +203,7 @@ int ngap_send_to_nas(ran_ue_t *ran_ue,
         if (nas_5gs_security_decode(ran_ue->amf_ue,
                 security_header_type, nasbuf) != OGS_OK) {
             ogs_error("nas_eps_security_decode failed()");
-	        return OGS_ERROR;
+            return OGS_ERROR;
         }
     }
 
@@ -202,7 +212,7 @@ int ngap_send_to_nas(ran_ue_t *ran_ue,
     if (h->extended_protocol_discriminator ==
             OGS_NAS_EXTENDED_PROTOCOL_DISCRIMINATOR_5GMM) {
         int rv;
-        e = amf_event_new(AMF_EVT_5GMM_MESSAGE);
+        e = amf_event_new(AMF_EVENT_5GMM_MESSAGE);
         if (!e) {
             ogs_error("ngap_send_to_nas() failed");
             ogs_pkbuf_free(nasbuf);
@@ -214,9 +224,9 @@ int ngap_send_to_nas(ran_ue_t *ran_ue,
         e->pkbuf = nasbuf;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
-            ogs_warn("ngap_send_to_nas() failed:%d", (int)rv);
+            ogs_error("ngap_send_to_nas() failed:%d", (int)rv);
             ogs_pkbuf_free(e->pkbuf);
-            amf_event_free(e);
+            ogs_event_free(e);
         }
         return rv;
     } else if (h->extended_protocol_discriminator ==

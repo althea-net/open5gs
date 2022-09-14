@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -20,7 +20,7 @@
 /*******************************************************************************
  * This file had been created by gtp-tlv.py script v0.1.0
  * Please do not modify this file but regenerate it via script.
- * Created on: 2022-05-01 15:20:04.456902 by acetcom
+ * Created on: 2022-06-30 08:56:57.190289 by ubuntu
  * from 29274-g30.docx
  ******************************************************************************/
 
@@ -1274,8 +1274,8 @@ typedef struct ogs_gtp2_message_s {
    };
 } ogs_gtp2_message_t;
 
-int ogs_gtp2_parse_msg(ogs_gtp2_message_t *gtp_message, ogs_pkbuf_t *pkbuf);
-ogs_pkbuf_t *ogs_gtp2_build_msg(ogs_gtp2_message_t *gtp_message);
+int ogs_gtp2_parse_msg(ogs_gtp2_message_t *gtp2_message, ogs_pkbuf_t *pkbuf);
+ogs_pkbuf_t *ogs_gtp2_build_msg(ogs_gtp2_message_t *gtp2_message);
 
 #ifdef __cplusplus
 }

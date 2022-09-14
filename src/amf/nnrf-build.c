@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -19,50 +19,25 @@
 
 #include "nnrf-build.h"
 
-ogs_sbi_request_t *amf_nnrf_nfm_build_register(
-        ogs_sbi_nf_instance_t *nf_instance)
-{
-    ogs_sbi_message_t message;
-    ogs_sbi_request_t *request = NULL;
-    ogs_sbi_client_t *client = NULL;
-
-    OpenAPI_nf_profile_t *NFProfile = NULL;
-
-    ogs_assert(nf_instance);
-    client = nf_instance->client;
-    ogs_assert(client);
-
-    memset(&message, 0, sizeof(message));
-    message.h.method = (char *)OGS_SBI_HTTP_METHOD_PUT;
-    message.h.service.name = (char *)OGS_SBI_SERVICE_NAME_NNRF_NFM;
-    message.h.api.version = (char *)OGS_SBI_API_V1;
-    message.h.resource.component[0] =
-        (char *)OGS_SBI_RESOURCE_NAME_NF_INSTANCES;
-    message.h.resource.component[1] = ogs_sbi_self()->nf_instance_id;
-
-    message.http.content_encoding = (char*)ogs_sbi_self()->content_encoding;
-
-    NFProfile = ogs_nnrf_nfm_build_nf_profile(nf_instance);
-    ogs_expect_or_return_val(NFProfile, NULL);
-
-    message.NFProfile = NFProfile;
-
-    request = ogs_sbi_build_request(&message);
-
-    ogs_sbi_nnrf_free_nf_profile(NFProfile);
-
-    return request;
-}
-
 ogs_sbi_request_t *amf_nnrf_disc_build_discover(
         char *nrf_id,
-        OpenAPI_nf_type_e target_nf_type, OpenAPI_nf_type_e requester_nf_type)
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option)
 {
     ogs_sbi_message_t message;
     ogs_sbi_request_t *request = NULL;
 
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+    OpenAPI_nf_type_e requester_nf_type = OpenAPI_nf_type_NULL;
+
     ogs_assert(nrf_id);
+
+    ogs_assert(service_type);
+    target_nf_type = ogs_sbi_service_type_to_nf_type(service_type);
     ogs_assert(target_nf_type);
+
+    ogs_assert(ogs_sbi_self()->nf_instance);
+    requester_nf_type = ogs_sbi_self()->nf_instance->nf_type;
     ogs_assert(requester_nf_type);
 
     memset(&message, 0, sizeof(message));
@@ -71,6 +46,8 @@ ogs_sbi_request_t *amf_nnrf_disc_build_discover(
 
     message.param.target_nf_type = target_nf_type;
     message.param.requester_nf_type = requester_nf_type;
+
+    message.param.discovery_option = discovery_option;
 
     request = ogs_sbi_build_request(&message);
 

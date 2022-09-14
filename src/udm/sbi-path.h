@@ -20,7 +20,6 @@
 #ifndef UDM_SBI_PATH_H
 #define UDM_SBI_PATH_H
 
-#include "nnrf-build.h"
 #include "nudr-build.h"
 
 #ifdef __cplusplus
@@ -30,12 +29,12 @@ extern "C" {
 int udm_sbi_open(void);
 void udm_sbi_close(void);
 
-bool udm_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance);
-
-bool udm_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact);
-bool udm_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        udm_ue_t *udm_ue, ogs_sbi_stream_t *stream, void *data,
-        ogs_sbi_request_t *(*build)(udm_ue_t *udm_ue, void *data));
+bool udm_sbi_send_request(ogs_sbi_nf_instance_t *nf_instance, void *data);
+bool udm_sbi_discover_and_send(
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_request_t *(*build)(udm_ue_t *udm_ue, void *data),
+        udm_ue_t *udm_ue, ogs_sbi_stream_t *stream, void *data);
 
 #ifdef __cplusplus
 }

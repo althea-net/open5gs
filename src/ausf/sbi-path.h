@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -20,7 +20,6 @@
 #ifndef AUSF_SBI_PATH_H
 #define AUSF_SBI_PATH_H
 
-#include "nnrf-build.h"
 #include "nudm-build.h"
 
 #ifdef __cplusplus
@@ -30,12 +29,12 @@ extern "C" {
 int ausf_sbi_open(void);
 void ausf_sbi_close(void);
 
-bool ausf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance);
-
-bool ausf_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact);
-bool ausf_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        ausf_ue_t *ausf_ue, ogs_sbi_stream_t *stream, void *data,
-        ogs_sbi_request_t *(*build)(ausf_ue_t *ausf_ue, void *data));
+bool ausf_sbi_send_request(ogs_sbi_nf_instance_t *nf_instance, void *data);
+bool ausf_sbi_discover_and_send(
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_request_t *(*build)(ausf_ue_t *ausf_ue, void *data),
+        ausf_ue_t *ausf_ue, ogs_sbi_stream_t *stream, void *data);
 
 #ifdef __cplusplus
 }

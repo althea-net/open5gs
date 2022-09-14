@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -54,8 +54,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     ogs_pkbuf_t *recvbuf = NULL;
     smf_sess_t *sess = NULL;
     smf_ue_t *smf_ue = NULL;
+    smf_gtp_node_t *smf_gnode = NULL;
 
-    ogs_gtp_node_t *gnode = NULL;
     ogs_gtp_xact_t *gtp_xact = NULL;
     ogs_gtp2_message_t gtp2_message;
     ogs_gtp1_message_t gtp1_message;
@@ -72,7 +72,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     ogs_sbi_request_t *sbi_request = NULL;
 
     ogs_sbi_nf_instance_t *nf_instance = NULL;
-    ogs_sbi_subscription_t *subscription = NULL;
+    ogs_sbi_subscription_data_t *subscription_data = NULL;
     ogs_sbi_response_t *sbi_response = NULL;
     ogs_sbi_message_t sbi_message;
     ogs_sbi_xact_t *sbi_xact = NULL;
@@ -84,7 +84,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
     ogs_assert(s);
 
-    switch (e->id) {
+    switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
         break;
 
@@ -96,25 +96,34 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         recvbuf = e->pkbuf;
         ogs_assert(recvbuf);
 
+        smf_gnode = e->gnode;
+        ogs_assert(smf_gnode);
+
         if (ogs_gtp2_parse_msg(&gtp2_message, recvbuf) != OGS_OK) {
             ogs_error("ogs_gtp2_parse_msg() failed");
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_S5C_RX_PARSE_FAILED);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_S5C_RX_PARSE_FAILED);
             ogs_pkbuf_free(recvbuf);
             break;
         }
         e->gtp2_message = &gtp2_message;
 
-        gnode = e->gnode;
-        ogs_assert(gnode);
-
-        rv = ogs_gtp_xact_receive(gnode, &gtp2_message.h, &gtp_xact);
+        rv = ogs_gtp_xact_receive(smf_gnode->gnode, &gtp2_message.h, &gtp_xact);
         if (rv != OGS_OK) {
             ogs_pkbuf_free(recvbuf);
             break;
         }
         e->gtp_xact = gtp_xact;
 
-        if (gtp2_message.h.teid != 0) {
+        if (gtp2_message.h.teid_presence && gtp2_message.h.teid != 0) {
             sess = smf_sess_find_by_teid(gtp2_message.h.teid);
+        } else if (gtp_xact->local_teid) { /* rx no TEID or TEID=0 */
+            /* 3GPP TS 29.274 5.5.2: we receive TEID=0 under some
+             * conditions, such as cause "Session context not found". In those
+             * cases, we still want to identify the local session which
+             * originated the message, so try harder by using the TEID we
+             * locally stored in xact when sending the original request: */
+            sess = smf_sess_find_by_teid(gtp_xact->local_teid);
         }
 
         switch(gtp2_message.h.type) {
@@ -125,11 +134,13 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             smf_s5c_handle_echo_response(gtp_xact, &gtp2_message.echo_response);
             break;
         case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_S5C_RX_CREATESESSIONREQ);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_S5C_RX_CREATESESSIONREQ);
             if (gtp2_message.h.teid == 0) {
                 ogs_expect(!sess);
                 sess = smf_sess_add_by_gtp2_message(&gtp2_message);
                 if (sess)
-                    OGS_SETUP_GTP_NODE(sess, gnode);
+                    OGS_SETUP_GTP_NODE(sess, smf_gnode->gnode);
             }
             if (!sess) {
                 ogs_gtp2_send_error_message(gtp_xact, 0,
@@ -141,6 +152,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_fsm_dispatch(&sess->sm, e);
             break;
         case OGS_GTP2_DELETE_SESSION_REQUEST_TYPE:
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_S5C_RX_DELETESESSIONREQ);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_S5C_RX_DELETESESSIONREQ);
             if (!sess) {
                 ogs_gtp2_send_error_message(gtp_xact, 0,
                         OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE,
@@ -155,16 +168,20 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 sess, gtp_xact, recvbuf, &gtp2_message.modify_bearer_request);
             break;
         case OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE:
+            if (!gtp2_message.h.teid_presence) ogs_error("No TEID");
             smf_s5c_handle_create_bearer_response(
                 sess, gtp_xact, &gtp2_message.create_bearer_response);
             break;
         case OGS_GTP2_UPDATE_BEARER_RESPONSE_TYPE:
+            if (!gtp2_message.h.teid_presence) ogs_error("No TEID");
             smf_s5c_handle_update_bearer_response(
                 sess, gtp_xact, &gtp2_message.update_bearer_response);
             break;
         case OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE:
+            if (!gtp2_message.h.teid_presence) ogs_error("No TEID");
             if (!sess) {
                 /* TODO: NACK the message */
+                ogs_error("TODO: NACK the message");
                 break;
             }
             e->sess = sess;
@@ -175,7 +192,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 sess, gtp_xact, &gtp2_message.bearer_resource_command);
             break;
         default:
-            ogs_warn("Not implmeneted(type:%d)", gtp2_message.h.type);
+            ogs_warn("Not implemented(type:%d)", gtp2_message.h.type);
             break;
         }
         ogs_pkbuf_free(recvbuf);
@@ -186,8 +203,13 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         recvbuf = e->pkbuf;
         ogs_assert(recvbuf);
 
+        smf_gnode = e->gnode;
+        ogs_assert(smf_gnode);
+
         if (ogs_gtp1_parse_msg(&gtp1_message, recvbuf) != OGS_OK) {
             ogs_error("ogs_gtp2_parse_msg() failed");
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_GN_RX_PARSE_FAILED);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_GN_RX_PARSE_FAILED);
             ogs_pkbuf_free(recvbuf);
             break;
         }
@@ -197,10 +219,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             sess = smf_sess_find_by_teid(gtp1_message.h.teid);
         }
 
-        gnode = e->gnode;
-        ogs_assert(gnode);
-
-        rv = ogs_gtp1_xact_receive(gnode, &gtp1_message.h, &gtp_xact);
+        rv = ogs_gtp1_xact_receive(smf_gnode->gnode, &gtp1_message.h, &gtp_xact);
         if (rv != OGS_OK) {
             ogs_pkbuf_free(recvbuf);
             break;
@@ -215,11 +234,13 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             smf_gn_handle_echo_response(gtp_xact, &gtp1_message.echo_response);
             break;
         case OGS_GTP1_CREATE_PDP_CONTEXT_REQUEST_TYPE:
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_GN_RX_CREATEPDPCTXREQ);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_GN_RX_CREATEPDPCTXREQ);
             if (gtp1_message.h.teid == 0) {
                 ogs_expect(!sess);
                 sess = smf_sess_add_by_gtp1_message(&gtp1_message);
                 if (sess)
-                    OGS_SETUP_GTP_NODE(sess, gnode);
+                    OGS_SETUP_GTP_NODE(sess, smf_gnode->gnode);
             }
             if (!sess) {
                 ogs_gtp1_send_error_message(gtp_xact, 0,
@@ -231,6 +252,8 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_fsm_dispatch(&sess->sm, e);
             break;
         case OGS_GTP1_DELETE_PDP_CONTEXT_REQUEST_TYPE:
+            smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_GN_RX_DELETEPDPCTXREQ);
+            smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_GN_RX_DELETEPDPCTXREQ);
             if (!sess) {
                 ogs_gtp1_send_error_message(gtp_xact, 0,
                         OGS_GTP1_DELETE_PDP_CONTEXT_RESPONSE_TYPE,
@@ -249,7 +272,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("Rx unexpected Error Indication in GTPC port");
             break;
         default:
-            ogs_warn("Not implmeneted(type:%d)", gtp1_message.h.type);
+            ogs_warn("Not implemented(type:%d)", gtp1_message.h.type);
             break;
         }
         ogs_pkbuf_free(recvbuf);
@@ -395,10 +418,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_fsm_dispatch(&pfcp_node->sm, e);
         break;
 
-    case SMF_EVT_SBI_SERVER:
-        sbi_request = e->sbi.request;
+    case OGS_EVENT_SBI_SERVER:
+        sbi_request = e->h.sbi.request;
         ogs_assert(sbi_request);
-        stream = e->sbi.data;
+        stream = e->h.sbi.data;
         ogs_assert(stream);
 
         rv = ogs_sbi_parse_request(&sbi_message, sbi_request);
@@ -438,7 +461,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             CASE(OGS_SBI_RESOURCE_NAME_NF_STATUS_NOTIFY)
                 SWITCH(sbi_message.h.method)
                 CASE(OGS_SBI_HTTP_METHOD_POST)
-                    smf_nnrf_handle_nf_status_notify(stream, &sbi_message);
+                    ogs_nnrf_handle_nf_status_notify(stream, &sbi_message);
                     break;
 
                 DEFAULT
@@ -512,7 +535,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                     ogs_assert(OGS_FSM_STATE(&sess->sm));
 
                     e->sess = sess;
-                    e->sbi.message = &sbi_message;
+                    e->h.sbi.message = &sbi_message;
                     ogs_fsm_dispatch(&sess->sm, e);
                 }
                 break;
@@ -601,10 +624,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_sbi_message_free(&sbi_message);
         break;
 
-    case SMF_EVT_SBI_CLIENT:
+    case OGS_EVENT_SBI_CLIENT:
         ogs_assert(e);
 
-        sbi_response = e->sbi.response;
+        sbi_response = e->h.sbi.response;
         ogs_assert(sbi_response);
         rv = ogs_sbi_parse_response(&sbi_message, sbi_response);
         if (rv != OGS_OK) {
@@ -635,24 +658,24 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
             SWITCH(sbi_message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_NF_INSTANCES)
-                nf_instance = e->sbi.data;
+                nf_instance = e->h.sbi.data;
                 ogs_assert(nf_instance);
                 ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
-                e->sbi.message = &sbi_message;
+                e->h.sbi.message = &sbi_message;
                 ogs_fsm_dispatch(&nf_instance->sm, e);
                 break;
 
             CASE(OGS_SBI_RESOURCE_NAME_SUBSCRIPTIONS)
-                subscription = e->sbi.data;
-                ogs_assert(subscription);
+                subscription_data = e->h.sbi.data;
+                ogs_assert(subscription_data);
 
                 SWITCH(sbi_message.h.method)
                 CASE(OGS_SBI_HTTP_METHOD_POST)
                     if (sbi_message.res_status == OGS_SBI_HTTP_STATUS_CREATED ||
                         sbi_message.res_status == OGS_SBI_HTTP_STATUS_OK) {
-                        smf_nnrf_handle_nf_status_subscribe(
-                                subscription, &sbi_message);
+                        ogs_nnrf_handle_nf_status_subscribe(
+                                subscription_data, &sbi_message);
                     } else {
                         ogs_error("HTTP response error : %d",
                                 sbi_message.res_status);
@@ -662,7 +685,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 CASE(OGS_SBI_HTTP_METHOD_DELETE)
                     if (sbi_message.res_status ==
                             OGS_SBI_HTTP_STATUS_NO_CONTENT) {
-                        ogs_sbi_subscription_remove(subscription);
+                        ogs_sbi_subscription_data_remove(subscription_data);
                     } else {
                         ogs_error("HTTP response error : %d",
                                 sbi_message.res_status);
@@ -685,7 +708,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         CASE(OGS_SBI_SERVICE_NAME_NNRF_DISC)
             SWITCH(sbi_message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_NF_INSTANCES)
-                sbi_xact = e->sbi.data;
+                sbi_xact = e->h.sbi.data;
                 ogs_assert(sbi_xact);
 
                 SWITCH(sbi_message.h.method)
@@ -713,14 +736,22 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         CASE(OGS_SBI_SERVICE_NAME_NUDM_SDM)
         CASE(OGS_SBI_SERVICE_NAME_NPCF_SMPOLICYCONTROL)
         CASE(OGS_SBI_SERVICE_NAME_NAMF_COMM)
-            sbi_xact = e->sbi.data;
+            sbi_xact = e->h.sbi.data;
             ogs_assert(sbi_xact);
+
+            sbi_xact = ogs_sbi_xact_cycle(sbi_xact);
+            if (!sbi_xact) {
+                /* CLIENT_WAIT timer could remove SBI transaction
+                 * before receiving SBI message */
+                ogs_error("SBI transaction has already been removed");
+                break;
+            }
 
             sess = (smf_sess_t *)sbi_xact->sbi_object;
             ogs_assert(sess);
 
-            e->sbi.data = sbi_xact->assoc_stream;
-            e->sbi.state = sbi_xact->state;
+            e->h.sbi.data = sbi_xact->assoc_stream;
+            e->h.sbi.state = sbi_xact->state;
 
             ogs_sbi_xact_remove(sbi_xact);
 
@@ -736,7 +767,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_assert(OGS_FSM_STATE(&sess->sm));
 
             e->sess = sess;
-            e->sbi.message = &sbi_message;
+            e->h.sbi.message = &sbi_message;
 
             ogs_fsm_dispatch(&sess->sm, e);
             break;
@@ -750,38 +781,39 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_sbi_response_free(sbi_response);
         break;
 
-    case SMF_EVT_SBI_TIMER:
+    case OGS_EVENT_SBI_TIMER:
         ogs_assert(e);
 
-        switch(e->timer_id) {
-        case SMF_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
-        case SMF_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
-        case SMF_TIMER_NF_INSTANCE_NO_HEARTBEAT:
-        case SMF_TIMER_NF_INSTANCE_VALIDITY:
-            nf_instance = e->sbi.data;
+        switch(e->h.timer_id) {
+        case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_NO_HEARTBEAT:
+        case OGS_TIMER_NF_INSTANCE_VALIDITY:
+            nf_instance = e->h.sbi.data;
             ogs_assert(nf_instance);
             ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
             ogs_fsm_dispatch(&nf_instance->sm, e);
-            if (OGS_FSM_CHECK(&nf_instance->sm, smf_nf_state_exception))
-                ogs_error("State machine exception [%d]", e->timer_id);
+            if (OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_exception))
+                ogs_error("[%s:%s] State machine exception [%d]",
+                        OpenAPI_nf_type_ToString(nf_instance->nf_type),
+                        nf_instance->id, e->h.timer_id);
             break;
 
-        case SMF_TIMER_SUBSCRIPTION_VALIDITY:
-            subscription = e->sbi.data;
-            ogs_assert(subscription);
+        case OGS_TIMER_SUBSCRIPTION_VALIDITY:
+            subscription_data = e->h.sbi.data;
+            ogs_assert(subscription_data);
 
             ogs_assert(true ==
-                ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
-                    smf_self()->nf_type, subscription->req_nf_instance_id,
-                    subscription->subscr_cond.nf_type));
+                ogs_nnrf_nfm_send_nf_status_subscribe(subscription_data));
 
-            ogs_info("Subscription validity expired [%s]", subscription->id);
-            ogs_sbi_subscription_remove(subscription);
+            ogs_info("Subscription validity expired [%s]",
+                subscription_data->id);
+            ogs_sbi_subscription_data_remove(subscription_data);
             break;
 
-        case SMF_TIMER_SBI_CLIENT_WAIT:
-            sbi_xact = e->sbi.data;
+        case OGS_TIMER_SBI_CLIENT_WAIT:
+            sbi_xact = e->h.sbi.data;
             ogs_assert(sbi_xact);
 
             stream = sbi_xact->assoc_stream;
@@ -801,14 +833,14 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
         default:
             ogs_error("Unknown timer[%s:%d]",
-                    smf_timer_get_name(e->timer_id), e->timer_id);
+                    ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
         }
         break;
 
     case SMF_EVT_5GSM_MESSAGE:
         sess = e->sess;
         ogs_assert(sess);
-        stream = e->sbi.data;
+        stream = e->h.sbi.data;
         ogs_assert(stream);
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);
@@ -833,7 +865,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_NGAP_MESSAGE:
         sess = e->sess;
         ogs_assert(sess);
-        stream = e->sbi.data;
+        stream = e->h.sbi.data;
         ogs_assert(stream);
         pkbuf = e->pkbuf;
         ogs_assert(pkbuf);

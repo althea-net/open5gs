@@ -276,8 +276,6 @@ bool smf_npcf_smpolicycontrol_handle_create(
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
 
-    uint64_t supported_features;
-
     char *strerror = NULL;
     smf_ue_t *smf_ue = NULL;
 
@@ -345,7 +343,7 @@ bool smf_npcf_smpolicycontrol_handle_create(
 
     /* SBI Features */
     if (SmPolicyDecision->supp_feat) {
-        supported_features =
+        uint64_t supported_features =
             ogs_uint64_from_string(SmPolicyDecision->supp_feat);
         sess->smpolicycontrol_features &= supported_features;
     } else {
@@ -484,13 +482,18 @@ bool smf_npcf_smpolicycontrol_handle_create(
     up2cp_far = sess->up2cp_far;
     ogs_assert(up2cp_far);
 
+    /* Set UE IP Address to the Default DL PDR */
     ogs_assert(OGS_OK ==
         ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
             &dl_pdr->ue_ip_addr, &dl_pdr->ue_ip_addr_len));
     dl_pdr->ue_ip_addr.sd = OGS_PFCP_UE_IP_DST;
 
+    ogs_assert(OGS_OK ==
+        ogs_pfcp_paa_to_ue_ip_addr(&sess->session.paa,
+            &ul_pdr->ue_ip_addr, &ul_pdr->ue_ip_addr_len));
+
     ogs_info("UE SUPI[%s] DNN[%s] IPv4[%s] IPv6[%s]",
-	    smf_ue->supi, sess->session.name,
+        smf_ue->supi, sess->session.name,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
 
@@ -507,14 +510,34 @@ bool smf_npcf_smpolicycontrol_handle_create(
     /* Set UPF-N3 TEID & ADDR to the Default UL PDR */
     ogs_assert(sess->pfcp_node);
     if (sess->pfcp_node->up_function_features.ftup) {
+
+       /* TS 129 244 V16.5.0 8.2.3
+        *
+        * At least one of the V4 and V6 flags shall be set to "1",
+        * and both may be set to "1" for both scenarios:
+        *
+        * - when the CP function is providing F-TEID, i.e.
+        *   both IPv4 address field and IPv6 address field may be present;
+        *   or
+        * - when the UP function is requested to allocate the F-TEID,
+        *   i.e. when CHOOSE bit is set to "1",
+        *   and the IPv4 address and IPv6 address fields are not present.
+        */
+
+        ul_pdr->f_teid.ipv4 = 1;
+        ul_pdr->f_teid.ipv6 = 1;
         ul_pdr->f_teid.ch = 1;
         ul_pdr->f_teid.chid = 1;
         ul_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;
         ul_pdr->f_teid_len = 2;
 
+        cp2up_pdr->f_teid.ipv4 = 1;
+        cp2up_pdr->f_teid.ipv6 = 1;
         cp2up_pdr->f_teid.ch = 1;
         cp2up_pdr->f_teid_len = 1;
 
+        up2cp_pdr->f_teid.ipv4 = 1;
+        up2cp_pdr->f_teid.ipv6 = 1;
         up2cp_pdr->f_teid.ch = 1;
         up2cp_pdr->f_teid.chid = 1;
         up2cp_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;
@@ -658,9 +681,10 @@ bool smf_npcf_smpolicycontrol_handle_terminate_notify(
 
     memset(&param, 0, sizeof(param));
     ogs_assert(true ==
-        smf_sbi_discover_and_send(OpenAPI_nf_type_PCF, sess, NULL,
-            OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param,
-            smf_npcf_smpolicycontrol_build_delete));
+        smf_sbi_discover_and_send(
+            OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+            smf_npcf_smpolicycontrol_build_delete,
+            sess, NULL, OGS_PFCP_DELETE_TRIGGER_PCF_INITIATED, &param));
 
     return true;
 }

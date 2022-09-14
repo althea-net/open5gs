@@ -19,8 +19,8 @@
 
 #include "ogs-diameter-s6a.h"
 
-#define CHECK_dict_search( _type, _criteria, _what, _result )	\
-	CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, (_type), (_criteria), (_what), (_result), ENOENT) );
+#define CHECK_dict_search( _type, _criteria, _what, _result )    \
+    CHECK_FCT(  fd_dict_search( fd_g_config->cnf_dict, (_type), (_criteria), (_what), (_result), ENOENT) );
 
 struct dict_object *ogs_diam_s6a_application = NULL;
 
@@ -30,9 +30,16 @@ struct dict_object *ogs_diam_s6a_cmd_ulr = NULL;
 struct dict_object *ogs_diam_s6a_cmd_ula = NULL;
 struct dict_object *ogs_diam_s6a_cmd_pur = NULL;
 struct dict_object *ogs_diam_s6a_cmd_pua = NULL;
+struct dict_object *ogs_diam_s6a_cmd_clr = NULL;
+struct dict_object *ogs_diam_s6a_cmd_cla = NULL;
+struct dict_object *ogs_diam_s6a_cmd_idr = NULL;
+struct dict_object *ogs_diam_s6a_cmd_ida = NULL;
 
 struct dict_object *ogs_diam_s6a_ulr_flags = NULL;
 struct dict_object *ogs_diam_s6a_ula_flags = NULL;
+struct dict_object *ogs_diam_s6a_clr_flags = NULL;
+struct dict_object *ogs_diam_s6a_idr_flags = NULL;
+struct dict_object *ogs_diam_s6a_cancellation_type = NULL;
 struct dict_object *ogs_diam_s6a_subscription_data = NULL;
 struct dict_object *ogs_diam_s6a_req_eutran_auth_info = NULL;
 struct dict_object *ogs_diam_s6a_number_of_requested_vectors = NULL;
@@ -57,6 +64,7 @@ struct dict_object *ogs_diam_s6a_apn_configuration = NULL;
 struct dict_object *ogs_diam_s6a_max_bandwidth_ul = NULL;
 struct dict_object *ogs_diam_s6a_max_bandwidth_dl = NULL;
 struct dict_object *ogs_diam_s6a_pdn_type = NULL;
+struct dict_object *ogs_diam_s6a_3gpp_charging_characteristics = NULL;
 struct dict_object *ogs_diam_s6a_served_party_ip_address = NULL;
 struct dict_object *ogs_diam_s6a_eps_subscribed_qos_profile = NULL;
 struct dict_object *ogs_diam_s6a_qos_class_identifier = NULL;
@@ -66,6 +74,11 @@ struct dict_object *ogs_diam_s6a_pre_emption_capability = NULL;
 struct dict_object *ogs_diam_s6a_pre_emption_vulnerability = NULL;
 struct dict_object *ogs_diam_s6a_pdn_gw_allocation_type = NULL;
 struct dict_object *ogs_diam_s6a_vplmn_dynamic_address_allowed = NULL;
+struct dict_object *ogs_diam_s6a_eps_location_information = NULL;
+struct dict_object *ogs_diam_s6a_mme_location_information = NULL;
+struct dict_object *ogs_diam_s6a_e_utran_cell_global_identity = NULL;
+struct dict_object *ogs_diam_s6a_tracking_area_identity = NULL;
+struct dict_object *ogs_diam_s6a_age_of_location_information = NULL;
 
 struct dict_object *ogs_diam_s6a_terminal_information = NULL;
 struct dict_object *ogs_diam_s6a_imei = NULL;
@@ -90,9 +103,16 @@ int ogs_diam_s6a_init(void)
     CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Update-Location-Answer", &ogs_diam_s6a_cmd_ula);
     CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Purge-UE-Request", &ogs_diam_s6a_cmd_pur);
     CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Purge-UE-Answer", &ogs_diam_s6a_cmd_pua);
+    CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Cancel-Location-Request", &ogs_diam_s6a_cmd_clr);
+    CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Cancel-Location-Answer", &ogs_diam_s6a_cmd_cla);
+    CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Insert-Subscriber-Data-Request", &ogs_diam_s6a_cmd_idr);
+    CHECK_dict_search(DICT_COMMAND, CMD_BY_NAME, "Insert-Subscriber-Data-Answer", &ogs_diam_s6a_cmd_ida);
 
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "ULR-Flags", &ogs_diam_s6a_ulr_flags);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "ULA-Flags", &ogs_diam_s6a_ula_flags);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "CLR-Flags", &ogs_diam_s6a_clr_flags);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "IDR-Flags", &ogs_diam_s6a_idr_flags);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Cancellation-Type", &ogs_diam_s6a_cancellation_type);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "UE-SRVCC-Capability", &ogs_diam_s6a_ue_srvcc_capability);
 
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Requested-EUTRAN-Authentication-Info", &ogs_diam_s6a_req_eutran_auth_info);
@@ -125,12 +145,19 @@ int ogs_diam_s6a_init(void)
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "All-APN-Configurations-Included-Indicator", &ogs_diam_s6a_all_apn_configuration_included_indicator);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "APN-Configuration", &ogs_diam_s6a_apn_configuration);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "PDN-Type", &ogs_diam_s6a_pdn_type);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "3GPP-Charging-Characteristics", &ogs_diam_s6a_3gpp_charging_characteristics);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Served-Party-IP-Address", &ogs_diam_s6a_served_party_ip_address);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Subscription-Data", &ogs_diam_s6a_subscription_data);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Subscriber-Status", &ogs_diam_s6a_subscriber_status);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Network-Access-Mode", &ogs_diam_s6a_network_access_mode);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Access-Restriction-Data", &ogs_diam_s6a_access_restriction_data);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Subscribed-Periodic-RAU-TAU-Timer", &ogs_diam_s6a_subscribed_rau_tau_timer);
+
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "EPS-Location-Information", &ogs_diam_s6a_eps_location_information);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "MME-Location-Information", &ogs_diam_s6a_mme_location_information);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "E-UTRAN-Cell-Global-Identity", &ogs_diam_s6a_e_utran_cell_global_identity);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Tracking-Area-Identity", &ogs_diam_s6a_tracking_area_identity);
+    CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Age-Of-Location-Information", &ogs_diam_s6a_age_of_location_information);
 
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "Terminal-Information", &ogs_diam_s6a_terminal_information);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "IMEI", &ogs_diam_s6a_imei);
@@ -139,5 +166,5 @@ int ogs_diam_s6a_init(void)
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "MSISDN", &ogs_diam_s6a_msisdn);
     CHECK_dict_search(DICT_AVP, AVP_BY_NAME_ALL_VENDORS, "A-MSISDN", &ogs_diam_s6a_a_msisdn);
 
-	return 0;
+    return 0;
 }

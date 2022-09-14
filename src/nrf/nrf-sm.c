@@ -43,7 +43,7 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
     ogs_sbi_request_t *request = NULL;
     ogs_sbi_message_t message;
     ogs_sbi_nf_instance_t *nf_instance = NULL;
-    ogs_sbi_subscription_t *subscription = NULL;
+    ogs_sbi_subscription_data_t *subscription_data = NULL;
 
     ogs_assert(e);
 
@@ -105,9 +105,25 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
                     if (!nf_instance) {
                         SWITCH(message.h.method)
                         CASE(OGS_SBI_HTTP_METHOD_PUT)
-                            nf_instance = ogs_sbi_nf_instance_add(
-                                    message.h.resource.component[1]);
+                            if (ogs_sbi_nf_instance_maximum_number_is_reached())
+                            {
+                                ogs_warn("Can't add instance [%s] "
+                                         "due to insufficient space",
+                                         message.h.resource.component[1]);
+                                ogs_assert(
+                                    true ==
+                                    ogs_sbi_server_send_error(
+                                        stream,
+                                        OGS_SBI_HTTP_STATUS_PAYLOAD_TOO_LARGE,
+                                        &message, "Insufficient space",
+                                        message.h.resource.component[1]));
+                                break;
+                            }
+                            nf_instance = ogs_sbi_nf_instance_add();
                             ogs_assert(nf_instance);
+                            ogs_sbi_nf_instance_set_id(nf_instance,
+                                    message.h.resource.component[1]);
+
                             nrf_nf_fsm_init(nf_instance);
                             break;
                         DEFAULT
@@ -235,11 +251,12 @@ void nrf_state_operational(ogs_fsm_t *s, nrf_event_t *e)
             break;
 
         case NRF_TIMER_SUBSCRIPTION_VALIDITY:
-            subscription = e->subscription;
-            ogs_assert(subscription);
+            subscription_data = e->subscription_data;
+            ogs_assert(subscription_data);
 
-            ogs_info("[%s] Subscription validity expired", subscription->id);
-            ogs_sbi_subscription_remove(subscription);
+            ogs_info("[%s] Subscription validity expired",
+                    subscription_data->id);
+            ogs_sbi_subscription_data_remove(subscription_data);
             break;
 
         default:

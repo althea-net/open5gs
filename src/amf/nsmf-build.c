@@ -51,7 +51,8 @@ ogs_sbi_request_t *amf_nsmf_pdusession_build_create_sm_context(
 
     memset(&SmContextCreateData, 0, sizeof(SmContextCreateData));
 
-    SmContextCreateData.serving_nf_id = ogs_sbi_self()->nf_instance_id;
+    ogs_assert(ogs_sbi_self()->nf_instance);
+    SmContextCreateData.serving_nf_id = ogs_sbi_self()->nf_instance->id;
 
     SmContextCreateData.serving_network =
         ogs_sbi_build_plmn_id_nid(&amf_ue->nr_tai.plmn_id);
@@ -119,7 +120,8 @@ ogs_sbi_request_t *amf_nsmf_pdusession_build_create_sm_context(
     SmContextCreateData.ue_time_zone = ogs_sbi_timezone_string(ogs_timezone());
     ogs_expect_or_return_val(SmContextCreateData.ue_time_zone, NULL);
 
-    pcf_nf_instance = OGS_SBI_NF_INSTANCE(&amf_ue->sbi, OpenAPI_nf_type_PCF);
+    pcf_nf_instance = amf_ue->sbi.service_type_array[
+        OGS_SBI_SERVICE_TYPE_NPCF_AM_POLICY_CONTROL].nf_instance;
     ogs_expect_or_return_val(pcf_nf_instance, NULL);
     SmContextCreateData.pcf_id = pcf_nf_instance->id;
 

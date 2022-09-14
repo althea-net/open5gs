@@ -55,6 +55,7 @@ static void _gtpv1v2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     ogs_sockaddr_t from;
     ogs_gtp_node_t *gnode = NULL;
     uint8_t gtp_ver;
+    char frombuf[OGS_ADDRSTRLEN];
 
     ogs_assert(fd != INVALID_SOCKET);
 
@@ -89,18 +90,25 @@ static void _gtpv1v2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     gnode = ogs_gtp_node_find_by_addr(&smf_self()->sgw_s5c_list, &from);
     if (!gnode) {
         gnode = ogs_gtp_node_add_by_addr(&smf_self()->sgw_s5c_list, &from);
-        ogs_assert(gnode);
+        if (!gnode) {
+            ogs_error("Failed to create new gnode(%s:%u), mempool full, ignoring msg!",
+                      OGS_ADDR(&from, frombuf), OGS_PORT(&from));
+            ogs_pkbuf_free(pkbuf);
+            return;
+        }
         gnode->sock = data;
+        smf_gtp_node_new(gnode);
+        smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_GTP_PEERS_ACTIVE);
     }
     ogs_assert(e);
-    e->gnode = gnode;
+    e->gnode = gnode->data_ptr; /* smf_gtp_node_t */
     e->pkbuf = pkbuf;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_pkbuf_free(e->pkbuf);
-        smf_event_free(e);
+        ogs_event_free(e);
     }
 }
 
@@ -534,6 +542,7 @@ int smf_gtp2_send_delete_bearer_request(
     xact = ogs_gtp_xact_local_create(
             sess->gnode, &h, pkbuf, bearer_timeout, bearer);
     ogs_expect_or_return_val(xact, OGS_ERROR);
+    xact->local_teid = sess->smf_n4_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);

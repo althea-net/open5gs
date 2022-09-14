@@ -36,14 +36,13 @@ ogs_sbi_request_t *pcf_nbsf_management_build_register(
     ogs_sbi_nf_service_t *nf_service = NULL;
 
     int i;
-#if SBI_FQDN_WITH_ONE_OCTET_LENGTH
-    int fqdn_len;
-    char fqdn[OGS_MAX_FQDN_LEN];
-#endif
 
     ogs_assert(sess);
     pcf_ue = sess->pcf_ue;
     ogs_assert(pcf_ue);
+
+    nf_instance = data;
+    ogs_assert(nf_instance);
 
     memset(&message, 0, sizeof(message));
     message.h.method = (char *)OGS_SBI_HTTP_METHOD_POST;
@@ -63,23 +62,12 @@ ogs_sbi_request_t *pcf_nbsf_management_build_register(
     ogs_expect_or_return_val(sess->dnn, NULL);
     PcfBinding.dnn = sess->dnn;
 
-    nf_instance = ogs_sbi_nf_instance_find(ogs_sbi_self()->nf_instance_id);
-    ogs_expect_or_return_val(nf_instance, NULL);
-    nf_service = ogs_list_first(&nf_instance->nf_service_list);
+    nf_service = ogs_sbi_nf_service_find_by_name(
+            nf_instance, (char *)OGS_SBI_SERVICE_NAME_NPCF_POLICYAUTHORIZATION);
     ogs_expect_or_return_val(nf_service, NULL);
 
-    if (nf_service->fqdn) {
-#if SBI_FQDN_WITH_ONE_OCTET_LENGTH
-        memset(fqdn, 0, sizeof(fqdn));
-        fqdn_len = ogs_fqdn_build(fqdn,
-                nf_service->fqdn, strlen(nf_service->fqdn));
-        PcfBinding.pcf_fqdn = ogs_memdup(fqdn, fqdn_len+1);
-        ogs_expect_or_return_val(PcfBinding.pcf_fqdn, NULL);
-        PcfBinding.pcf_fqdn[fqdn_len] = 0;
-#else
+    if (nf_service->fqdn)
         PcfBinding.pcf_fqdn = ogs_strdup(nf_service->fqdn);
-#endif
-    }
 
     PcfIpEndPointList = OpenAPI_list_create();
     ogs_assert(PcfIpEndPointList);

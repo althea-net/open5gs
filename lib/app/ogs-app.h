@@ -20,7 +20,7 @@
 #ifndef OGS_APP_H
 #define OGS_APP_H
 
-#include "ogs-core.h"
+#include "proto/ogs-proto.h"
 
 #define OGS_APP_INSIDE
 
@@ -93,6 +93,9 @@ void smf_terminate(void);
 
 int amf_initialize(void);
 void amf_terminate(void);
+
+int scp_initialize(void);
+void scp_terminate(void);
 
 #ifdef __cplusplus
 }

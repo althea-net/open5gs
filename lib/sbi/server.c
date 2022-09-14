@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ogs-app.h"
 #include "ogs-sbi.h"
 
 extern const ogs_sbi_server_actions_t ogs_mhd_server_actions;
@@ -131,6 +130,12 @@ void ogs_sbi_server_stop_all(void)
 
     ogs_list_for_each_safe(&ogs_sbi_self()->server_list, next_server, server)
         ogs_sbi_server_actions.stop(server);
+}
+
+bool ogs_sbi_server_send_rspmem_persistent(
+        ogs_sbi_stream_t *stream, ogs_sbi_response_t *response)
+{
+    return ogs_sbi_server_actions.send_rspmem_persistent(stream, response);
 }
 
 bool ogs_sbi_server_send_response(

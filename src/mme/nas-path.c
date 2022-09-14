@@ -28,13 +28,16 @@
 
 int nas_eps_send_to_enb(mme_ue_t *mme_ue, ogs_pkbuf_t *pkbuf)
 {
-    enb_ue_t *enb_ue = NULL;
+    ogs_assert(pkbuf);
 
-    ogs_assert(mme_ue);
-    enb_ue = enb_ue_cycle(mme_ue->enb_ue);
-    ogs_expect_or_return_val(enb_ue, OGS_ERROR);
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (!mme_ue) {
+        ogs_warn("UE(mme-ue) context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
 
-    return s1ap_send_to_enb_ue(enb_ue, pkbuf);
+    return s1ap_send_to_enb_ue(mme_ue->enb_ue, pkbuf);
 }
 
 int nas_eps_send_emm_to_esm(mme_ue_t *mme_ue,
@@ -69,22 +72,28 @@ int nas_eps_send_to_downlink_nas_transport(mme_ue_t *mme_ue, ogs_pkbuf_t *pkbuf)
     enb_ue_t *enb_ue = NULL;
 
     ogs_assert(pkbuf);
-    ogs_assert(mme_ue);
+
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (!mme_ue) {
+        ogs_warn("UE(mme-ue) context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
     enb_ue = enb_ue_cycle(mme_ue->enb_ue);
     if (!enb_ue) {
-        ogs_error("S1 context has already been removed");
+        ogs_warn("S1 context has already been removed");
         ogs_pkbuf_free(pkbuf);
-
         return OGS_ERROR;
-    } else {
-        s1apbuf = s1ap_build_downlink_nas_transport(enb_ue, pkbuf);
-        ogs_expect_or_return_val(s1apbuf, OGS_ERROR);
-
-        rv = nas_eps_send_to_enb(mme_ue, s1apbuf);
-        ogs_expect(rv == OGS_OK);
-
-        return rv;
     }
+
+    s1apbuf = s1ap_build_downlink_nas_transport(enb_ue, pkbuf);
+    ogs_expect_or_return_val(s1apbuf, OGS_ERROR);
+
+    rv = nas_eps_send_to_enb(mme_ue, s1apbuf);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 int nas_eps_send_attach_accept(mme_ue_t *mme_ue)
@@ -134,7 +143,7 @@ int nas_eps_send_attach_reject(mme_ue_t *mme_ue,
     mme_sess_t *sess = NULL;
     ogs_pkbuf_t *esmbuf = NULL, *emmbuf = NULL;
 
-    ogs_assert(mme_ue);
+    ogs_expect_or_return_val(mme_ue, OGS_ERROR);
 
     ogs_debug("[%s] Attach reject", mme_ue->imsi_bcd);
     ogs_debug("    Cause[%d]", emm_cause);
@@ -256,6 +265,32 @@ int nas_eps_send_authentication_reject(mme_ue_t *mme_ue)
     return rv;
 }
 
+int nas_eps_send_detach_request(mme_ue_t *mme_ue)
+{
+    int rv;
+    ogs_pkbuf_t *emmbuf = NULL;
+
+    ogs_debug("[%s] Detach request to UE", mme_ue->imsi_bcd);
+
+    if (mme_ue->t3422.pkbuf) {
+        emmbuf = mme_ue->t3422.pkbuf;
+        ogs_expect_or_return_val(emmbuf, OGS_ERROR);
+    } else {
+        emmbuf = emm_build_detach_request(mme_ue);
+        ogs_expect_or_return_val(emmbuf, OGS_ERROR);
+    }
+
+    mme_ue->t3422.pkbuf = ogs_pkbuf_copy(emmbuf);
+    ogs_expect_or_return_val(mme_ue->t3422.pkbuf, OGS_ERROR);
+    ogs_timer_start(mme_ue->t3422.timer, 
+            mme_timer_cfg(MME_TIMER_T3422)->duration);    
+
+    rv = nas_eps_send_to_downlink_nas_transport(mme_ue, emmbuf);
+    ogs_expect_or_return_val(rv == OGS_OK, rv);
+
+    return rv;
+}
+
 int nas_eps_send_detach_accept(mme_ue_t *mme_ue)
 {
     int rv;
@@ -301,7 +336,7 @@ int nas_eps_send_pdn_connectivity_reject(
         /* During the UE-attach process, we'll send Attach-Reject
          * with pyggybacking PDN-connectivity-Reject */
         rv = nas_eps_send_attach_reject(mme_ue,
-            EMM_CAUSE_EPS_SERVICES_AND_NON_EPS_SERVICES_NOT_ALLOWED, esm_cause);
+            OGS_NAS_EMM_CAUSE_EPS_SERVICES_AND_NON_EPS_SERVICES_NOT_ALLOWED, esm_cause);
         ogs_expect(rv == OGS_OK);
     } else {
         esmbuf = esm_build_pdn_connectivity_reject(
@@ -450,7 +485,7 @@ int nas_eps_send_deactivate_bearer_context_request(mme_bearer_t *bearer)
     ogs_assert(mme_ue);
 
     esmbuf = esm_build_deactivate_bearer_context_request(
-            bearer, ESM_CAUSE_REGULAR_DEACTIVATION);
+            bearer, OGS_NAS_ESM_CAUSE_REGULAR_DEACTIVATION);
     ogs_expect_or_return_val(esmbuf, OGS_ERROR);
 
     s1apbuf = s1ap_build_e_rab_release_command(bearer, esmbuf,

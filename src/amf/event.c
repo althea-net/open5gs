@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -20,83 +20,66 @@
 #include "event.h"
 #include "context.h"
 
-static OGS_POOL(pool, amf_event_t);
-
-void amf_event_init(void)
-{
-    ogs_pool_init(&pool, ogs_app()->pool.event);
-}
-
-void amf_event_final(void)
-{
-    ogs_pool_final(&pool);
-}
-
-amf_event_t *amf_event_new(amf_event_e id)
+amf_event_t *amf_event_new(int id)
 {
     amf_event_t *e = NULL;
 
-    ogs_pool_alloc(&pool, &e);
-    if (!e) return NULL;
-    memset(e, 0, sizeof(*e));
+    e = ogs_event_size(id, sizeof(amf_event_t));
+    ogs_assert(e);
 
-    e->id = id;
+    e->h.id = id;
 
     return e;
 }
 
-void amf_event_free(amf_event_t *e)
-{
-    ogs_assert(e);
-    ogs_pool_free(&pool, e);
-}
-
 const char *amf_event_get_name(amf_event_t *e)
 {
-    if (e == NULL)
+    if (e == NULL) {
         return OGS_FSM_NAME_INIT_SIG;
-
-    switch (e->id) {
-    case OGS_FSM_ENTRY_SIG: 
-        return OGS_FSM_NAME_ENTRY_SIG;
-    case OGS_FSM_EXIT_SIG: 
-        return OGS_FSM_NAME_EXIT_SIG;
-
-    case AMF_EVT_SBI_SERVER:
-        return "AMF_EVT_SBI_SERVER";
-    case AMF_EVT_SBI_CLIENT:
-        return "AMF_EVT_SBI_CLIENT";
-    case AMF_EVT_SBI_TIMER:
-        return "AMF_EVT_SBI_TIMER";
-
-    case AMF_EVT_NGAP_MESSAGE:
-        return "AMF_EVT_NGAP_MESSAGE";
-    case AMF_EVT_NGAP_TIMER:
-        return "AMF_EVT_NGAP_TIMER";
-    case AMF_EVT_NGAP_LO_ACCEPT:
-        return "AMF_EVT_NGAP_LO_ACCEPT";
-    case AMF_EVT_NGAP_LO_SCTP_COMM_UP:
-        return "AMF_EVT_NGAP_LO_SCTP_COMM_UP";
-    case AMF_EVT_NGAP_LO_CONNREFUSED:
-        return "AMF_EVT_NGAP_LO_CONNREFUSED";
-
-    case AMF_EVT_5GMM_MESSAGE:
-        return "AMF_EVT_5GMM_MESSAGE";
-    case AMF_EVT_5GMM_TIMER:
-        return "AMF_EVT_5GMM_TIMER";
-    case AMF_EVT_5GSM_MESSAGE:
-        return "AMF_EVT_5GSM_MESSAGE";
-    case AMF_EVT_5GSM_TIMER:
-        return "AMF_EVT_5GSM_TIMER";
-
-    default: 
-       break;
     }
 
+    switch (e->h.id) {
+    case OGS_FSM_ENTRY_SIG:
+        return OGS_FSM_NAME_ENTRY_SIG;
+    case OGS_FSM_EXIT_SIG:
+        return OGS_FSM_NAME_EXIT_SIG;
+
+    case OGS_EVENT_SBI_SERVER:
+        return OGS_EVENT_NAME_SBI_SERVER;
+    case OGS_EVENT_SBI_CLIENT:
+        return OGS_EVENT_NAME_SBI_CLIENT;
+    case OGS_EVENT_SBI_TIMER:
+        return OGS_EVENT_NAME_SBI_TIMER;
+
+    case AMF_EVENT_NGAP_MESSAGE:
+        return "AMF_EVENT_NGAP_MESSAGE";
+    case AMF_EVENT_NGAP_TIMER:
+        return "AMF_EVENT_NGAP_TIMER";
+    case AMF_EVENT_NGAP_LO_ACCEPT:
+        return "AMF_EVENT_NGAP_LO_ACCEPT";
+    case AMF_EVENT_NGAP_LO_SCTP_COMM_UP:
+        return "AMF_EVENT_NGAP_LO_SCTP_COMM_UP";
+    case AMF_EVENT_NGAP_LO_CONNREFUSED:
+        return "AMF_EVENT_NGAP_LO_CONNREFUSED";
+
+    case AMF_EVENT_5GMM_MESSAGE:
+        return "AMF_EVENT_5GMM_MESSAGE";
+    case AMF_EVENT_5GMM_TIMER:
+        return "AMF_EVENT_5GMM_TIMER";
+    case AMF_EVENT_5GSM_MESSAGE:
+        return "AMF_EVENT_5GSM_MESSAGE";
+    case AMF_EVENT_5GSM_TIMER:
+        return "AMF_EVENT_5GSM_TIMER";
+
+    default:
+        break;
+    }
+
+    ogs_error("Unknown Event[%d]", e->h.id);
     return "UNKNOWN_EVENT";
 }
 
-void amf_sctp_event_push(amf_event_e id,
+void amf_sctp_event_push(int id,
         void *sock, ogs_sockaddr_t *addr, ogs_pkbuf_t *pkbuf,
         uint16_t max_num_of_istreams, uint16_t max_num_of_ostreams)
 {
@@ -119,11 +102,11 @@ void amf_sctp_event_push(amf_event_e id,
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_free(e->ngap.addr);
         if (e->pkbuf)
             ogs_pkbuf_free(e->pkbuf);
-        amf_event_free(e);
+        ogs_event_free(e);
     }
 #if HAVE_USRSCTP
     else {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -28,6 +28,7 @@
 
 #include "amf-sm.h"
 #include "timer.h"
+#include "metrics.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,8 +48,6 @@ typedef struct amf_ue_s amf_ue_t;
 typedef uint32_t amf_m_tmsi_t;
 
 typedef struct amf_context_s {
-    OpenAPI_nf_type_e   nf_type;
-
     /* Served GUAMI */
     uint8_t num_of_served_guami;
     ogs_guami_t served_guami[MAX_NUM_OF_SERVED_GUAMI];
@@ -197,22 +196,6 @@ struct ran_ue_s {
     amf_gnb_t       *gnb;
     amf_ue_t        *amf_ue;
 }; 
-
-#define AMF_NF_INSTANCE_CLEAR(_cAUSE, _nFInstance) \
-    do { \
-        ogs_assert(_nFInstance); \
-        if ((_nFInstance)->reference_count == 1) { \
-            ogs_info("[%s] (%s) NF removed", (_nFInstance)->id, (_cAUSE)); \
-            amf_nf_fsm_fini((_nFInstance)); \
-        } else { \
-            /* There is an assocation with other context */ \
-            ogs_info("[%s:%d] (%s) NF suspended", \
-                    _nFInstance->id, _nFInstance->reference_count, (_cAUSE)); \
-            OGS_FSM_TRAN(&_nFInstance->sm, amf_nf_state_de_registered); \
-            ogs_fsm_dispatch(&_nFInstance->sm, NULL); \
-        } \
-        ogs_sbi_nf_instance_remove(_nFInstance); \
-    } while(0)
 
 struct amf_ue_s {
     ogs_sbi_object_t sbi;
@@ -408,6 +391,9 @@ struct amf_ue_s {
         NGAP_Cause_PR group;
         long cause;
     } handover;
+
+    /* Network Initiated De-Registration */
+    bool network_initiated_de_reg;
 
     ogs_list_t      sess_list;
 };
@@ -635,6 +621,7 @@ amf_gnb_t *amf_gnb_find_by_addr(ogs_sockaddr_t *addr);
 amf_gnb_t *amf_gnb_find_by_gnb_id(uint32_t gnb_id);
 int amf_gnb_set_gnb_id(amf_gnb_t *gnb, uint32_t gnb_id);
 int amf_gnb_sock_type(ogs_sock_t *sock);
+amf_gnb_t *amf_gnb_cycle(amf_gnb_t *gnb);
 
 ran_ue_t *ran_ue_add(amf_gnb_t *gnb, uint32_t ran_ue_ngap_id);
 void ran_ue_remove(ran_ue_t *ran_ue);
@@ -749,10 +736,10 @@ amf_sess_t *amf_sess_find_by_dnn(amf_ue_t *amf_ue, char *dnn);
 amf_ue_t *amf_ue_cycle(amf_ue_t *amf_ue);
 amf_sess_t *amf_sess_cycle(amf_sess_t *sess);
 
-void amf_ue_select_nf(amf_ue_t *amf_ue, OpenAPI_nf_type_e nf_type);
-void amf_sess_select_nf(amf_sess_t *sess, OpenAPI_nf_type_e nf_type);
-
-void amf_sess_select_smf(amf_sess_t *sess);
+void amf_sbi_select_nf(
+        ogs_sbi_object_t *sbi_object,
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option);
 
 #define AMF_SESSION_SYNC_DONE(__aMF, __sTATE) \
     (amf_sess_xact_state_count(__aMF, __sTATE) == 0)

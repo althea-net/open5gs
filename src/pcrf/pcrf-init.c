@@ -55,6 +55,6 @@ void pcrf_terminate(void)
 
     ogs_dbi_final();
     pcrf_context_final();
-	
-	return;
+
+    return;
 }

@@ -197,6 +197,12 @@ bool smf_nsmf_handle_create_sm_context(
         ogs_assert(sess->pcf_id);
     }
 
+    if (SmContextCreateData->serving_nf_id) {
+        if (sess->serving_nf_id) ogs_free(sess->serving_nf_id);
+        sess->serving_nf_id = ogs_strdup(SmContextCreateData->serving_nf_id);
+        ogs_assert(sess->serving_nf_id);
+    }
+
     /*
      * NOTE : The pkbuf created in the SBI message will be removed
      *        from ogs_sbi_message_free().
@@ -343,6 +349,8 @@ bool smf_nsmf_handle_update_sm_context(
                 sess, stream, SmContextUpdateData->n2_sm_info_type, n2smbuf);
 
     } else if (SmContextUpdateData->up_cnx_state) {
+
+        sess->up_cnx_state = SmContextUpdateData->up_cnx_state;
 
         if (SmContextUpdateData->up_cnx_state ==
                 OpenAPI_up_cnx_state_DEACTIVATED) {
@@ -584,9 +592,11 @@ bool smf_nsmf_handle_update_sm_context(
                 param.ue_timezone = true;
 
                 ogs_assert(true ==
-                    smf_sbi_discover_and_send(OpenAPI_nf_type_PCF, sess, stream,
-                        OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param,
-                        smf_npcf_smpolicycontrol_build_delete));
+                    smf_sbi_discover_and_send(
+                        OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+                        smf_npcf_smpolicycontrol_build_delete,
+                        sess, stream,
+                        OGS_PFCP_DELETE_TRIGGER_AMF_UPDATE_SM_CONTEXT, &param));
             }
         } else {
             ogs_error("No PolicyAssociationId");
@@ -659,9 +669,11 @@ bool smf_nsmf_handle_release_sm_context(
 
     if (sess->policy_association_id) {
         ogs_assert(true ==
-            smf_sbi_discover_and_send(OpenAPI_nf_type_PCF, sess, stream,
-                OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT, &param,
-                smf_npcf_smpolicycontrol_build_delete));
+            smf_sbi_discover_and_send(
+                OGS_SBI_SERVICE_TYPE_NPCF_SMPOLICYCONTROL, NULL,
+                smf_npcf_smpolicycontrol_build_delete,
+                sess, stream,
+                OGS_PFCP_DELETE_TRIGGER_AMF_RELEASE_SM_CONTEXT, &param));
     } else {
         ogs_error("No PolicyAssociationId");
         ogs_assert(true ==

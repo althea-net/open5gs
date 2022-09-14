@@ -65,6 +65,9 @@ typedef struct ogs_pfcp_xact_s {
 
     ogs_timer_t     *tm_delayed_commit; /**< Timer waiting for commit xact */
 
+    uint64_t        local_seid;     /**< Local SEID,
+                                         expected in reply from peer */
+
     void            *assoc_xact;    /**< Associated GTP transaction */
     ogs_pkbuf_t     *gtpbuf;        /**< GTP packet buffer */
 
@@ -102,8 +105,11 @@ typedef struct ogs_pfcp_xact_s {
 #define OGS_PFCP_MODIFY_URR  ((uint64_t)1<<24) /* type of trigger */
 #define OGS_PFCP_MODIFY_URR_MEAS_METHOD ((uint64_t)1<<25)
 #define OGS_PFCP_MODIFY_URR_REPORT_TRIGGER ((uint64_t)1<<26)
-#define OGS_PFCP_MODIFY_URR_VOLUME_THRESH ((uint64_t)1<<27)
-#define OGS_PFCP_MODIFY_URR_TIME_THRESH ((uint64_t)1<<28)
+#define OGS_PFCP_MODIFY_URR_QUOTA_VALIDITY_TIME ((uint64_t)1<<27)
+#define OGS_PFCP_MODIFY_URR_VOLUME_QUOTA ((uint64_t)1<<28)
+#define OGS_PFCP_MODIFY_URR_TIME_QUOTA ((uint64_t)1<<29)
+#define OGS_PFCP_MODIFY_URR_VOLUME_THRESH ((uint64_t)1<<30)
+#define OGS_PFCP_MODIFY_URR_TIME_THRESH ((uint64_t)1<<31)
 
     uint64_t        modify_flags;
 

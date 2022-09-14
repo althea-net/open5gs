@@ -35,7 +35,7 @@ logger:
 #          - ::0
 #        port: 7777
 #
-#  o SBI Server(https://<all address avaiable>:443)
+#  o SBI Server(https://<all address available>:443)
 #    sbi:
 #      - tls:
 #          key: smf.key
@@ -84,6 +84,40 @@ logger:
 #        so_linger:
 #          l_onoff: true
 #          l_linger: 10
+#
+#  <NF Service>
+#
+#  o NF Service Name(Default : all NF services available)
+#    service_name:
+#
+#  o NF Service Name(Only some NF services are available)
+#    service_name:
+#      - nsmf-pdusession
+#
+#  <NF Discovery Query Parameter>
+#
+#  o (Default) If you do not set Query Parameter as shown below,
+#
+#    sbi:
+#      - addr: 127.0.0.4
+#        port: 7777
+#
+#    - 'service-names' is included.
+#
+#    sbi:
+#      - addr: 127.0.0.4
+#        port: 7777
+#    discovery:
+#      option:
+#        no_service_names: false
+#
+#  o To remove 'service-names' from URI query parameters in NS Discovery
+#         no_service_names: true
+#
+#    * For Indirect Communication with Delegated Discovery,
+#      'service-names' is always included in the URI query parameter.
+#    * That is, 'no_service_names' has no effect.
+#
 #
 #  <PFCP Server>
 #
@@ -269,7 +303,7 @@ logger:
 #              - internet
 #              - ims
 #
-#  o S-NSSAI[SST:1] and DNN[internet] and TAI[PLMN-ID:90170 TAC:1]
+#  o S-NSSAI[SST:1] and DNN[internet] and TAI[PLMN-ID:99970 TAC:1]
 #    info:
 #      - s_nssai:
 #          - sst: 1
@@ -277,14 +311,14 @@ logger:
 #              - internet
 #        tai:
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            tac: 1
 #
 #  o If any of conditions below are met:
-#   - S-NSSAI[SST:1] and DNN[internet] and TAI[PLMN-ID:90170 TAC:1-9]
+#   - S-NSSAI[SST:1] and DNN[internet] and TAI[PLMN-ID:99970 TAC:1-9]
 #   - S-NSSAI[SST:2 SD:000080] and DNN[internet or ims]
-#   - S-NSSAI[SST:4] and DNN[internet] and TAI[PLMN-ID:90170 TAC:10-20,30-40]
+#   - S-NSSAI[SST:4] and DNN[internet] and TAI[PLMN-ID:99970 TAC:10-20,30-40]
 #
 #    info:
 #      - s_nssai:
@@ -293,7 +327,7 @@ logger:
 #              - internet
 #        tai:
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            range:
 #              - 1-9
@@ -309,7 +343,7 @@ logger:
 #              - internet
 #        tai:
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            range:
 #              - 10-20
@@ -339,27 +373,27 @@ logger:
 #              - internet
 #        tai:
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            tac: [1, 2, 3]
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            tac: 4
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            tac:
 #              - 5
 #              - 6
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            range:
 #              - 100-200
 #              - 300-400
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            range:
 #              - 500-600
@@ -371,7 +405,7 @@ logger:
 #              - internet
 #        tai:
 #          - plmn_id:
-#              mcc: 901
+#              mcc: 999
 #              mnc: 70
 #            tac: 99
 #
@@ -527,10 +561,12 @@ parameter:
 #
 # max:
 #
-# o Maximum Number of UE per AMF/MME
+# o Maximum Number of UE
 #    ue: 1024
-# o Maximum Number of gNB/eNB per AMF/MME
-#    gnb: 64
+# o Maximum Number of Peer(S1AP/NGAP, DIAMETER, GTP, PFCP or SBI)
+#    peer: 64
+# o Maximum Number of GTP peer nodes per SGWC/SMF
+#    gtp_peer: 64
 #
 max:
 
@@ -563,3 +599,17 @@ max:
 #    handover:
 #        duration: 500
 time:
+
+#
+# metrics:
+#
+#  <Metrics Server>
+#
+#  o Metrics Server(http://<any address>:9090)
+#    metrics:
+#      addr: 0.0.0.0
+#      port: 9090
+#
+metrics:
+    addr: 127.0.0.4
+    port: 9090

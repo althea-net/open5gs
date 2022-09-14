@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -52,8 +52,6 @@ udr_context_t *udr_self(void)
 
 static int udr_context_prepare(void)
 {
-    self.nf_type = OpenAPI_nf_type_UDR;
-
     return OGS_OK;
 }
 
@@ -85,6 +83,10 @@ int udr_context_parse_config(void)
                 const char *udr_key = ogs_yaml_iter_key(&udr_iter);
                 ogs_assert(udr_key);
                 if (!strcmp(udr_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(udr_key, "service_name")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(udr_key, "discovery")) {
                     /* handle config in sbi library */
                 } else
                     ogs_warn("unknown key `%s`", udr_key);

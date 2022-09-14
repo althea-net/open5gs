@@ -708,15 +708,19 @@ sgwc_tunnel_t *sgwc_tunnel_add(
 
     pdr = ogs_pfcp_pdr_add(&sess->pfcp);
     ogs_assert(pdr);
-    pdr->src_if = src_if;
 
-    if (sess->session.name) {
-        pdr->apn = ogs_strdup(sess->session.name);
-        ogs_assert(pdr->apn);
-    }
+    ogs_assert(sess->session.name);
+    pdr->apn = ogs_strdup(sess->session.name);
+    ogs_assert(pdr->apn);
+
+    pdr->src_if = src_if;
 
     far = ogs_pfcp_far_add(&sess->pfcp);
     ogs_assert(far);
+
+    ogs_assert(sess->session.name);
+    far->apn = ogs_strdup(sess->session.name);
+    ogs_assert(far->apn);
 
     far->dst_if = dst_if;
     ogs_pfcp_pdr_associate_far(pdr, far);
@@ -727,6 +731,22 @@ sgwc_tunnel_t *sgwc_tunnel_add(
 
     ogs_assert(sess->pfcp_node);
     if (sess->pfcp_node->up_function_features.ftup) {
+
+       /* TS 129 244 V16.5.0 8.2.3
+        *
+        * At least one of the V4 and V6 flags shall be set to "1",
+        * and both may be set to "1" for both scenarios:
+        *
+        * - when the CP function is providing F-TEID, i.e.
+        *   both IPv4 address field and IPv6 address field may be present;
+        *   or
+        * - when the UP function is requested to allocate the F-TEID,
+        *   i.e. when CHOOSE bit is set to "1",
+        *   and the IPv4 address and IPv6 address fields are not present.
+        */
+
+        pdr->f_teid.ipv4 = 1;
+        pdr->f_teid.ipv6 = 1;
         pdr->f_teid.ch = 1;
         pdr->f_teid_len = 1;
     } else {

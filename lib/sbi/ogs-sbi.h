@@ -20,7 +20,8 @@
 #ifndef OGS_SBI_H
 #define OGS_SBI_H
 
-#include "ogs-core.h"
+#include "crypt/ogs-crypt.h"
+#include "app/ogs-app.h"
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
@@ -42,6 +43,7 @@
 #include "model/confirmation_data_response.h"
 #include "model/auth_event.h"
 #include "model/amf3_gpp_access_registration.h"
+#include "model/amf3_gpp_access_registration_modification.h"
 #include "model/access_and_mobility_subscription_data.h"
 #include "model/smf_selection_subscription_data.h"
 #include "model/ue_context_in_smf_data.h"
@@ -72,6 +74,7 @@
 #include "model/policy_update.h"
 #include "model/sm_policy_notification.h"
 #include "model/termination_notification.h"
+#include "model/deregistration_data.h"
 
 #include "custom/links.h"
 #include "custom/ue_authentication_ctx.h"
@@ -83,12 +86,16 @@
 
 #define OGS_SBI_INSIDE
 
+#include "sbi/types.h"
 #include "sbi/conv.h"
+#include "sbi/timer.h"
 #include "sbi/message.h"
 
 #include "sbi/server.h"
 #include "sbi/client.h"
 #include "sbi/context.h"
+
+#include "sbi/nf-sm.h"
 
 #include "sbi/nnrf-build.h"
 #include "sbi/nnrf-handler.h"

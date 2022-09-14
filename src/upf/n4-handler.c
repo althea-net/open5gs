@@ -36,12 +36,9 @@ static void upf_n4_handle_create_urr(upf_sess_t *sess, ogs_pfcp_tlv_create_urr_t
         if (!urr)
             return;
 
-        /* TODO: here we should check for Reporting Triggers IMTH=1 instead? */
-        if ((urr->meas_method & OGS_PFCP_MEASUREMENT_METHOD_DURATION) && urr->time_threshold > 0) {
-            /* if ISTM bit set in Measurement Information: */
-            if (urr->meas_info.istm) {
-                upf_sess_urr_acc_time_threshold_setup(sess, urr);
-            } /* else: TODO: call upf_sess_urr_acc_time_threshold_setup() upon first pkt received */
+        /* TODO: enable counters somewhere else if ISTM not set, upon first pkt received */
+        if (urr->meas_info.istm) {
+            upf_sess_urr_acc_timers_setup(sess, urr);
         }
     }
 }
@@ -122,8 +119,9 @@ void upf_n4_handle_session_establishment_request(
         /* Setup UE IP address */
         if (pdr->ue_ip_addr_len) {
             if (req->pdn_type.presence == 1) {
-                ogs_assert(OGS_PFCP_CAUSE_REQUEST_ACCEPTED ==
-                        upf_sess_set_ue_ip(sess, req->pdn_type.u8, pdr));
+                cause_value = upf_sess_set_ue_ip(sess, req->pdn_type.u8, pdr);
+                if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED)
+                    goto cleanup;
             } else {
                 ogs_error("No PDN Type");
             }
@@ -159,6 +157,9 @@ void upf_n4_handle_session_establishment_request(
                             &ogs_gtp_self()->gtpu_resource_list,
                             pdr->dnn, OGS_PFCP_INTERFACE_ACCESS);
                     if (resource) {
+                        ogs_assert(
+                            (resource->info.v4 && pdr->f_teid.ipv4) ||
+                            (resource->info.v6 && pdr->f_teid.ipv6));
                         ogs_assert(OGS_OK ==
                             ogs_pfcp_user_plane_ip_resource_info_to_f_teid(
                             &resource->info, &pdr->f_teid, &pdr->f_teid_len));
@@ -169,10 +170,15 @@ void upf_n4_handle_session_establishment_request(
                         else
                             pdr->f_teid.teid = pdr->index;
                     } else {
+                        ogs_assert(
+                            (ogs_gtp_self()->gtpu_addr && pdr->f_teid.ipv4) ||
+                            (ogs_gtp_self()->gtpu_addr6 && pdr->f_teid.ipv6));
                         ogs_assert(OGS_OK ==
                             ogs_pfcp_sockaddr_to_f_teid(
-                                ogs_gtp_self()->gtpu_addr,
-                                ogs_gtp_self()->gtpu_addr6,
+                                pdr->f_teid.ipv4 ?
+                                    ogs_gtp_self()->gtpu_addr : NULL,
+                                pdr->f_teid.ipv6 ?
+                                    ogs_gtp_self()->gtpu_addr6 : NULL,
                                 &pdr->f_teid, &pdr->f_teid_len));
                         pdr->f_teid.teid = pdr->index;
                     }
@@ -394,6 +400,9 @@ void upf_n4_handle_session_modification_request(
                             &ogs_gtp_self()->gtpu_resource_list,
                             pdr->dnn, OGS_PFCP_INTERFACE_ACCESS);
                     if (resource) {
+                        ogs_assert(
+                            (resource->info.v4 && pdr->f_teid.ipv4) ||
+                            (resource->info.v6 && pdr->f_teid.ipv6));
                         ogs_assert(OGS_OK ==
                             ogs_pfcp_user_plane_ip_resource_info_to_f_teid(
                             &resource->info, &pdr->f_teid, &pdr->f_teid_len));
@@ -404,10 +413,15 @@ void upf_n4_handle_session_modification_request(
                         else
                             pdr->f_teid.teid = pdr->index;
                     } else {
+                        ogs_assert(
+                            (ogs_gtp_self()->gtpu_addr && pdr->f_teid.ipv4) ||
+                            (ogs_gtp_self()->gtpu_addr6 && pdr->f_teid.ipv6));
                         ogs_assert(OGS_OK ==
                             ogs_pfcp_sockaddr_to_f_teid(
-                                ogs_gtp_self()->gtpu_addr,
-                                ogs_gtp_self()->gtpu_addr6,
+                                pdr->f_teid.ipv4 ?
+                                    ogs_gtp_self()->gtpu_addr : NULL,
+                                pdr->f_teid.ipv6 ?
+                                    ogs_gtp_self()->gtpu_addr6 : NULL,
                                 &pdr->f_teid, &pdr->f_teid_len));
                         pdr->f_teid.teid = pdr->index;
                     }
@@ -453,11 +467,7 @@ void upf_n4_handle_session_deletion_request(
                 OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND, 0);
         return;
     }
-
-    ogs_assert(sess);
-
     upf_pfcp_send_session_deletion_response(xact, sess);
-
     upf_sess_remove(sess);
 }
 

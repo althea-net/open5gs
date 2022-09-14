@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -25,7 +25,6 @@
 #include "ogs-sbi.h"
 
 #include "ausf-sm.h"
-#include "timer.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,8 +38,6 @@ extern int __ausf_log_domain;
 #define OGS_LOG_DOMAIN __ausf_log_domain
 
 typedef struct ausf_context_s {
-    OpenAPI_nf_type_e   nf_type;
-
     ogs_list_t      ausf_ue_list;
     ogs_hash_t      *suci_hash;
     ogs_hash_t      *supi_hash;
@@ -65,22 +62,6 @@ struct ausf_ue_s {
     uint8_t hxres_star[OGS_MAX_RES_LEN];
     uint8_t kausf[OGS_SHA256_DIGEST_SIZE];
     uint8_t kseaf[OGS_SHA256_DIGEST_SIZE];
-
-#define AUSF_NF_INSTANCE_CLEAR(_cAUSE, _nFInstance) \
-    do { \
-        ogs_assert(_nFInstance); \
-        if ((_nFInstance)->reference_count == 1) { \
-            ogs_info("[%s] (%s) NF removed", (_nFInstance)->id, (_cAUSE)); \
-            ausf_nf_fsm_fini((_nFInstance)); \
-        } else { \
-            /* There is an assocation with other context */ \
-            ogs_info("[%s:%d] (%s) NF suspended", \
-                    _nFInstance->id, _nFInstance->reference_count, (_cAUSE)); \
-            OGS_FSM_TRAN(&_nFInstance->sm, ausf_nf_state_de_registered); \
-            ogs_fsm_dispatch(&_nFInstance->sm, NULL); \
-        } \
-        ogs_sbi_nf_instance_remove(_nFInstance); \
-    } while(0)
 };
 
 void ausf_context_init(void);
@@ -98,8 +79,6 @@ ausf_ue_t *ausf_ue_find_by_suci_or_supi(char *suci_or_supi);
 ausf_ue_t *ausf_ue_find_by_ctx_id(char *ctx_id);
 
 ausf_ue_t *ausf_ue_cycle(ausf_ue_t *ausf_ue);
-
-void ausf_ue_select_nf(ausf_ue_t *ausf_ue, OpenAPI_nf_type_e nf_type);
 
 #ifdef __cplusplus
 }

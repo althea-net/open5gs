@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -79,8 +79,6 @@ af_context_t *af_self(void)
 
 static int af_context_prepare(void)
 {
-    self.nf_type = OpenAPI_nf_type_AF;
-
     return OGS_OK;
 }
 
@@ -112,6 +110,10 @@ int af_context_parse_config(void)
                 const char *af_key = ogs_yaml_iter_key(&af_iter);
                 ogs_assert(af_key);
                 if (!strcmp(af_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(af_key, "service_name")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(af_key, "discovery")) {
                     /* handle config in sbi library */
                 } else
                     ogs_warn("unknown key `%s`", af_key);
@@ -262,17 +264,6 @@ af_sess_t *af_sess_find_by_pcf_app_session_id(char *pcf_app_session_id)
     ogs_assert(pcf_app_session_id);
     return (af_sess_t *)ogs_hash_get(self.pcf_app_session_id_hash,
                         pcf_app_session_id, strlen(pcf_app_session_id));
-}
-
-void af_sess_select_nf(af_sess_t *sess, OpenAPI_nf_type_e nf_type)
-{
-    ogs_assert(sess);
-    ogs_assert(nf_type);
-
-    if (nf_type == OpenAPI_nf_type_NRF)
-        ogs_sbi_select_nrf(&sess->sbi, af_nf_state_registered);
-    else
-        ogs_sbi_select_first_nf(&sess->sbi, nf_type, af_nf_state_registered);
 }
 
 static ogs_sbi_client_t *find_client_by_fqdn(char *fqdn, int port)

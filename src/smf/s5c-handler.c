@@ -253,8 +253,8 @@ uint8_t smf_s5c_handle_create_session_request(
     ogs_assert(OGS_PFCP_CAUSE_REQUEST_ACCEPTED == smf_sess_set_ue_ip(sess));
 
     ogs_info("UE IMSI[%s] APN[%s] IPv4[%s] IPv6[%s]",
-	    smf_ue->imsi_bcd,
-	    sess->session.name,
+        smf_ue->imsi_bcd,
+        sess->session.name,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
 
@@ -412,6 +412,23 @@ uint8_t smf_s5c_handle_delete_session_request(
         }
     }
 
+    /* PCO
+     * 3GPP TS 29.274 version 10.5.0, Table 7.2.9.1-1
+     * If the UE includes the PCO IE, then the MME/SGSN shall copy
+     * the content of this IE transparently from the PCO IE included by the UE.
+     * If SGW receives the PCO IE, SGW shall forward it to PGW.
+     */
+    if (req->protocol_configuration_options.presence) {
+        OGS_TLV_STORE_DATA(&sess->gtp.ue_pco,
+                &req->protocol_configuration_options);
+    } else {
+        /* 
+         * Clear contents to reflect whether PCO IE was included or not as part
+         * of session deletion procedure
+         */
+        OGS_TLV_CLEAR_DATA(&sess->gtp.ue_pco);
+    }
+
     ogs_debug("    SGW_S5C_TEID[0x%x] SMF_N4_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->smf_n4_teid);
 
@@ -558,6 +575,7 @@ void smf_s5c_handle_modify_bearer_request(
 
         pfcp_xact->gtp_pti = OGS_NAS_PROCEDURE_TRANSACTION_IDENTITY_UNASSIGNED;
         pfcp_xact->gtp_cause = OGS_GTP2_CAUSE_UNDEFINED_VALUE;
+        pfcp_xact->local_seid = sess->smf_n4_seid;
 
         ogs_assert(gtpbuf);
         pfcp_xact->gtpbuf = ogs_pkbuf_copy(gtpbuf);
@@ -593,10 +611,11 @@ void smf_s5c_handle_create_bearer_response(
     int rv;
     uint8_t cause_value;
     ogs_gtp2_cause_t *cause = NULL;
-    ogs_gtp2_f_teid_t *sgw_s5u_teid, *pgw_s5u_teid;
+    ogs_gtp2_f_teid_t *sgw_s5u_teid = NULL, *pgw_s5u_teid = NULL;
     smf_bearer_t *bearer = NULL;
     ogs_pfcp_far_t *dl_far = NULL;
 
+    ogs_assert(sess);
     ogs_assert(rsp);
 
     ogs_debug("Create Bearer Response");
@@ -615,11 +634,6 @@ void smf_s5c_handle_create_bearer_response(
      * Check Session Context
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
-
-    if (!sess) {
-        ogs_error("No Context in TEID");
-        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
-    }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         ogs_assert(OGS_OK ==
@@ -772,6 +786,7 @@ void smf_s5c_handle_update_bearer_response(
     uint64_t pfcp_flags = 0;
     smf_bearer_t *bearer = NULL;
 
+    ogs_assert(sess);
     ogs_assert(rsp);
 
     ogs_debug("Update Bearer Response");
@@ -788,24 +803,10 @@ void smf_s5c_handle_update_bearer_response(
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
-    /************************
-     * Check Session Context
-     ************************/
-    cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
-
-    if (!sess) {
-        ogs_error("No Context in TEID");
-        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
-    }
-
-    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
-        return;
-    }
-
     /*****************************************
      * Check Mandatory/Conditional IE Missing
      *****************************************/
-    ogs_assert(cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED);
+    cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
     if (rsp->bearer_contexts.presence == 0) {
         ogs_error("No Bearer");
@@ -889,6 +890,7 @@ bool smf_s5c_handle_delete_bearer_response(
     uint8_t cause_value;
     smf_bearer_t *bearer = NULL;
 
+    ogs_assert(sess);
     ogs_assert(rsp);
 
     ogs_debug("Delete Bearer Response");
@@ -903,18 +905,10 @@ bool smf_s5c_handle_delete_bearer_response(
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
 
-    /************************
-     * Check Session Context
-     ************************/
-    if (!sess)
-        ogs_error("No Context in TEID");
-
     /********************
      * Check ALL Context
      ********************/
     ogs_assert(bearer);
-    sess = bearer->sess;
-    ogs_assert(sess);
 
     if (rsp->linked_eps_bearer_id.presence) {
         /*

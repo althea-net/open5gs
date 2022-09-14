@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -46,7 +46,7 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
     ogs_sbi_request_t *request = NULL;
 
     ogs_sbi_nf_instance_t *nf_instance = NULL;
-    ogs_sbi_subscription_t *subscription = NULL;
+    ogs_sbi_subscription_data_t *subscription_data = NULL;
     ogs_sbi_response_t *response = NULL;
     ogs_sbi_message_t message;
 
@@ -54,17 +54,17 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
 
     ogs_assert(s);
 
-    switch (e->id) {
+    switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
         break;
 
     case OGS_FSM_EXIT_SIG:
         break;
 
-    case NSSF_EVT_SBI_SERVER:
-        request = e->sbi.request;
+    case OGS_EVENT_SBI_SERVER:
+        request = e->h.sbi.request;
         ogs_assert(request);
-        stream = e->sbi.data;
+        stream = e->h.sbi.data;
         ogs_assert(stream);
 
         rv = ogs_sbi_parse_request(&message, request);
@@ -138,10 +138,10 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
         ogs_sbi_message_free(&message);
         break;
 
-    case NSSF_EVT_SBI_CLIENT:
+    case OGS_EVENT_SBI_CLIENT:
         ogs_assert(e);
 
-        response = e->sbi.response;
+        response = e->h.sbi.response;
         ogs_assert(response);
         rv = ogs_sbi_parse_response(&message, response);
         if (rv != OGS_OK) {
@@ -163,43 +163,43 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
 
             SWITCH(message.h.resource.component[0])
             CASE(OGS_SBI_RESOURCE_NAME_NF_INSTANCES)
-                nf_instance = e->sbi.data;
+                nf_instance = e->h.sbi.data;
                 ogs_assert(nf_instance);
                 ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
-                e->sbi.message = &message;
+                e->h.sbi.message = &message;
                 ogs_fsm_dispatch(&nf_instance->sm, e);
                 break;
 
             CASE(OGS_SBI_RESOURCE_NAME_SUBSCRIPTIONS)
-                subscription = e->sbi.data;
-                ogs_assert(subscription);
+                subscription_data = e->h.sbi.data;
+                ogs_assert(subscription_data);
 
                 SWITCH(message.h.method)
                 CASE(OGS_SBI_HTTP_METHOD_POST)
                     if (message.res_status == OGS_SBI_HTTP_STATUS_CREATED ||
                         message.res_status == OGS_SBI_HTTP_STATUS_OK) {
-                        nssf_nnrf_handle_nf_status_subscribe(
-                                subscription, &message);
+                        ogs_nnrf_handle_nf_status_subscribe(
+                                subscription_data, &message);
                     } else {
                         ogs_error("[%s] HTTP response error [%d]",
-                                subscription->id, message.res_status);
+                                subscription_data->id, message.res_status);
                     }
                     break;
 
                 CASE(OGS_SBI_HTTP_METHOD_DELETE)
                     if (message.res_status ==
                             OGS_SBI_HTTP_STATUS_NO_CONTENT) {
-                        ogs_sbi_subscription_remove(subscription);
+                        ogs_sbi_subscription_data_remove(subscription_data);
                     } else {
                         ogs_error("[%s] HTTP response error [%d]",
-                                subscription->id, message.res_status);
+                                subscription_data->id, message.res_status);
                     }
                     break;
 
                 DEFAULT
                     ogs_error("[%s] Invalid HTTP method [%s]",
-                            subscription->id, message.h.method);
+                            subscription_data->id, message.h.method);
                     ogs_assert_if_reached();
                 END
                 break;
@@ -220,40 +220,40 @@ void nssf_state_operational(ogs_fsm_t *s, nssf_event_t *e)
         ogs_sbi_response_free(response);
         break;
 
-    case NSSF_EVT_SBI_TIMER:
+    case OGS_EVENT_SBI_TIMER:
         ogs_assert(e);
 
-        switch(e->timer_id) {
-        case NSSF_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
-        case NSSF_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
-        case NSSF_TIMER_NF_INSTANCE_NO_HEARTBEAT:
-        case NSSF_TIMER_NF_INSTANCE_VALIDITY:
-            nf_instance = e->sbi.data;
+        switch(e->h.timer_id) {
+        case OGS_TIMER_NF_INSTANCE_REGISTRATION_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_HEARTBEAT_INTERVAL:
+        case OGS_TIMER_NF_INSTANCE_NO_HEARTBEAT:
+        case OGS_TIMER_NF_INSTANCE_VALIDITY:
+            nf_instance = e->h.sbi.data;
             ogs_assert(nf_instance);
             ogs_assert(OGS_FSM_STATE(&nf_instance->sm));
 
             ogs_fsm_dispatch(&nf_instance->sm, e);
-            if (OGS_FSM_CHECK(&nf_instance->sm, nssf_nf_state_exception))
-                ogs_error("[%s] State machine exception [%d]",
-                        nf_instance->id, e->timer_id);
+            if (OGS_FSM_CHECK(&nf_instance->sm, ogs_sbi_nf_state_exception))
+                ogs_error("[%s:%s] State machine exception [%d]",
+                        OpenAPI_nf_type_ToString(nf_instance->nf_type),
+                        nf_instance->id, e->h.timer_id);
             break;
 
-        case NSSF_TIMER_SUBSCRIPTION_VALIDITY:
-            subscription = e->sbi.data;
-            ogs_assert(subscription);
+        case OGS_TIMER_SUBSCRIPTION_VALIDITY:
+            subscription_data = e->h.sbi.data;
+            ogs_assert(subscription_data);
 
             ogs_assert(true ==
-                ogs_nnrf_nfm_send_nf_status_subscribe(subscription->client,
-                    nssf_self()->nf_type, subscription->req_nf_instance_id,
-                    subscription->subscr_cond.nf_type));
+                ogs_nnrf_nfm_send_nf_status_subscribe(subscription_data));
 
-            ogs_info("[%s] Subscription validity expired", subscription->id);
-            ogs_sbi_subscription_remove(subscription);
+            ogs_info("Subscription validity expired [%s]",
+                subscription_data->id);
+            ogs_sbi_subscription_data_remove(subscription_data);
             break;
 
         default:
             ogs_error("Unknown timer[%s:%d]",
-                    nssf_timer_get_name(e->timer_id), e->timer_id);
+                    ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
         }
         break;
 

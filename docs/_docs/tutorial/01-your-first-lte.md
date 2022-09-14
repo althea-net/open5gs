@@ -190,14 +190,14 @@ Title : sysmocom SIM Card Details / AM93\PICK\00859
 
 IMSI    ICCID   ACC PIN1    PUK1    PIN2    PUK2    Ki  OPC ADM1    KIC1    KID1    KIK1
 ...
-901700000017408	8988211000000174089	0100	3623	84724035	8774	57473966	B1233463AB9BC2AD2DB1830EB6417E7B	625150E2A943E3353DD23554101CAFD4	47190711	C865CAA0A54542333929B29B116F4375	7D7F65DCD99003C0A0D5D31CA3E5253E	5B27983AF628FC3FCB36B89300012944
+999700000017408    8988211000000174089    0100    3623    84724035    8774    57473966    B1233463AB9BC2AD2DB1830EB6417E7B    625150E2A943E3353DD23554101CAFD4    47190711    C865CAA0A54542333929B29B116F4375    7D7F65DCD99003C0A0D5D31CA3E5253E    5B27983AF628FC3FCB36B89300012944
 ```
 
 Here's my subscriber information from above.
 
 ```
-MCC/MNC : 901/70
-IMSI : 901700000017408
+MCC/MNC : 999/70
+IMSI : 999700000017408
 K : B1233463AB9BC2AD2DB1830EB6417E7B
 OPc : 625150E2A943E3353DD23554101CAFD4  
 ```
@@ -222,12 +222,15 @@ Then proceed as follows:
   3. Fill the IMSI, security context(K, OPc, AMF), and APN of the subscriber.
   4. Click `SAVE` Button
 
+**Note:** Subscribers added with this tool immediately register in the Open5GS HSS/UDR without the need to restart any daemon. However, if you use the WebUI to change subscriber profile, you must restart the Open5GS AMF/MME daemon for the changes to take effect.
+{: .notice--warning}
+
 Modify [install/etc/open5gs/mme.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/mme.yaml.in) to set the S1AP IP address, PLMN ID, and TAC.
 
 ```diff
 $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
---- mme.yaml.old	2020-08-22 12:07:32.755250028 -0400
-+++ mme.yaml	2020-08-22 12:08:17.309320211 -0400
+--- mme.yaml.old    2020-08-22 12:07:32.755250028 -0400
++++ mme.yaml    2020-08-22 12:08:17.309320211 -0400
 @@ -208,20 +208,20 @@
  mme:
      freeDiameter: /home/acetcom/Documents/git/open5gs/install/etc/freeDiameter/mme.conf
@@ -238,7 +241,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        addr: 127.0.0.2
      gummei:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 +        mcc: 310
 +        mnc: 789
@@ -246,7 +249,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        mme_code: 1
      tai:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 -      tac: 1
 +        mcc: 310
@@ -260,8 +263,8 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
 Modify [install/etc/open5gs/sgwu.yaml](https://github.com/{{ site.github_username }}/open5gs/blob/main/configs/open5gs/sgwu.yaml.in) to set the GTP-U IP address.
 ```diff
 $ diff -u /etc/open5gs/sgwu.yaml.old /etc/open5gs/sgwu.yaml
---- sgwu.yaml.old	2020-08-22 12:08:44.782880778 -0400
-+++ sgwu.yaml	2020-08-22 12:06:49.809299514 -0400
+--- sgwu.yaml.old    2020-08-22 12:08:44.782880778 -0400
++++ sgwu.yaml    2020-08-22 12:06:49.809299514 -0400
 @@ -82,7 +82,7 @@
  #
  sgwu:
@@ -335,8 +338,8 @@ You should check your phone frequency. If your phone does not support Band-3, yo
 
 ```diff
 $ diff -u enb.conf.example enb.conf
--- enb.conf.example	2022-01-19 20:30:13.612993155 +0900
-+++ enb.conf	2022-01-19 21:04:15.674419300 +0900
+-- enb.conf.example    2022-01-19 20:30:13.612993155 +0900
++++ enb.conf    2022-01-19 21:04:15.674419300 +0900
 @@ -20,9 +20,9 @@
  #####################################################################
  [enb]
@@ -372,8 +375,8 @@ $ diff -u enb.conf.example enb.conf
 
 ```diff
 $ diff -u rr.conf.example rr.conf
--- rr.conf.example	2022-01-19 20:30:13.620992794 +0900
-+++ rr.conf	2022-01-19 21:05:21.959044145 +0900
+-- rr.conf.example    2022-01-19 20:30:13.620992794 +0900
++++ rr.conf    2022-01-19 21:05:21.959044145 +0900
 @@ -55,10 +55,10 @@
    {
      // rf_port = 0;
@@ -406,8 +409,8 @@ Device Argument : Clock source from external GPS-DO
 If you are not using GPS-DO, you can just comment out `device_args` as shown below.
 ```diff
 $ diff -u enb.conf enb.conf.no_gps_do
---- enb.conf	2022-01-19 21:08:32.941527373 +0900
-+++ enb.conf.no_gps_do	2022-01-19 21:10:18.612581261 +0900
+--- enb.conf    2022-01-19 21:08:32.941527373 +0900
++++ enb.conf.no_gps_do    2022-01-19 21:10:18.612581261 +0900
 @@ -81,7 +81,7 @@
 
  # Example for ZMQ-based operation with TCP transport for I/Q samples

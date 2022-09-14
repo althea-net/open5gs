@@ -4,6 +4,7 @@ logger:
 
 parameter:
 #    no_nrf: true
+#    no_scp: true
 #    no_amf: true
 #    no_smf: true
 #    no_upf: true
@@ -44,13 +45,13 @@ mme:
       - addr: 127.0.0.2
     gummei:
       plmn_id:
-        mcc: 901
+        mcc: 999
         mnc: 70
       mme_gid: 2
       mme_code: 1
     tai:
       plmn_id:
-        mcc: 901
+        mcc: 999
         mnc: 70
       tac: 1
     security:
@@ -104,6 +105,31 @@ smf:
       connect:
         - identity: pcrf.localdomain
           addr: 127.0.0.9
+
+#
+#  <For Indirect Communication with Delegated Discovery>
+#
+#  o (Default) If you do not set Delegated Discovery as shown below,
+#
+#    sbi:
+#      - addr: 127.0.0.5
+#        port: 7777
+#
+#    - Use SCP if SCP avaiable. Otherwise NRF is used.
+#      => App fails if both NRF and SCP are unavailable.
+#
+#    sbi:
+#      - addr: 127.0.0.5
+#        port: 7777
+#    discovery:
+#      delegated: auto
+#
+#  o To use SCP always => App fails if no SCP available.
+#      delegated: yes
+#
+#  o Don't use SCP server => App fails if no NRF available.
+#      delegated: no
+#
 amf:
     sbi:
       - addr: 127.0.0.5
@@ -112,19 +138,19 @@ amf:
       - addr: 127.0.0.5
     guami:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         amf_id:
           region: 2
           set: 1
     tai:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         tac: 1
     plmn_support:
       - plmn_id:
-          mcc: 901
+          mcc: 999
           mnc: 70
         s_nssai:
           - sst: 1
@@ -192,6 +218,50 @@ nrf:
       - addr:
         - 127.0.0.10
         - ::1
+        port: 7777
+
+#
+# scp:
+#
+#  <SBI Client>>
+#
+#  o SBI Client(http://127.0.1.10:7777)
+#    sbi:
+#      addr: 127.0.1.10
+#      port: 7777
+#
+#  o SBI Client(https://127.0.1.10:443, http://scp.open5gs.org:80)
+#    sbi:
+#      - addr: 127.0.1.10
+#        tls:
+#          key: scp.key
+#          pem: scp.pem
+#      - name: scp.open5gs.org
+#
+#  o SBI Client(http://[fd69:f21d:873c:fb::1]:80)
+#    If prefer_ipv4 is true, http://127.0.1.10:80 is selected.
+#
+#    sbi:
+#      addr:
+#        - 127.0.1.10
+#        - fd69:f21d:873c:fb::1
+#
+#  o SBI Option (Default)
+#    - tcp_nodelay : true
+#    - so_linger.l_onoff : false
+#
+#    sbi:
+#      addr: 127.0.1.10
+#      option:
+#        tcp_nodelay: false
+#        so_linger:
+#          l_onoff: true
+#          l_linger: 10
+#
+#
+scp:
+    sbi:
+      - addr: 127.0.1.10
         port: 7777
 
 ausf:

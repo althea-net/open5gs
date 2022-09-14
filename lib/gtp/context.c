@@ -570,7 +570,10 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
             ogs_app()->parameter.no_ipv4,
             ogs_app()->parameter.no_ipv6,
             ogs_app()->parameter.prefer_ipv4);
-    ogs_assert(addr);
+    if (!addr) {
+        ogs_error("ogs_filter_ip_version() failed");
+        return NULL;
+    }
 
 #if 0 /* deprecated */
     rv = ogs_socknode_fill_scope_id_in_local(addr);
@@ -578,10 +581,18 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_f_teid(
 #endif
 
     node = ogs_gtp_node_new(addr);
-    ogs_assert(node);
+    if (!node) {
+        ogs_error("ogs_gtp_node_new() failed");
+        ogs_freeaddrinfo(addr);
+        return NULL;
+    }
 
     rv = ogs_gtp2_f_teid_to_ip(f_teid, &node->ip);
-    ogs_expect_or_return_val(rv == OGS_OK, NULL);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_gtp2_f_teid_to_ip() failed");
+        ogs_freeaddrinfo(addr);
+        return NULL;
+    }
 
     ogs_list_add(list, node);
 
@@ -598,8 +609,12 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_addr(ogs_list_t *list, ogs_sockaddr_t *addr)
 
     ogs_assert(OGS_OK == ogs_copyaddrinfo(&new, addr));
     gnode = ogs_gtp_node_new(new);
+    if (!gnode) {
+        ogs_error("ogs_gtp_node_new() failed");
+        ogs_freeaddrinfo(new);
+        return NULL;
+    }
 
-    ogs_assert(gnode);
     memcpy(&gnode->addr, new, sizeof gnode->addr);
 
     ogs_list_add(list, gnode);
@@ -680,15 +695,22 @@ ogs_gtp_node_t *ogs_gtp_node_add_by_ip(
             ogs_app()->parameter.no_ipv4,
             ogs_app()->parameter.no_ipv6,
             ogs_app()->parameter.prefer_ipv4);
-    ogs_expect_or_return_val(addr, NULL);
+    if (!addr) {
+        ogs_error("ogs_filter_ip_version() failed");
+        return NULL;
+    }
 
 #if 0 /* deprecated */
     rv = ogs_socknode_fill_scope_id_in_local(addr);
-    ogs_expect_or_return_val(rv == OGS_OK, NULL);
+    ogs_assert(rv == OGS_OK);
 #endif
 
     node = ogs_gtp_node_new(addr);
-    ogs_expect_or_return_val(node, NULL);
+    if (!node) {
+        ogs_error("ogs_gtp_node_new() failed");
+        ogs_freeaddrinfo(addr);
+        return NULL;
+    }
 
     memcpy(&node->ip, ip, sizeof(*ip));
 
@@ -705,7 +727,7 @@ ogs_gtp_node_t *ogs_gtp_node_find_by_ip(ogs_list_t *list, ogs_ip_t *ip)
     ogs_assert(ip);
 
     ogs_list_for_each(list, node) {
-        if (node->ip.len == ip->len && memcmp(&node->ip, ip, ip->len) == 0)
+        if (memcmp(&node->ip, ip, sizeof(*ip)) == 0)
             break;
     }
 
