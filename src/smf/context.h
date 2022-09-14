@@ -409,6 +409,8 @@ typedef struct smf_sess_s {
 
     ogs_timer_t *timer_gx_cca;
     ogs_timer_t *timer_gy_cca;
+    ogs_timer_t *timer_pfcp_ser;
+    ogs_timer_t *timer_pfcp_sdr;
 } smf_sess_t;
 
 void smf_context_init(void);

@@ -91,6 +91,13 @@ static void timer_send_event(int timer_id, void *data)
         e->timer_id = timer_id;
         e->sess = data;
         break;
+    case SMF_TIMER_PFCP_SER:
+    case SMF_TIMER_PFCP_SDR:
+        e = smf_event_new(SMF_EVT_PFCP_TIMER);
+        ogs_assert(e);
+        e->timer_id = timer_id;
+        e->sess = data;
+        break;
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);
         ogs_assert_if_reached();
@@ -153,4 +160,14 @@ void smf_timer_gx_no_cca(void *data)
 void smf_timer_gy_no_cca(void *data)
 {
     timer_send_event(SMF_TIMER_GY_CCA, data);
+}
+
+void smf_timer_pfcp_no_ser(void *data)
+{
+    timer_send_event(SMF_TIMER_PFCP_SER, data);
+}
+
+void smf_timer_pfcp_no_sdr(void *data)
+{
+    timer_send_event(SMF_TIMER_PFCP_SDR, data);
 }

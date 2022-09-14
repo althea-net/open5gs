@@ -253,8 +253,14 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                 smf_timer_gx_no_cca, sess);
         sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
                 smf_timer_gy_no_cca, sess);
+        sess->timer_pfcp_ser = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_pfcp_no_ser, sess);
+        sess->timer_pfcp_sdr = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_pfcp_no_sdr, sess);
         ogs_assert(sess->timer_gx_cca);
         ogs_assert(sess->timer_gy_cca);
+        ogs_assert(sess->timer_pfcp_ser);
+        ogs_assert(sess->timer_pfcp_sdr);
 
         break;
 
@@ -483,6 +489,7 @@ test_can_proceed:
 
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, &smf_gsm_state_wait_pfcp_establishment);
+            ogs_timer_start(sess->timer_pfcp_ser, ogs_time_from_sec(3));
             ogs_assert(OGS_OK ==
                 smf_epc_pfcp_send_session_establishment_request(
                     sess, e->gtp_xact));
@@ -622,6 +629,7 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
 
                     if (smf_npcf_smpolicycontrol_handle_create(
                             sess, stream, state, sbi_message) == true) {
+                        ogs_timer_start(sess->timer_pfcp_ser, ogs_time_from_sec(3));
                         OGS_FSM_TRAN(s,
                             &smf_gsm_state_wait_pfcp_establishment);
                     } else {
@@ -689,6 +697,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
+            ogs_timer_stop(sess->timer_pfcp_ser);
             if (pfcp_xact->epc) {
                 ogs_gtp_xact_t *gtp_xact = pfcp_xact->assoc_xact;
                 ogs_assert(gtp_xact);
@@ -755,6 +764,31 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("cannot handle PFCP message type[%d]",
                     pfcp_message->h.type);
         }
+        break;
+
+    case SMF_EVT_PFCP_TIMER:
+        switch(e->timer_id) {
+        case SMF_TIMER_PFCP_SER:
+            ogs_timer_stop(sess->timer_pfcp_ser);
+            ogs_error("PFCP timeout waiting for Session Establishment Response");
+            switch (e->gtp_xact->gtp_version) {
+                case 1:
+                    gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
+                    break;
+                case 2:
+                    gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                    break;
+            }
+            send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+            break;
+
+        default:
+            ogs_error("Unknown SMF_EVT_PFCP_TIMER timer id [%d]", e->timer_id);
+        }
+        break;
+
+    default:
+        ogs_error("Unknown event [%s]", smf_event_get_name(e));
     }
 }
 
@@ -1242,6 +1276,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             /* EPC */
             ogs_assert(OGS_OK ==
                 smf_epc_pfcp_send_session_deletion_request(sess, e->gtp_xact));
+
         } else {
             /* 5GC */
             stream = e->sbi.data;
@@ -1251,6 +1286,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                 smf_5gc_pfcp_send_session_deletion_request(
                     sess, stream, e->sbi.state));
         }
+        ogs_timer_start(sess->timer_pfcp_sdr, ogs_time_from_sec(3));
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -1268,6 +1304,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
+            ogs_timer_stop(sess->timer_pfcp_sdr);
             if (pfcp_xact->epc) {
                 gtp_xact = pfcp_xact->assoc_xact;
 
@@ -1340,6 +1377,28 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("cannot handle PFCP message type[%d]",
                     pfcp_message->h.type);
         }
+        break;
+
+    case SMF_EVT_PFCP_TIMER:
+        switch(e->timer_id) {
+        case SMF_TIMER_PFCP_SDR:
+            ogs_timer_stop(sess->timer_pfcp_sdr);
+            ogs_error("PFCP timeout waiting for Session Deletion Response");
+            switch (e->gtp_xact->gtp_version) {
+                case 1:
+                    gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
+                    break;
+                case 2:
+                    gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                    break;
+            }
+            send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
+            break;
+
+        default:
+            ogs_error("Unknown SMF_EVT_PFCP_TIMER timer id [%d]", e->timer_id);
+        }
+        break;
     }
 }
 
@@ -1670,7 +1729,9 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
         ogs_timer_delete(sess->timer_gx_cca);
-        ogs_timer_delete(sess->timer_gy_cca);    
+        ogs_timer_delete(sess->timer_gy_cca);
+        ogs_timer_delete(sess->timer_pfcp_ser);
+        ogs_timer_delete(sess->timer_pfcp_sdr);
 
         SMF_SESS_CLEAR(sess);
         break;
@@ -1703,6 +1764,8 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
     case OGS_FSM_ENTRY_SIG:
         ogs_timer_delete(sess->timer_gx_cca);
         ogs_timer_delete(sess->timer_gy_cca);    
+        ogs_timer_delete(sess->timer_pfcp_ser);    
+        ogs_timer_delete(sess->timer_pfcp_sdr);
 
         ogs_error("[%s:%d] State machine exception", smf_ue->supi, sess->psi);
         SMF_SESS_CLEAR(sess);
