@@ -732,7 +732,10 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *sess = NULL;
     ogs_pkbuf_t *pkbuf = NULL;
+
+    ogs_pfcp_xact_t *pfcp_xact = NULL;
     ogs_pfcp_message_t *pfcp_message = NULL;
+    uint8_t pfcp_cause;
 
     ogs_nas_5gs_message_t *nas_message = NULL;
 
@@ -1128,12 +1131,21 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_N4_MESSAGE:
+        pfcp_xact = e->pfcp_xact;
+        ogs_assert(pfcp_xact);
         pfcp_message = e->pfcp_message;
         ogs_assert(pfcp_message);
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             ogs_warn("PFCP session is already established; ignoring PFCP-SER");
+            if (pfcp_xact->epc) {
+                pfcp_cause = smf_epc_n4_handle_session_establishment_response(
+                        sess, pfcp_xact,
+                        &pfcp_message->pfcp_session_establishment_response);
+            } else {
+                ogs_error("5GC PFCP re-establish session not yet written");
+            }
             break;
 
         default:
