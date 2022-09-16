@@ -28,7 +28,12 @@ static OGS_POOL(upf_sess_pool, upf_sess_t);
 
 static int context_initialized = 0;
 
+static int num_of_upf_sess = 0;
+
 static void upf_sess_urr_acc_remove_all(upf_sess_t *sess);
+
+static void stats_add_upf_session(void);
+static void stats_remove_upf_session(void);
 
 void upf_context_init(void)
 {
@@ -178,6 +183,8 @@ upf_sess_t *upf_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
     ogs_info("[Added] Number of UPF-Sessions is now %d",
             ogs_list_count(&self.sess_list));
 
+    stats_add_upf_session();
+
     return sess;
 }
 
@@ -205,12 +212,18 @@ int upf_sess_remove(upf_sess_t *sess)
         ogs_pfcp_ue_ip_free(sess->ipv6);
     }
 
+    if (sess->dnn) {
+        ogs_free(sess->dnn);
+    }
+
     ogs_pfcp_pool_final(&sess->pfcp);
 
     ogs_pool_free(&upf_sess_pool, sess);
 
     ogs_info("[Removed] Number of UPF-sessions is now %d",
             ogs_list_count(&self.sess_list));
+
+    stats_remove_upf_session();
 
     return OGS_OK;
 }
@@ -394,10 +407,12 @@ uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
                 pdr->dnn ? pdr->dnn : "");
     }
 
+    sess->dnn = ogs_strdup(pdr->dnn);
+
     ogs_info("UE F-SEID[CP:0x%lx UP:0x%lx] "
              "APN[%s] PDN-Type[%d] IPv4[%s] IPv6[%s]",
         (long)sess->upf_n4_seid, (long)sess->smf_n4_f_seid.seid,
-        pdr->dnn, session_type,
+        sess->dnn, session_type,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
 
@@ -597,4 +612,50 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
             sess->urr_acc[i].t_time_threshold = NULL;
         }
     }
+}
+
+#define MAX_APN 63
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+
+void stats_write_list_upf_sessions(void) {
+    upf_sess_t *sess = NULL;
+
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+
+    ogs_list_for_each(&self.sess_list, sess) {
+        ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s\n",
+            sess->dnn ? sess->dnn : "",
+            sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
+            sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
+    }
+
+    ogs_write_file_value("upf/list_sessions", buffer);
+    ogs_free(buffer);
+}
+
+static void stats_add_upf_session(void)
+{
+    num_of_upf_sess = num_of_upf_sess + 1;
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_upf_sess);
+    ogs_write_file_value("upf/num_sessions", buffer);
+
+    stats_write_list_upf_sessions();
+}
+
+static void stats_remove_upf_session(void)
+{
+    num_of_upf_sess = num_of_upf_sess - 1;
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_upf_sess);
+    ogs_write_file_value("upf/num_sessions", buffer);
+
+    stats_write_list_upf_sessions();
 }

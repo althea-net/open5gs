@@ -97,6 +97,10 @@ typedef struct upf_sess_s {
     /* APN Configuration */
     ogs_pfcp_ue_ip_t *ipv4;
     ogs_pfcp_ue_ip_t *ipv6;
+    union {
+        char *apn;
+        char *dnn;
+    };
 
     char            *gx_sid;            /* Gx Session ID */
     ogs_pfcp_node_t *pfcp_node;
@@ -131,6 +135,8 @@ void upf_sess_urr_acc_fill_usage_report(upf_sess_t *sess, const ogs_pfcp_urr_t *
                                         ogs_pfcp_user_plane_report_t *report, unsigned int idx);
 void upf_sess_urr_acc_snapshot(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
 void upf_sess_urr_acc_timers_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
+
+void stats_write_list_upf_sessions(void);
 
 #ifdef __cplusplus
 }

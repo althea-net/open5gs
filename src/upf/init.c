@@ -68,6 +68,15 @@ int upf_initialize()
     initialized = 1;
 
     ogs_write_file_start("upf_start_time");
+    ogs_write_file_subdir("upf");
+
+    char buffer[25];
+    sprintf(buffer, "%d\n", 0);
+    ogs_write_file_value("upf/num_sessions", buffer);
+
+    sprintf(buffer, "List of Active Sessions\n");
+    ogs_write_file_value("upf/list_sessions", buffer);
+
     return OGS_OK;
 }
 
