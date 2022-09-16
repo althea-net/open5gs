@@ -65,6 +65,15 @@ int sgwu_initialize()
     initialized = 1;
 
     ogs_write_file_start("sgwu_start_time");
+    ogs_write_file_subdir("sgwu");
+
+    char buffer[25];
+    sprintf(buffer, "%d\n", 0);
+    ogs_write_file_value("sgwu/num_sessions", buffer);
+
+    sprintf(buffer, "List of Active Sessions\n");
+    ogs_write_file_value("sgwu/list_sessions", buffer);
+
     return OGS_OK;
 }
 
