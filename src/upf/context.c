@@ -407,6 +407,9 @@ uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
                 pdr->dnn ? pdr->dnn : "");
     }
 
+    if (sess->dnn) {
+        ogs_free(sess->dnn);
+    }
     sess->dnn = ogs_strdup(pdr->dnn);
 
     ogs_info("UE F-SEID[CP:0x%lx UP:0x%lx] "
