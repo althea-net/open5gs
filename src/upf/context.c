@@ -615,7 +615,7 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
 }
 
 #define MAX_APN 63
-#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+#define MAX_SESSION_STRING_LEN (21 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
 
 void stats_write_list_upf_sessions(void) {
     upf_sess_t *sess = NULL;

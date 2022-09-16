@@ -27,6 +27,10 @@ static OGS_POOL(sgwu_sess_pool, sgwu_sess_t);
 
 static int context_initialized = 0;
 
+static int num_of_sgwu_sess = 0;
+static void stats_add_sgwu_session(void);
+static void stats_remove_sgwu_session(void);
+
 void sgwu_context_init(void)
 {
     ogs_assert(context_initialized == 0);
@@ -162,6 +166,8 @@ sgwu_sess_t *sgwu_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
     ogs_info("[Added] Number of SGWU-Sessions is now %d",
             ogs_list_count(&self.sess_list));
 
+    stats_add_sgwu_session();
+
     return sess;
 }
 
@@ -183,6 +189,8 @@ int sgwu_sess_remove(sgwu_sess_t *sess)
 
     ogs_info("[Removed] Number of SGWU-sessions is now %d",
             ogs_list_count(&self.sess_list));
+
+    stats_remove_sgwu_session();
 
     return OGS_OK;
 }
@@ -249,4 +257,49 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message)
     ogs_assert(sess);
 
     return sess;
+}
+
+#define MAX_SESSION_STRING_LEN (22 + 16 + 16)
+
+//     ogs_info("UE F-SEID[CP:0x%lx UP:0x%lx]",
+        // (long)sess->sgwu_sxa_seid, (long)sess->sgwc_sxa_f_seid.seid);
+
+
+void stats_write_list_sgwu_sessions(void) {
+    sgwu_sess_t *sess = NULL;
+
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+
+    ogs_list_for_each(&self.sess_list, sess) {
+        ptr += sprintf(ptr, "seid_cp:0x%lx seid_up:0x%lx\n",
+            (long)sess->sgwu_sxa_seid, (long)sess->sgwc_sxa_f_seid.seid);
+    }
+
+    ogs_write_file_value("sgwu/list_sessions", buffer);
+    ogs_free(buffer);
+}
+
+static void stats_add_sgwu_session(void)
+{
+    num_of_sgwu_sess = num_of_sgwu_sess + 1;
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_sgwu_sess);
+    ogs_write_file_value("sgwu/num_sessions", buffer);
+
+    stats_write_list_sgwu_sessions();
+}
+
+static void stats_remove_sgwu_session(void)
+{
+    num_of_sgwu_sess = num_of_sgwu_sess - 1;
+
+    char buffer[20];
+    sprintf(buffer, "%d\n", num_of_sgwu_sess);
+    ogs_write_file_value("sgwu/num_sessions", buffer);
+
+    stats_write_list_sgwu_sessions();
 }
