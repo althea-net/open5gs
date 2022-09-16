@@ -618,7 +618,7 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
 }
 
 #define MAX_APN 63
-#define MAX_SESSION_STRING_LEN (21 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+#define MAX_SESSION_STRING_LEN (43 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + 16 + 16)
 
 void stats_write_list_upf_sessions(void) {
     upf_sess_t *sess = NULL;
@@ -631,10 +631,11 @@ void stats_write_list_upf_sessions(void) {
     ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
 
     ogs_list_for_each(&self.sess_list, sess) {
-        ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s\n",
+        ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s seid_cp:0x%lx seid_up:0x%lx\n",
             sess->dnn ? sess->dnn : "",
             sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
-            sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
+            sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "",
+            (long)sess->upf_n4_seid, (long)sess->smf_n4_f_seid.seid);
     }
 
     ogs_write_file_value("upf/list_sessions", buffer);
