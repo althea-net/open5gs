@@ -28,12 +28,7 @@ static OGS_POOL(upf_sess_pool, upf_sess_t);
 
 static int context_initialized = 0;
 
-static int num_of_upf_sess = 0;
-
 static void upf_sess_urr_acc_remove_all(upf_sess_t *sess);
-
-static void stats_add_upf_session(void);
-static void stats_remove_upf_session(void);
 
 void upf_context_init(void)
 {
@@ -183,7 +178,7 @@ upf_sess_t *upf_sess_add(ogs_pfcp_f_seid_t *cp_f_seid)
     ogs_info("[Added] Number of UPF-Sessions is now %d",
             ogs_list_count(&self.sess_list));
 
-    stats_add_upf_session();
+    stats_update_upf_sessions();
 
     return sess;
 }
@@ -223,7 +218,7 @@ int upf_sess_remove(upf_sess_t *sess)
     ogs_info("[Removed] Number of UPF-sessions is now %d",
             ogs_list_count(&self.sess_list));
 
-    stats_remove_upf_session();
+    stats_update_upf_sessions();
 
     return OGS_OK;
 }
@@ -418,6 +413,8 @@ uint8_t upf_sess_set_ue_ip(upf_sess_t *sess,
         sess->dnn, session_type,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
+
+    stats_update_upf_sessions();
 
     return cause_value;
 }
@@ -620,16 +617,19 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
 #define MAX_APN 63
 #define MAX_SESSION_STRING_LEN (43 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + 16 + 16)
 
-void stats_write_list_upf_sessions(void) {
+void stats_update_upf_sessions(void)
+{
     upf_sess_t *sess = NULL;
-
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
     char *buffer = NULL;
     char *ptr = NULL;
 
-    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.sess_list));
+    ogs_write_file_value("upf/num_sessions", num);
 
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
     ogs_list_for_each(&self.sess_list, sess) {
         ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s seid_cp:0x%lx seid_up:0x%lx\n",
             sess->dnn ? sess->dnn : "",
@@ -637,29 +637,6 @@ void stats_write_list_upf_sessions(void) {
             sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "",
             (long)sess->upf_n4_seid, (long)sess->smf_n4_f_seid.seid);
     }
-
     ogs_write_file_value("upf/list_sessions", buffer);
     ogs_free(buffer);
-}
-
-static void stats_add_upf_session(void)
-{
-    num_of_upf_sess = num_of_upf_sess + 1;
-
-    char buffer[20];
-    sprintf(buffer, "%d\n", num_of_upf_sess);
-    ogs_write_file_value("upf/num_sessions", buffer);
-
-    stats_write_list_upf_sessions();
-}
-
-static void stats_remove_upf_session(void)
-{
-    num_of_upf_sess = num_of_upf_sess - 1;
-
-    char buffer[20];
-    sprintf(buffer, "%d\n", num_of_upf_sess);
-    ogs_write_file_value("upf/num_sessions", buffer);
-
-    stats_write_list_upf_sessions();
 }

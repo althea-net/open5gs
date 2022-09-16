@@ -75,7 +75,7 @@ sgwu_sess_t *sgwu_sess_find_by_sgwc_sxa_seid(uint64_t seid);
 sgwu_sess_t *sgwu_sess_find_by_sgwc_sxa_f_seid(ogs_pfcp_f_seid_t *f_seid);
 sgwu_sess_t *sgwu_sess_find_by_sgwu_sxa_seid(uint64_t seid);
 
-void stats_write_list_sgwu_sessions(void);
+void stats_update_sgwu_sessions(void);
 
 #ifdef __cplusplus
 }
