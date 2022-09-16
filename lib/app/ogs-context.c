@@ -64,38 +64,32 @@ ogs_app_context_t *ogs_app()
 
 static void recalculate_pool_size(void)
 {
+    self.pool.packet = self.max.ue * OGS_MAX_NUM_OF_PACKET_BUFFER;
+
 #define MAX_NUM_OF_TUNNEL       3   /* Num of Tunnel per Bearer */
     self.pool.sess = self.max.ue * OGS_MAX_NUM_OF_SESS;
     self.pool.bearer = self.pool.sess * OGS_MAX_NUM_OF_BEARER;
     self.pool.tunnel = self.pool.bearer * MAX_NUM_OF_TUNNEL;
 
-#define MAX_NUM_OF_TIMER        16
-    self.pool.timer = self.max.ue * MAX_NUM_OF_TIMER;
-    self.pool.message = self.max.ue;
-    self.pool.event = self.max.ue;
+#define POOL_NUM_PER_UE 16
+    self.pool.timer = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.message = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.event = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.socket = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.subscription = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.xact = self.max.ue * POOL_NUM_PER_UE;
+    self.pool.stream = self.max.ue * POOL_NUM_PER_UE;
 
-    self.pool.packet = self.max.ue * OGS_MAX_NUM_OF_PACKET_BUFFER;
+    self.pool.nf = self.max.peer;
+#define NF_SERVICE_PER_NF_INSTANCE 16
+    self.pool.nf_service = self.pool.nf * NF_SERVICE_PER_NF_INSTANCE;
 
-    self.pool.nf = self.max.gnb;
-
-#define MAX_NUM_OF_SOCKET       4   /* Num of socket per NF */
-    self.pool.socket = self.pool.nf * MAX_NUM_OF_SOCKET;
-
-#define MAX_NUM_OF_XACT         8
-    self.pool.gtp_xact = self.max.ue * MAX_NUM_OF_XACT;
     self.pool.gtp_node = self.pool.nf;
+    if (self.max.gtp_peer)
+        self.pool.gtp_node = self.max.gtp_peer;
 
-    self.pool.pfcp_xact = self.max.ue * MAX_NUM_OF_XACT;
-    self.pool.pfcp_node = self.pool.nf;
-
-#define MAX_NUM_OF_NF_SERVICE   16  /* Num of NF Service per NF Instance */
-#define MAX_NUM_OF_SBI_MESSAGE  4   /* Num of HTTP(s) Request/Response per NF */
-#define MAX_NUM_OF_NF_SUBSCRIPTION  4 /* Num of Subscription per NF */
-    self.pool.nf_service = self.pool.nf * MAX_NUM_OF_NF_SERVICE;
-    self.pool.nf_subscription = self.pool.nf * MAX_NUM_OF_NF_SUBSCRIPTION;
-
-#define MAX_CSMAP_POOL          128
-    self.pool.csmap = MAX_CSMAP_POOL;   /* Num of TAI-LAI Mapping Table */
+    /* Num of TAI-LAI Mapping Table */
+    self.pool.csmap = self.pool.nf;
 
 #define MAX_NUM_OF_IMPU         8
     self.pool.impi = self.max.ue;
@@ -113,7 +107,7 @@ static void regenerate_all_timer_duration(void)
         ogs_max(ogs_time_from_sec(3),
             self.time.message.sbi.client_wait_duration + ogs_time_from_sec(1));
     self.time.message.sbi.nf_register_interval_in_exception =
-                ogs_time_from_msec(300);
+                ogs_time_from_sec(2);
 
 #define PFCP_N1_RESPONSE_RETRY_COUNT  3
     self.time.message.pfcp.n1_response_rcount = PFCP_N1_RESPONSE_RETRY_COUNT;
@@ -176,23 +170,13 @@ static void app_context_prepare(void)
 #define USRSCTP_LOCAL_UDP_PORT      9899
     self.usrsctp.udp_port = USRSCTP_LOCAL_UDP_PORT;
 
-    self.sctp.heartbit_interval = 5000;     /* 5 seconds */
-    self.sctp.sack_delay = 200;             /* 200 ms */
-    self.sctp.rto_initial = 3000;           /* 3 seconds */
-    self.sctp.rto_min = 1000;               /* 1 seconds */
-    self.sctp.rto_max = 5000;               /* 5 seconds */
-    self.sctp.max_num_of_ostreams = OGS_DEFAULT_SCTP_MAX_NUM_OF_OSTREAMS;
-    self.sctp.max_num_of_istreams = 65535;
-    self.sctp.max_attempts = 4;
-    self.sctp.max_initial_timeout = 8000;   /* 8 seconds */
-
     self.sockopt.no_delay = true;
 
-#define MAX_NUM_OF_UE               1024    /* Num of UE per AMF/MME */
-#define MAX_NUM_OF_GNB              256      /* Num of gNB per AMF/MME */
+#define MAX_NUM_OF_UE               1024    /* Num of UEs */
+#define MAX_NUM_OF_PEER             256      /* Num of Peer */
 
-    self.max.gnb = MAX_NUM_OF_GNB;
     self.max.ue = MAX_NUM_OF_UE;
+    self.max.peer = MAX_NUM_OF_PEER;
 
     ogs_pkbuf_default_init(&self.pool.defconfig);
 
@@ -226,9 +210,12 @@ static void app_context_prepare(void)
      */
     self.time.handover.duration = ogs_time_from_msec(300);
 
+    /* Size of internal metrics pool (amount of ogs_metrics_spec_t) */
+    self.metrics.max_specs = 512;
+
     regenerate_all_timer_duration();
 }
- 
+
 static int app_context_validation(void)
 {
     if (self.parameter.no_ipv4 == 1 &&
@@ -311,6 +298,9 @@ int ogs_app_context_parse_config(void)
                 } else if (!strcmp(parameter_key, "no_nrf")) {
                     self.parameter.no_nrf =
                         ogs_yaml_iter_bool(&parameter_iter);
+                } else if (!strcmp(parameter_key, "no_scp")) {
+                    self.parameter.no_scp =
+                        ogs_yaml_iter_bool(&parameter_iter);
                 } else if (!strcmp(parameter_key, "no_amf")) {
                     self.parameter.no_amf =
                         ogs_yaml_iter_bool(&parameter_iter);
@@ -379,48 +369,6 @@ int ogs_app_context_parse_config(void)
                 } else
                     ogs_warn("unknown key `%s`", sockopt_key);
             }
-        } else if (!strcmp(root_key, "sctp")) {
-            ogs_yaml_iter_t sctp_iter;
-            ogs_yaml_iter_recurse(&root_iter, &sctp_iter);
-            while (ogs_yaml_iter_next(&sctp_iter)) {
-                const char *sctp_key = ogs_yaml_iter_key(&sctp_iter);
-                ogs_assert(sctp_key);
-                if (!strcmp(sctp_key, "heartbit_interval")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.heartbit_interval = atoi(v);
-                } else if (!strcmp(sctp_key, "sack_delay")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.sack_delay = atoi(v);
-                } else if (!strcmp(sctp_key, "rto_initial")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.rto_initial = atoi(v);
-                } else if (!strcmp(sctp_key, "rto_min")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.rto_min = atoi(v);
-                } else if (!strcmp(sctp_key, "rto_max")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.rto_max = atoi(v);
-                } else if (!strcmp(sctp_key, "max_num_of_ostreams")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v)
-                        self.sctp.max_num_of_ostreams = atoi(v);
-                } else if (!strcmp(sctp_key, "max_num_of_istreams")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v)
-                        self.sctp.max_num_of_istreams = atoi(v);
-                } else if (!strcmp(sctp_key, "max_attempts")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.sctp.max_attempts = atoi(v);
-                } else if (!strcmp(sctp_key, "max_initial_timeout")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v)
-                        self.sctp.max_initial_timeout = atoi(v);
-                } else if (!strcmp(sctp_key, "usrsctp_udp_port")) {
-                    const char *v = ogs_yaml_iter_value(&sctp_iter);
-                    if (v) self.usrsctp.udp_port = atoi(v);
-                } else
-                    ogs_warn("unknown key `%s`", sctp_key);
-            }
         } else if (!strcmp(root_key, "max")) {
             ogs_yaml_iter_t max_iter;
             ogs_yaml_iter_recurse(&root_iter, &max_iter);
@@ -430,10 +378,14 @@ int ogs_app_context_parse_config(void)
                 if (!strcmp(max_key, "ue")) {
                     const char *v = ogs_yaml_iter_value(&max_iter);
                     if (v) self.max.ue = atoi(v);
-                } else if (!strcmp(max_key, "gnb") ||
+                } else if (!strcmp(max_key, "peer") ||
                             !strcmp(max_key, "enb")) {
                     const char *v = ogs_yaml_iter_value(&max_iter);
-                    if (v) self.max.gnb = atoi(v);
+                    if (v) self.max.peer = atoi(v);
+                } else if (!strcmp(max_key, "gtp_peer") ||
+                            !strcmp(max_key, "enb")) {
+                    const char *v = ogs_yaml_iter_value(&max_iter);
+                    if (v) self.max.gtp_peer = atoi(v);
                 } else
                     ogs_warn("unknown key `%s`", max_key);
             }

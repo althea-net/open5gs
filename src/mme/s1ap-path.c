@@ -51,8 +51,15 @@ int s1ap_send_to_enb(mme_enb_t *enb, ogs_pkbuf_t *pkbuf, uint16_t stream_no)
 {
     char buf[OGS_ADDRSTRLEN];
 
-    ogs_assert(enb);
     ogs_assert(pkbuf);
+
+    enb = mme_enb_cycle(enb);
+    if (!enb) {
+        ogs_warn("eNB has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
     ogs_assert(enb->sctp.sock);
     if (enb->sctp.sock->fd == INVALID_SOCKET) {
         ogs_fatal("eNB SCTP socket has already been destroyed");
@@ -77,13 +84,16 @@ int s1ap_send_to_enb(mme_enb_t *enb, ogs_pkbuf_t *pkbuf, uint16_t stream_no)
 
 int s1ap_send_to_enb_ue(enb_ue_t *enb_ue, ogs_pkbuf_t *pkbuf)
 {
-    mme_enb_t *enb = NULL;
+    ogs_assert(pkbuf);
 
-    ogs_assert(enb_ue);
-    enb = enb_ue->enb;
-    ogs_assert(enb);
+    enb_ue = enb_ue_cycle(enb_ue);
+    if (!enb_ue) {
+        ogs_warn("S1 context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
 
-    return s1ap_send_to_enb(enb, pkbuf, enb_ue->enb_ostream_id);
+    return s1ap_send_to_enb(enb_ue->enb, pkbuf, enb_ue->enb_ostream_id);
 }
 
 int s1ap_delayed_send_to_enb_ue(
@@ -95,7 +105,7 @@ int s1ap_delayed_send_to_enb_ue(
     if (duration) {
         mme_event_t *e = NULL;
 
-        e = mme_event_new(MME_EVT_S1AP_TIMER);
+        e = mme_event_new(MME_EVENT_S1AP_TIMER);
         ogs_assert(e);
         e->timer = ogs_timer_add(
                 ogs_app()->timer_mgr, mme_timer_s1_delayed_send, e);
@@ -125,7 +135,7 @@ int s1ap_send_to_esm(
     ogs_assert(mme_ue);
     ogs_assert(esmbuf);
 
-    e = mme_event_new(MME_EVT_ESM_MESSAGE);
+    e = mme_event_new(MME_EVENT_ESM_MESSAGE);
     ogs_assert(e);
     e->mme_ue = mme_ue;
     e->pkbuf = esmbuf;
@@ -133,7 +143,7 @@ int s1ap_send_to_esm(
     e->create_action = create_action;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_pkbuf_free(e->pkbuf);
         mme_event_free(e);
     }
@@ -201,7 +211,7 @@ int s1ap_send_to_nas(enb_ue_t *enb_ue,
         if (nas_eps_security_decode(enb_ue->mme_ue,
                 security_header_type, nasbuf) != OGS_OK) {
             ogs_error("nas_eps_security_decode failed()");
-	        return OGS_ERROR;
+            return OGS_ERROR;
         }
     }
 
@@ -209,7 +219,7 @@ int s1ap_send_to_nas(enb_ue_t *enb_ue,
     ogs_assert(h);
     if (h->protocol_discriminator == OGS_NAS_PROTOCOL_DISCRIMINATOR_EMM) {
         int rv;
-        e = mme_event_new(MME_EVT_EMM_MESSAGE);
+        e = mme_event_new(MME_EVENT_EMM_MESSAGE);
         if (!e) {
             ogs_error("s1ap_send_to_nas() failed");
             ogs_pkbuf_free(nasbuf);
@@ -221,7 +231,7 @@ int s1ap_send_to_nas(enb_ue_t *enb_ue,
         e->pkbuf = nasbuf;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
-            ogs_warn("s1ap_send_to_nas() failed:%d", (int)rv);
+            ogs_error("s1ap_send_to_nas() failed:%d", (int)rv);
             ogs_pkbuf_free(e->pkbuf);
             mme_event_free(e);
         }

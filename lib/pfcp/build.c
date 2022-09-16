@@ -505,6 +505,7 @@ void ogs_pfcp_build_update_pdr(
 
 static struct {
     ogs_pfcp_outer_header_creation_t outer_header_creation;
+    char dnn[OGS_MAX_DNN_LEN+1];
 } farbuf[OGS_MAX_NUM_OF_FAR];
 
 void ogs_pfcp_build_create_far(
@@ -522,13 +523,21 @@ void ogs_pfcp_build_create_far(
     message->far_id.u32 = far->id;
 
     message->apply_action.presence = 1;
-    message->apply_action.u8 = far->apply_action;
+    message->apply_action.u16 = far->apply_action;
 
     if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
         message->forwarding_parameters.presence = 1;
         message->forwarding_parameters.destination_interface.presence = 1;
         message->forwarding_parameters.destination_interface.u8 =
             far->dst_if;
+
+        if (far->dnn) {
+            message->forwarding_parameters.network_instance.presence = 1;
+            message->forwarding_parameters.network_instance.len =
+                ogs_fqdn_build(farbuf[i].dnn, far->dnn, strlen(far->dnn));
+            message->forwarding_parameters.network_instance.data =
+                farbuf[i].dnn;
+        }
 
         if (far->outer_header_creation_len) {
             memcpy(&farbuf[i].outer_header_creation,
@@ -566,7 +575,7 @@ void ogs_pfcp_build_update_far_deactivate(
     far->apply_action =
         OGS_PFCP_APPLY_ACTION_BUFF | OGS_PFCP_APPLY_ACTION_NOCP;
     message->apply_action.presence = 1;
-    message->apply_action.u8 = far->apply_action;
+    message->apply_action.u16 = far->apply_action;
 
     ogs_assert(sess->bar);
     message->bar_id.presence = 1;
@@ -586,12 +595,20 @@ void ogs_pfcp_build_update_far_activate(
     ogs_assert(far->apply_action & OGS_PFCP_APPLY_ACTION_FORW);
 
     message->apply_action.presence = 1;
-    message->apply_action.u8 = far->apply_action;
+    message->apply_action.u16 = far->apply_action;
 
     message->update_forwarding_parameters.presence = 1;
     message->update_forwarding_parameters.destination_interface.presence = 1;
     message->update_forwarding_parameters.
         destination_interface.u8 = far->dst_if;
+
+    if (far->dnn) {
+        message->update_forwarding_parameters.network_instance.presence = 1;
+        message->update_forwarding_parameters.network_instance.len =
+            ogs_fqdn_build(farbuf[i].dnn, far->dnn, strlen(far->dnn));
+        message->update_forwarding_parameters.network_instance.data =
+            farbuf[i].dnn;
+    }
 
     if (far->outer_header_creation_len || far->smreq_flags.value) {
 
@@ -713,7 +730,10 @@ void ogs_pfcp_build_update_urr(
     /* No change requested, skip. */
     if (!(modify_flags & (OGS_PFCP_MODIFY_URR_MEAS_METHOD|
                           OGS_PFCP_MODIFY_URR_REPORT_TRIGGER|
+                          OGS_PFCP_MODIFY_URR_QUOTA_VALIDITY_TIME|
+                          OGS_PFCP_MODIFY_URR_VOLUME_QUOTA|
                           OGS_PFCP_MODIFY_URR_VOLUME_THRESH|
+                          OGS_PFCP_MODIFY_URR_TIME_QUOTA|
                           OGS_PFCP_MODIFY_URR_TIME_THRESH)))
         return;
 

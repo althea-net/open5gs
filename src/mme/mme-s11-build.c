@@ -48,7 +48,7 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     struct timeval now;
     struct tm time_exp;
     char apn[OGS_MAX_APN_LEN+1];
-	
+
     ogs_gtp2_indication_t indication;
 
     ogs_assert(sess);
@@ -195,14 +195,14 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
      * we need to change position of addresses in struct. */
     if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV4 &&
         session->session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
-	    uint32_t addr = session->paa.both.addr;
-	    session->paa.addr = addr;
+        uint32_t addr = session->paa.both.addr;
+        session->paa.addr = addr;
     }
     if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV6 &&
         session->session_type == OGS_PDU_SESSION_TYPE_IPV4V6) {
-	    uint8_t addr[16];
-	    memcpy(&addr, session->paa.both.addr6, OGS_IPV6_LEN);
-	    memcpy(session->paa.addr6, &addr, OGS_IPV6_LEN);
+        uint8_t addr[16];
+        memcpy(&addr, session->paa.both.addr6, OGS_IPV6_LEN);
+        memcpy(session->paa.addr6, &addr, OGS_IPV6_LEN);
     }
 
     memset(&indication, 0, sizeof(ogs_gtp2_indication_t));
@@ -214,13 +214,13 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     indication.enb_change_reporting_support_indication = 1;
 
     if (req->pdn_type.u8 == OGS_PDU_SESSION_TYPE_IPV4V6)
-	    indication.dual_address_bearer_flag = 1;
+        indication.dual_address_bearer_flag = 1;
 
     if (sess->request_type.value == OGS_NAS_EPS_REQUEST_TYPE_HANDOVER)
-	    indication.handover_indication = 1;
+        indication.handover_indication = 1;
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST)
-	    indication.operation_indication = 1;
+        indication.operation_indication = 1;
 
     session->paa.session_type = req->pdn_type.u8;
     req->pdn_address_allocation.data = &session->paa;
@@ -330,9 +330,15 @@ ogs_pkbuf_t *mme_s11_build_create_session_request(
     req->ue_time_zone.data = &ue_timezone;
     req->ue_time_zone.len = sizeof(ue_timezone);
 
-    req->charging_characteristics.presence = 1;
-    req->charging_characteristics.data = (uint8_t *)"\x54\x00";
-    req->charging_characteristics.len = 2;
+    if (session->charging_characteristics_presence == true) {
+        req->charging_characteristics.presence = 1;
+        req->charging_characteristics.data = session->charging_characteristics;
+        req->charging_characteristics.len = OGS_CHRGCHARS_LEN;
+    } else if (mme_ue->charging_characteristics_presence == true) {
+        req->charging_characteristics.presence = 1;
+        req->charging_characteristics.data = mme_ue->charging_characteristics;
+        req->charging_characteristics.len = OGS_CHRGCHARS_LEN;
+    }
 
     gtp_message.h.type = type;
     return ogs_gtp2_build_msg(&gtp_message);

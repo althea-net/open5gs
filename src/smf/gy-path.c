@@ -114,18 +114,23 @@ static void fill_multiple_services_credit_control_ccr(smf_sess_t *sess,
     /* Reporting-Reason, TS 32.299 7.2.175 */
     /*  "values THRESHOLD, QUOTA_EXHAUSTED and OTHER_QUOTA_TYPE apply to one
         particular quota type and shall occur only in the Used-Service-Units AVP" */
-#if 0
-    /* TODO: set when update is triggered by threshold from PFCP URR. Not yet supported. */
     if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
-        ret = fd_msg_avp_new(ogs_diam_gy_reporting_reason, 0, &avpch2);
-        ogs_assert(ret == 0);
-        val.u32 = OGS_DIAM_GY_REPORTING_REASON_THRESHOLD;
-        ret = fd_msg_avp_setvalue (avpch2, &val);
-        ogs_assert(ret == 0);
-        ret = fd_msg_avp_add (avpch1, MSG_BRW_LAST_CHILD, avpch2);
-        ogs_assert(ret == 0);
+        switch (sess->gy.reporting_reason) {
+        case OGS_DIAM_GY_REPORTING_REASON_THRESHOLD:
+        case OGS_DIAM_GY_REPORTING_REASON_QUOTA_EXHAUSTED:
+        case OGS_DIAM_GY_REPORTING_REASON_OTHER_QUOTA_TYPE:
+            ret = fd_msg_avp_new(ogs_diam_gy_reporting_reason, 0, &avpch2);
+            ogs_assert(ret == 0);
+            val.u32 = sess->gy.reporting_reason;
+            ret = fd_msg_avp_setvalue (avpch2, &val);
+            ogs_assert(ret == 0);
+            ret = fd_msg_avp_add (avpch1, MSG_BRW_LAST_CHILD, avpch2);
+            ogs_assert(ret == 0);
+            break;
+        default:
+            break;
+        }
     }
-#endif
 
     /* Tariff-Change-Usage */
 
@@ -176,19 +181,24 @@ static void fill_multiple_services_credit_control_ccr(smf_sess_t *sess,
      */
     if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST ||
         cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST) {
-        ret = fd_msg_avp_new(ogs_diam_gy_reporting_reason, 0, &avpch1);
-        ogs_assert(ret == 0);
-        if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_UPDATE_REQUEST) {
-                val.u32 = OGS_DIAM_GY_REPORTING_REASON_VALIDITY_TIME;
-                /* TODO: do NOT set when update is triggered by threshold from
-                 * PFCP URR (not yet supported) */
-        } else {
-                val.u32 = OGS_DIAM_GY_REPORTING_REASON_FINAL;
+        switch (sess->gy.reporting_reason) {
+        case OGS_DIAM_GY_REPORTING_REASON_QHT:
+        case OGS_DIAM_GY_REPORTING_REASON_FINAL:
+        case OGS_DIAM_GY_REPORTING_REASON_FORCED_REAUTHORISATION:
+        case OGS_DIAM_GY_REPORTING_REASON_VALIDITY_TIME:
+        case OGS_DIAM_GY_REPORTING_REASON_RATING_CONDITION_CHANGE:
+        case OGS_DIAM_GY_REPORTING_REASON_UNUSED_QUOTA_TIMER:
+            ret = fd_msg_avp_new(ogs_diam_gy_reporting_reason, 0, &avpch1);
+            ogs_assert(ret == 0);
+            val.u32 = sess->gy.reporting_reason;
+            ret = fd_msg_avp_setvalue (avpch1, &val);
+            ogs_assert(ret == 0);
+            ret = fd_msg_avp_add (avp, MSG_BRW_LAST_CHILD, avpch1);
+            ogs_assert(ret == 0);
+            break;
+        default:
+            break;
         }
-        ret = fd_msg_avp_setvalue (avpch1, &val);
-        ogs_assert(ret == 0);
-        ret = fd_msg_avp_add (avp, MSG_BRW_LAST_CHILD, avpch1);
-        ogs_assert(ret == 0);
     }
 
     /* ... lots of AVPs ... */
@@ -431,7 +441,7 @@ static void fill_service_information_ccr(smf_sess_t *sess,
         oct1 = ((uint8_t*)sess->gtp.charging_characteristics.data)[0];
         oct2 = (sess->gtp.charging_characteristics.len > 1) ?
                         ((uint8_t*)sess->gtp.charging_characteristics.data)[1] : 0;
-        snprintf(digits, sizeof(digits), "%02x%02x", oct1, oct2);
+        ogs_snprintf(digits, sizeof(digits), "%02x%02x", oct1, oct2);
         val.os.data = (uint8_t*)&digits[0];
         val.os.len = 4;
         ret = fd_msg_avp_setvalue(avpch2, &val);
@@ -572,7 +582,7 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     if (sess->gy_sid) {
         /* Retrieve session by Session-Id */
         size_t sidlen = strlen(sess->gy_sid);
-		ret = fd_sess_fromsid_msg((os0_t)sess->gy_sid, sidlen, &session, &new);
+        ret = fd_sess_fromsid_msg((os0_t)sess->gy_sid, sidlen, &session, &new);
         ogs_assert(ret == 0);
         ogs_assert(new == 0);
 
@@ -824,13 +834,15 @@ void smf_gy_send_ccr(smf_sess_t *sess, void *xact,
     ogs_assert(ret == 0);
 
     /* Multiple-Services-Indicator */
-    ret = fd_msg_avp_new(ogs_diam_gy_multiple_services_ind, 0, &avp);
-    ogs_assert(ret == 0);
-    val.i32 = OGS_DIAM_GY_MULTIPLE_SERVICES_NOT_SUPPORTED;
-    ret = fd_msg_avp_setvalue(avp, &val);
-    ogs_assert(ret == 0);
-    ret = fd_msg_avp_add(req, MSG_BRW_LAST_CHILD, avp);
-    ogs_assert(ret == 0);
+    if (cc_request_type == OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST) {
+        ret = fd_msg_avp_new(ogs_diam_gy_multiple_services_ind, 0, &avp);
+        ogs_assert(ret == 0);
+        val.i32 = OGS_DIAM_GY_MULTIPLE_SERVICES_NOT_SUPPORTED;
+        ret = fd_msg_avp_setvalue(avp, &val);
+        ogs_assert(ret == 0);
+        ret = fd_msg_avp_add(req, MSG_BRW_LAST_CHILD, avp);
+        ogs_assert(ret == 0);
+    }
 
     /* TS 32.299 7.1.9 Multiple-Services-Credit-Control AVP */
     fill_multiple_services_credit_control_ccr(sess, cc_request_type, req);
@@ -1056,6 +1068,12 @@ static void smf_gy_cca_cb(void *data, struct msg **msg)
                 case OGS_DIAM_GY_AVP_CODE_VALIDITY_TIME:
                     gy_message->cca.validity_time = hdr->avp_value->u32;
                     break;
+                case OGS_DIAM_GY_AVP_CODE_TIME_QUOTA_THRESHOLD:
+                    gy_message->cca.time_threshold = hdr->avp_value->u32;
+                    break;
+                case OGS_DIAM_GY_AVP_CODE_VOLUME_QUOTA_THRESHOLD:
+                    gy_message->cca.volume_threshold = hdr->avp_value->u32;
+                    break;
                 default:
                     ogs_warn("Not supported(%d)", hdr->avp_code);
                     break;
@@ -1086,9 +1104,9 @@ out:
         }
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
-            ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+            ogs_error("ogs_queue_push() failed:%d", (int)rv);
             ogs_free(gy_message);
-            smf_event_free(e);
+            ogs_event_free(e);
         } else {
             ogs_pollset_notify(ogs_app()->pollset);
         }
@@ -1157,10 +1175,10 @@ out:
 static int smf_gy_fb_cb(struct msg **msg, struct avp *avp,
         struct session *sess, void *opaque, enum disp_action *act)
 {
-	/* This CB should never be called */
-	ogs_warn("Unexpected message received!");
+    /* This CB should never be called */
+    ogs_warn("Unexpected message received!");
 
-	return ENOTSUP;
+    return ENOTSUP;
 }
 
 static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
@@ -1169,7 +1187,7 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     int rv;
     int ret;
 
-	struct msg *ans;
+    struct msg *ans;
     union avp_value val;
     struct sess_state *sess_data = NULL;
 
@@ -1189,8 +1207,8 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     /* Set Credit Control Command */
     gy_message->cmd_code = OGS_DIAM_GY_CMD_RE_AUTH;
 
-	/* Create answer header */
-	ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
+    /* Create answer header */
+    ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
     ogs_assert(ret == 0);
     ans = *msg;
 
@@ -1215,9 +1233,9 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     e->gy_message = gy_message;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_free(gy_message);
-        smf_event_free(e);
+        ogs_event_free(e);
     } else {
         ogs_pollset_notify(ogs_app()->pollset);
     }
@@ -1231,8 +1249,8 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	/* Set the Origin-Host, Origin-Realm, andResult-Code AVPs */
-	ret = fd_msg_rescode_set(ans, (char *)"DIAMETER_SUCCESS", NULL, NULL, 1);
+    /* Set the Origin-Host, Origin-Realm, andResult-Code AVPs */
+    ret = fd_msg_rescode_set(ans, (char *)"DIAMETER_SUCCESS", NULL, NULL, 1);
     ogs_assert(ret == 0);
 
     /* Store this value in the session */
@@ -1240,16 +1258,16 @@ static int smf_gy_rar_cb( struct msg **msg, struct avp *avp,
     ogs_assert(ret == 0);
     ogs_assert(sess_data == NULL);
 
-	/* Send the answer */
-	ret = fd_msg_send(msg, NULL, NULL);
+    /* Send the answer */
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     ogs_debug("Re-Auth-Answer");
 
-	/* Add this value to the stats */
-	ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
-	ogs_diam_logger_self()->stats.nb_echoed++;
-	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
+    /* Add this value to the stats */
+    ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
+    ogs_diam_logger_self()->stats.nb_echoed++;
+    ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
     return 0;
 
@@ -1278,49 +1296,49 @@ out:
 int smf_gy_init(void)
 {
     int ret;
-	struct disp_when data;
+    struct disp_when data;
 
     ogs_thread_mutex_init(&sess_state_mutex);
     ogs_pool_init(&sess_state_pool, ogs_app()->pool.sess);
 
-	/* Install objects definitions for this application */
-	ret = ogs_diam_gy_init();
+    /* Install objects definitions for this application */
+    ret = ogs_diam_gy_init();
     ogs_assert(ret == 0);
 
     /* Create handler for sessions */
-	ret = fd_sess_handler_create(&smf_gy_reg, state_cleanup, NULL, NULL);
+    ret = fd_sess_handler_create(&smf_gy_reg, state_cleanup, NULL, NULL);
     ogs_assert(ret == 0);
 
-	memset(&data, 0, sizeof(data));
-	data.app = ogs_diam_gy_application;
+    memset(&data, 0, sizeof(data));
+    data.app = ogs_diam_gy_application;
 
-	ret = fd_disp_register(smf_gy_fb_cb, DISP_HOW_APPID, &data, NULL,
+    ret = fd_disp_register(smf_gy_fb_cb, DISP_HOW_APPID, &data, NULL,
                 &hdl_gy_fb);
     ogs_assert(ret == 0);
 
-	data.command = ogs_diam_gy_cmd_rar;
-	ret = fd_disp_register(smf_gy_rar_cb, DISP_HOW_CC, &data, NULL,
+    data.command = ogs_diam_gy_cmd_rar;
+    ret = fd_disp_register(smf_gy_rar_cb, DISP_HOW_CC, &data, NULL,
                 &hdl_gy_rar);
     ogs_assert(ret == 0);
 
-	/* Advertise the support for the application in the peer */
-	ret = fd_disp_app_support(ogs_diam_gy_application, NULL, 1, 0);
+    /* Advertise the support for the application in the peer */
+    ret = fd_disp_app_support(ogs_diam_gy_application, NULL, 1, 0);
     ogs_assert(ret == 0);
 
-	return OGS_OK;
+    return OGS_OK;
 }
 
 void smf_gy_final(void)
 {
     int ret;
 
-	ret = fd_sess_handler_destroy(&smf_gy_reg, NULL);
+    ret = fd_sess_handler_destroy(&smf_gy_reg, NULL);
     ogs_assert(ret == 0);
 
-	if (hdl_gy_fb)
-		(void) fd_disp_unregister(&hdl_gy_fb, NULL);
-	if (hdl_gy_rar)
-		(void) fd_disp_unregister(&hdl_gy_rar, NULL);
+    if (hdl_gy_fb)
+        (void) fd_disp_unregister(&hdl_gy_fb, NULL);
+    if (hdl_gy_rar)
+        (void) fd_disp_unregister(&hdl_gy_rar, NULL);
 
     ogs_pool_final(&sess_state_pool);
     ogs_thread_mutex_destroy(&sess_state_mutex);

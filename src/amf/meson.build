@@ -1,4 +1,4 @@
-# Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+# Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
 
 # This file is part of Open5GS.
 
@@ -16,6 +16,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 libamf_sources = files('''
+    metrics.h
+
     context.c
     event.c
     timer.c
@@ -41,8 +43,6 @@ libamf_sources = files('''
     namf-handler.c
     sbi-path.c
 
-    nf-sm.c
-
     ngap-sctp.c
     ngap-build.c
     ngap-handler.c
@@ -59,11 +59,12 @@ libamf_sources = files('''
     amf-sm.c
 
     init.c
+    metrics.c
 '''.split())
 
 libamf = static_library('amf',
     sources : libamf_sources,
-    dependencies : [libapp_dep,
+    dependencies : [libmetrics_dep,
                     libsctp_dep,
                     libngap_dep,
                     libnas_5gs_dep,
@@ -72,7 +73,7 @@ libamf = static_library('amf',
 
 libamf_dep = declare_dependency(
     link_with : libamf,
-    dependencies : [libapp_dep,
+    dependencies : [libmetrics_dep,
                     libsctp_dep,
                     libngap_dep,
                     libnas_5gs_dep,

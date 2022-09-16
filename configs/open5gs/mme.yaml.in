@@ -26,7 +26,7 @@ logger:
 #
 #  <S1AP Server>>
 #
-#  o S1AP Server(all address avaiable)
+#  o S1AP Server(all address available)
 #    s1ap:
 #
 #  o S1AP Server(0.0.0.0:36412)
@@ -43,7 +43,7 @@ logger:
 #      - addr: 127.0.0.2
 #        port: 36413
 #
-#  o S1AP Server(address avaiable in `eth0` interface)
+#  o S1AP Server(address available in `eth0` interface)
 #    s1ap:
 #      dev: eth0
 #
@@ -86,7 +86,7 @@ logger:
 #
 #  <GTP-C Server>>
 #
-#  o GTP-C Server(all address avaiable)
+#  o GTP-C Server(all address available)
 #    gtpc:
 #
 #  o GTP-C Server(127.0.0.2:2123, [::1]:2123)
@@ -248,15 +248,15 @@ mme:
       - addr: 127.0.0.2
     gtpc:
       - addr: 127.0.0.2
-    gummei: 
+    gummei:
       plmn_id:
-        mcc: 901
+        mcc: 999
         mnc: 70
       mme_gid: 2
       mme_code: 1
     tai:
       plmn_id:
-        mcc: 901
+        mcc: 999
         mnc: 70
       tac: 1
     security:
@@ -391,10 +391,10 @@ parameter:
 #
 # max:
 #
-# o Maximum Number of UE per AMF/MME
+# o Maximum Number of UE
 #    ue: 1024
-# o Maximum Number of gNB/eNB per AMF/MME
-#    gnb: 64
+# o Maximum Number of Peer(S1AP/NGAP, DIAMETER, GTP, PFCP or SBI)
+#    peer: 64
 #
 max:
 
@@ -421,3 +421,17 @@ usrsctp:
 #    handover:
 #        duration: 500
 time:
+
+#
+# metrics:
+#
+#  <Metrics Server>
+#
+#  o Metrics Server(http://<any address>:9090)
+#    metrics:
+#      addr: 0.0.0.0
+#      port: 9090
+#
+metrics:
+    addr: 127.0.0.2
+    port: 9090

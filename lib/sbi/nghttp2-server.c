@@ -17,7 +17,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ogs-app.h"
 #include "ogs-sbi.h"
 #include "yuarel.h"
 
@@ -33,10 +32,12 @@ static int server_start(ogs_sbi_server_t *server,
         int (*cb)(ogs_sbi_request_t *request, void *data));
 static void server_stop(ogs_sbi_server_t *server);
 
+static bool server_send_rspmem_persistent(
+        ogs_sbi_stream_t *stream, ogs_sbi_response_t *response);
 static bool server_send_response(
         ogs_sbi_stream_t *stream, ogs_sbi_response_t *response);
 
-static ogs_sbi_server_t *server_from_stream(ogs_sbi_stream_t *data);
+static ogs_sbi_server_t *server_from_stream(ogs_sbi_stream_t *stream);
 
 const ogs_sbi_server_actions_t ogs_nghttp2_server_actions = {
     server_init,
@@ -45,7 +46,9 @@ const ogs_sbi_server_actions_t ogs_nghttp2_server_actions = {
     server_start,
     server_stop,
 
+    server_send_rspmem_persistent,
     server_send_response,
+
     server_from_stream,
 };
 
@@ -284,7 +287,7 @@ static ssize_t response_read_callback(nghttp2_session *session,
     return response->http.content_length;
 }
 
-static bool server_send_response(
+static bool server_send_rspmem_persistent(
         ogs_sbi_stream_t *stream, ogs_sbi_response_t *response)
 {
     ogs_sbi_session_t *sbi_sess = NULL;
@@ -299,11 +302,17 @@ static bool server_send_response(
     char srv_version[128];
     char clen[128];
 
-    ogs_assert(stream);
+    ogs_assert(response);
+
+    stream = ogs_pool_cycle(&stream_pool, stream);
+    if (!stream) {
+        ogs_error("stream has already been removed");
+        return true;
+    }
+
     sbi_sess = stream->session;
     ogs_assert(sbi_sess);
     ogs_assert(sbi_sess->session);
-    ogs_assert(response);
 
     sock = sbi_sess->sock;
     ogs_assert(sock);
@@ -375,10 +384,23 @@ static bool server_send_response(
         session_remove(sbi_sess);
     }
 
-    ogs_sbi_response_free(response);
     ogs_free(nva);
 
     return true;
+}
+
+static bool server_send_response(
+        ogs_sbi_stream_t *stream, ogs_sbi_response_t *response)
+{
+    bool rc;
+
+    ogs_assert(response);
+
+    rc = server_send_rspmem_persistent(stream, response);
+
+    ogs_sbi_response_free(response);
+
+    return rc;
 }
 
 static ogs_sbi_server_t *server_from_stream(ogs_sbi_stream_t *stream)
@@ -411,6 +433,8 @@ static ogs_sbi_stream_t *stream_add(
     sbi_sess->last_stream_id = stream_id;
 
     stream->session = sbi_sess;
+
+    ogs_list_add(&sbi_sess->stream_list, stream);
 
     return stream;
 }
@@ -477,6 +501,7 @@ static void session_remove(ogs_sbi_session_t *sbi_sess)
     ogs_list_remove(&server->session_list, sbi_sess);
 
     stream_remove_all(sbi_sess);
+    nghttp2_session_del(sbi_sess->session);
 
     ogs_assert(sbi_sess->poll.read);
     ogs_pollset_remove(sbi_sess->poll.read);
@@ -1086,7 +1111,7 @@ static int session_send_preface(ogs_sbi_session_t *sbi_sess)
 {
     int rv;
     nghttp2_settings_entry iv[1] = {
-        { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, 100 }
+        { NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, ogs_app()->pool.stream }
     };
 
     ogs_assert(sbi_sess);

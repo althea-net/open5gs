@@ -61,7 +61,7 @@ static void _gtpv2_c_recv_cb(short when, ogs_socket_t fd, void *data)
     }
     ogs_assert(sgw);
 
-    e = mme_event_new(MME_EVT_S11_MESSAGE);
+    e = mme_event_new(MME_EVENT_S11_MESSAGE);
     ogs_assert(e);
     e->gnode = (ogs_gtp_node_t *)sgw;
     e->pkbuf = pkbuf;
@@ -228,6 +228,7 @@ int mme_gtp_send_create_session_request(mme_sess_t *sess, int create_action)
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, sess);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->create_action = create_action;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -260,6 +261,7 @@ int mme_gtp_send_modify_bearer_request(
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, mme_ue);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->modify_action = modify_action;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -292,6 +294,7 @@ int mme_gtp_send_delete_session_request(
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, s11buf, timeout, sess);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->delete_action = action;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -357,7 +360,10 @@ int mme_gtp_send_create_bearer_response(
     sgw_ue = mme_ue->sgw_ue;
     ogs_assert(sgw_ue);
     xact = ogs_gtp_xact_cycle(bearer->create.xact);
-    ogs_assert(xact);
+    if (!xact) {
+        ogs_warn("GTP transaction(CREATE) has already been removed");
+        return OGS_OK;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_CREATE_BEARER_RESPONSE_TYPE;
@@ -393,7 +399,10 @@ int mme_gtp_send_update_bearer_response(
     sgw_ue = mme_ue->sgw_ue;
     ogs_assert(sgw_ue);
     xact = ogs_gtp_xact_cycle(bearer->update.xact);
-    ogs_assert(xact);
+    if (!xact) {
+        ogs_warn("GTP transaction(UPDATE) has already been removed");
+        return OGS_OK;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_UPDATE_BEARER_RESPONSE_TYPE;
@@ -429,7 +438,10 @@ int mme_gtp_send_delete_bearer_response(
     sgw_ue = mme_ue->sgw_ue;
     ogs_assert(sgw_ue);
     xact = ogs_gtp_xact_cycle(bearer->delete.xact);
-    ogs_assert(xact);
+    if (!xact) {
+        ogs_warn("GTP transaction(DELETE) has already been removed");
+        return OGS_OK;
+    }
 
     memset(&h, 0, sizeof(ogs_gtp2_header_t));
     h.type = OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE;
@@ -470,6 +482,7 @@ int mme_gtp_send_release_access_bearers_request(mme_ue_t *mme_ue, int action)
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, mme_ue);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->release_action = action;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -540,7 +553,10 @@ int mme_gtp_send_downlink_data_notification_ack(
 
     ogs_assert(bearer);
     xact = ogs_gtp_xact_cycle(bearer->notify.xact);
-    ogs_assert(xact);
+    if (!xact) {
+        ogs_warn("GTP transaction(NOTIFY) has already been removed");
+        return OGS_OK;
+    }
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
@@ -586,6 +602,7 @@ int mme_gtp_send_create_indirect_data_forwarding_tunnel_request(
 
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, mme_ue);
     ogs_expect_or_return_val(xact, OGS_ERROR);
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -618,6 +635,7 @@ int mme_gtp_send_delete_indirect_data_forwarding_tunnel_request(
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, mme_ue);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->delete_indirect_action = action;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -652,6 +670,7 @@ int mme_gtp_send_bearer_resource_command(
     xact = ogs_gtp_xact_local_create(sgw_ue->gnode, &h, pkbuf, timeout, bearer);
     ogs_expect_or_return_val(xact, OGS_ERROR);
     xact->xid |= OGS_GTP_CMD_XACT_ID;
+    xact->local_teid = mme_ue->mme_s11_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);

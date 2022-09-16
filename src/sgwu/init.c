@@ -95,8 +95,7 @@ static void sgwu_main(void *data)
     ogs_fsm_t sgwu_sm;
     int rv;
 
-    ogs_fsm_create(&sgwu_sm, sgwu_state_initial, sgwu_state_final);
-    ogs_fsm_init(&sgwu_sm, 0);
+    ogs_fsm_init(&sgwu_sm, sgwu_state_initial, sgwu_state_final, 0);
 
     for ( ;; ) {
         ogs_pollset_poll(ogs_app()->pollset,
@@ -135,5 +134,4 @@ static void sgwu_main(void *data)
 done:
 
     ogs_fsm_fini(&sgwu_sm, 0);
-    ogs_fsm_delete(&sgwu_sm);
 }

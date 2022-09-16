@@ -79,12 +79,12 @@ void s1ap_recv_upcall(short when, ogs_socket_t fd, void *data)
 #if HAVE_USRSCTP
 static void usrsctp_recv_handler(struct socket *socket, void *data, int flags)
 {
-	int events;
+    int events;
 
-	while ((events = usrsctp_get_events(socket)) &&
+    while ((events = usrsctp_get_events(socket)) &&
            (events & SCTP_EVENT_READ)) {
         s1ap_recv_handler((ogs_sock_t *)socket);
-	}
+    }
 }
 #else
 static void lksctp_accept_handler(short when, ogs_socket_t fd, void *data)
@@ -114,7 +114,7 @@ void s1ap_accept_handler(ogs_sock_t *sock)
         ogs_info("eNB-S1 accepted[%s]:%d in s1_path module", 
             OGS_ADDR(addr, buf), OGS_PORT(addr));
 
-        s1ap_event_push(MME_EVT_S1AP_LO_ACCEPT, new, addr, NULL, 0, 0);
+        s1ap_event_push(MME_EVENT_S1AP_LO_ACCEPT, new, addr, NULL, 0, 0);
     } else {
         ogs_log_message(OGS_LOG_ERROR, ogs_socket_errno, "accept() failed");
     }
@@ -164,7 +164,7 @@ void s1ap_recv_handler(ogs_sock_t *sock)
                 ogs_assert(addr);
                 memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-                s1ap_event_push(MME_EVT_S1AP_LO_SCTP_COMM_UP,
+                s1ap_event_push(MME_EVENT_S1AP_LO_SCTP_COMM_UP,
                         sock, addr, NULL,
                         not->sn_assoc_change.sac_inbound_streams,
                         not->sn_assoc_change.sac_outbound_streams);
@@ -180,7 +180,7 @@ void s1ap_recv_handler(ogs_sock_t *sock)
                 ogs_assert(addr);
                 memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-                s1ap_event_push(MME_EVT_S1AP_LO_CONNREFUSED,
+                s1ap_event_push(MME_EVENT_S1AP_LO_CONNREFUSED,
                         sock, addr, NULL, 0, 0);
             }
             break;
@@ -195,7 +195,7 @@ void s1ap_recv_handler(ogs_sock_t *sock)
             ogs_assert(addr);
             memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-            s1ap_event_push(MME_EVT_S1AP_LO_CONNREFUSED,
+            s1ap_event_push(MME_EVENT_S1AP_LO_CONNREFUSED,
                     sock, addr, NULL, 0, 0);
             break;
 
@@ -237,11 +237,17 @@ void s1ap_recv_handler(ogs_sock_t *sock)
         ogs_assert(addr);
         memcpy(addr, &from, sizeof(ogs_sockaddr_t));
 
-        s1ap_event_push(MME_EVT_S1AP_MESSAGE, sock, addr, pkbuf, 0, 0);
+        s1ap_event_push(MME_EVENT_S1AP_MESSAGE, sock, addr, pkbuf, 0, 0);
         return;
     } else {
-        ogs_fatal("Invalid flag(0x%x)", flags);
-        ogs_assert_if_reached();
+        if (ogs_socket_errno != OGS_EAGAIN) {
+            ogs_fatal("ogs_sctp_recvmsg(%d) failed(%d:%s-0x%x)",
+                    size, errno, strerror(errno), flags);
+            ogs_assert_if_reached();
+        } else {
+            ogs_error("ogs_sctp_recvmsg(%d) failed(%d:%s-0x%x)",
+                    size, errno, strerror(errno), flags);
+        }
     }
 
     ogs_pkbuf_free(pkbuf);

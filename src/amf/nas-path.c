@@ -24,13 +24,16 @@
 
 int nas_5gs_send_to_gnb(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
 {
-    ran_ue_t *ran_ue = NULL;
+    ogs_assert(pkbuf);
 
-    ogs_assert(amf_ue);
-    ran_ue = ran_ue_cycle(amf_ue->ran_ue);
-    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+    amf_ue = amf_ue_cycle(amf_ue);
+    if (!amf_ue) {
+        ogs_warn("UE(amf-ue) context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
 
-    return ngap_send_to_ran_ue(ran_ue, pkbuf);
+    return ngap_send_to_ran_ue(amf_ue->ran_ue, pkbuf);
 }
 
 int nas_5gs_send_to_downlink_nas_transport(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
@@ -40,23 +43,29 @@ int nas_5gs_send_to_downlink_nas_transport(amf_ue_t *amf_ue, ogs_pkbuf_t *pkbuf)
     ran_ue_t *ran_ue = NULL;
 
     ogs_assert(pkbuf);
-    ogs_assert(amf_ue);
+
+    amf_ue = amf_ue_cycle(amf_ue);
+    if (!amf_ue) {
+        ogs_warn("UE(amf-ue) context has already been removed");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_ERROR;
+    }
+
     ran_ue = ran_ue_cycle(amf_ue->ran_ue);
     if (!ran_ue) {
         ogs_warn("NG context has already been removed");
         ogs_pkbuf_free(pkbuf);
-
         return OGS_ERROR;
-    } else {
-        ngapbuf = ngap_build_downlink_nas_transport(
-                ran_ue, pkbuf, false, false);
-        ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
-
-        rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
-        ogs_expect(rv == OGS_OK);
-
-        return rv;
     }
+
+    ngapbuf = ngap_build_downlink_nas_transport(
+            ran_ue, pkbuf, false, false);
+    ogs_expect_or_return_val(ngapbuf, OGS_ERROR);
+
+    rv = nas_5gs_send_to_gnb(amf_ue, ngapbuf);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
 }
 
 int nas_5gs_send_registration_accept(amf_ue_t *amf_ue)
@@ -272,6 +281,38 @@ int nas_5gs_send_de_registration_accept(amf_ue_t *amf_ue)
             NGAP_Cause_PR_nas, NGAP_CauseNas_deregister,
             NGAP_UE_CTX_REL_NG_REMOVE_AND_UNLINK, 0);
     ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
+int nas_5gs_send_de_registration_request(amf_ue_t *amf_ue)
+{
+    int rv;
+
+    ran_ue_t *ran_ue = NULL;
+    ogs_pkbuf_t *gmmbuf = NULL;
+
+    ogs_assert(amf_ue);
+    ran_ue = ran_ue_cycle(amf_ue->ran_ue);
+    ogs_expect_or_return_val(ran_ue, OGS_ERROR);
+
+    ogs_debug("[%s] De-registration request", amf_ue->supi);
+
+    if (amf_ue->t3522.pkbuf) {
+        gmmbuf = amf_ue->t3522.pkbuf;
+        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    } else {
+        gmmbuf = gmm_build_de_registration_request(amf_ue);
+        ogs_expect_or_return_val(gmmbuf, OGS_ERROR);
+    }
+
+    amf_ue->t3522.pkbuf = ogs_pkbuf_copy(gmmbuf);
+    ogs_expect_or_return_val(amf_ue->t3522.pkbuf, OGS_ERROR);
+    ogs_timer_start(amf_ue->t3522.timer,
+            amf_timer_cfg(AMF_TIMER_T3522)->duration);
+
+    rv = nas_5gs_send_to_downlink_nas_transport(amf_ue, gmmbuf);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     return rv;
 }

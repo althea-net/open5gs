@@ -1,4 +1,4 @@
-# Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+# Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
 
 # This file is part of Open5GS.
 
@@ -18,11 +18,6 @@
 libudr_sources = files('''
     context.c
     event.c
-    timer.c
-
-    nnrf-build.c
-    nnrf-handler.c
-    nf-sm.c
 
     nudr-handler.c
 
@@ -34,15 +29,13 @@ libudr_sources = files('''
 
 libudr = static_library('udr',
     sources : libudr_sources,
-    dependencies : [libapp_dep,
-                    libdbi_dep,
+    dependencies : [libdbi_dep,
                     libsbi_dep],
     install : false)
 
 libudr_dep = declare_dependency(
     link_with : libudr,
-    dependencies : [libapp_dep,
-                    libdbi_dep,
+    dependencies : [libdbi_dep,
                     libsbi_dep])
 
 udr_sources = files('''

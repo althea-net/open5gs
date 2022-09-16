@@ -116,7 +116,7 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
     if (sess->gx_sid) {
         /* Retrieve session by Session-Id */
         size_t sidlen = strlen(sess->gx_sid);
-		ret = fd_sess_fromsid_msg((os0_t)sess->gx_sid, sidlen, &session, &new);
+        ret = fd_sess_fromsid_msg((os0_t)sess->gx_sid, sidlen, &session, &new);
         ogs_assert(ret == 0);
         ogs_assert(new == 0);
 
@@ -536,6 +536,25 @@ void smf_gx_send_ccr(smf_sess_t *sess, ogs_gtp_xact_t *xact,
             ret = fd_msg_avp_add(req, MSG_BRW_LAST_CHILD, avp);
             ogs_assert(ret == 0);
         }
+    }
+
+    /* 3GPP-Charging-Characteristics, 3GPP TS 29.061 16.4.7.2 13 */
+    if (sess->gtp.charging_characteristics.presence &&
+        sess->gtp.charging_characteristics.len > 0) {
+        uint8_t oct1, oct2;
+        char digits[5];
+        ret = fd_msg_avp_new(ogs_diam_gx_3gpp_charging_characteristics, 0, &avp);
+        ogs_assert(ret == 0);
+        oct1 = ((uint8_t*)sess->gtp.charging_characteristics.data)[0];
+        oct2 = (sess->gtp.charging_characteristics.len > 1) ?
+                        ((uint8_t*)sess->gtp.charging_characteristics.data)[1] : 0;
+        ogs_snprintf(digits, sizeof(digits), "%02x%02x", oct1, oct2);
+        val.os.data = (uint8_t*)&digits[0];
+        val.os.len = 4;
+        ret = fd_msg_avp_setvalue(avp, &val);
+        ogs_assert(ret == 0);
+        ret = fd_msg_avp_add(req, MSG_BRW_LAST_CHILD, avp);
+        ogs_assert(ret == 0);
     }
 
     /* Set Called-Station-Id */
@@ -1005,10 +1024,10 @@ out:
         e->gtp_xact = xact;
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
-            ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+            ogs_error("ogs_queue_push() failed:%d", (int)rv);
             ogs_session_data_free(&gx_message->session_data);
             ogs_free(gx_message);
-            smf_event_free(e);
+            ogs_event_free(e);
         } else {
             ogs_pollset_notify(ogs_app()->pollset);
         }
@@ -1078,10 +1097,10 @@ out:
 static int smf_gx_fb_cb(struct msg **msg, struct avp *avp,
         struct session *sess, void *opaque, enum disp_action *act)
 {
-	/* This CB should never be called */
-	ogs_warn("Unexpected message received!");
+    /* This CB should never be called */
+    ogs_warn("Unexpected message received!");
 
-	return ENOTSUP;
+    return ENOTSUP;
 }
 
 static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
@@ -1090,7 +1109,7 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     int rv;
     int ret;
 
-	struct msg *ans, *qry;
+    struct msg *ans, *qry;
     struct avp *avpch1;
     struct avp_hdr *hdr;
     union avp_value val;
@@ -1113,9 +1132,9 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     /* Set Credit Control Command */
     gx_message->cmd_code = OGS_DIAM_GX_CMD_RE_AUTH;
 
-	/* Create answer header */
-	qry = *msg;
-	ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
+    /* Create answer header */
+    qry = *msg;
+    ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
     ogs_assert(ret == 0);
     ans = *msg;
 
@@ -1248,10 +1267,10 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     e->gx_message = gx_message;
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
         ogs_session_data_free(&gx_message->session_data);
         ogs_free(gx_message);
-        smf_event_free(e);
+        ogs_event_free(e);
     } else {
         ogs_pollset_notify(ogs_app()->pollset);
     }
@@ -1265,8 +1284,8 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	/* Set the Origin-Host, Origin-Realm, andResult-Code AVPs */
-	ret = fd_msg_rescode_set(ans, (char *)"DIAMETER_SUCCESS", NULL, NULL, 1);
+    /* Set the Origin-Host, Origin-Realm, andResult-Code AVPs */
+    ret = fd_msg_rescode_set(ans, (char *)"DIAMETER_SUCCESS", NULL, NULL, 1);
     ogs_assert(ret == 0);
 
     /* Store this value in the session */
@@ -1274,16 +1293,16 @@ static int smf_gx_rar_cb( struct msg **msg, struct avp *avp,
     ogs_assert(ret == 0);
     ogs_assert(sess_data == NULL);
 
-	/* Send the answer */
-	ret = fd_msg_send(msg, NULL, NULL);
+    /* Send the answer */
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     ogs_debug("Re-Auth-Answer");
 
-	/* Add this value to the stats */
-	ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
-	ogs_diam_logger_self()->stats.nb_echoed++;
-	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
+    /* Add this value to the stats */
+    ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
+    ogs_diam_logger_self()->stats.nb_echoed++;
+    ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
     return 0;
 
@@ -1313,49 +1332,49 @@ out:
 int smf_gx_init(void)
 {
     int ret;
-	struct disp_when data;
+    struct disp_when data;
 
     ogs_thread_mutex_init(&sess_state_mutex);
     ogs_pool_init(&sess_state_pool, ogs_app()->pool.sess);
 
-	/* Install objects definitions for this application */
-	ret = ogs_diam_gx_init();
+    /* Install objects definitions for this application */
+    ret = ogs_diam_gx_init();
     ogs_assert(ret == 0);
 
     /* Create handler for sessions */
-	ret = fd_sess_handler_create(&smf_gx_reg, state_cleanup, NULL, NULL);
+    ret = fd_sess_handler_create(&smf_gx_reg, state_cleanup, NULL, NULL);
     ogs_assert(ret == 0);
 
-	memset(&data, 0, sizeof(data));
-	data.app = ogs_diam_gx_application;
+    memset(&data, 0, sizeof(data));
+    data.app = ogs_diam_gx_application;
 
-	ret = fd_disp_register(smf_gx_fb_cb, DISP_HOW_APPID, &data, NULL,
+    ret = fd_disp_register(smf_gx_fb_cb, DISP_HOW_APPID, &data, NULL,
                 &hdl_gx_fb);
     ogs_assert(ret == 0);
 
-	data.command = ogs_diam_gx_cmd_rar;
-	ret = fd_disp_register(smf_gx_rar_cb, DISP_HOW_CC, &data, NULL,
+    data.command = ogs_diam_gx_cmd_rar;
+    ret = fd_disp_register(smf_gx_rar_cb, DISP_HOW_CC, &data, NULL,
                 &hdl_gx_rar);
     ogs_assert(ret == 0);
 
-	/* Advertise the support for the application in the peer */
-	ret = fd_disp_app_support(ogs_diam_gx_application, ogs_diam_vendor, 1, 0);
+    /* Advertise the support for the application in the peer */
+    ret = fd_disp_app_support(ogs_diam_gx_application, ogs_diam_vendor, 1, 0);
     ogs_assert(ret == 0);
 
-	return OGS_OK;
+    return OGS_OK;
 }
 
 void smf_gx_final(void)
 {
     int ret;
 
-	ret = fd_sess_handler_destroy(&smf_gx_reg, NULL);
+    ret = fd_sess_handler_destroy(&smf_gx_reg, NULL);
     ogs_assert(ret == 0);
 
-	if (hdl_gx_fb)
-		(void) fd_disp_unregister(&hdl_gx_fb, NULL);
-	if (hdl_gx_rar)
-		(void) fd_disp_unregister(&hdl_gx_rar, NULL);
+    if (hdl_gx_fb)
+        (void) fd_disp_unregister(&hdl_gx_fb, NULL);
+    if (hdl_gx_rar)
+        (void) fd_disp_unregister(&hdl_gx_rar, NULL);
 
     ogs_pool_final(&sess_state_pool);
     ogs_thread_mutex_destroy(&sess_state_mutex);

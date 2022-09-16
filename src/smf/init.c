@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -22,6 +22,7 @@
 #include "gtp-path.h"
 #include "pfcp-path.h"
 #include "sbi-path.h"
+#include "metrics.h"
 
 static ogs_thread_t *thread;
 static void smf_main(void *data);
@@ -32,12 +33,12 @@ int smf_initialize()
 {
     int rv;
 
+    ogs_metrics_context_init();
     ogs_gtp_context_init(ogs_app()->pool.nf * OGS_MAX_NUM_OF_GTPU_RESOURCE);
     ogs_pfcp_context_init();
+    ogs_sbi_context_init();
 
     smf_context_init();
-    smf_event_init();
-    ogs_sbi_context_init();
 
     rv = ogs_gtp_xact_init();
     if (rv != OGS_OK) return rv;
@@ -51,7 +52,10 @@ int smf_initialize()
     rv = ogs_pfcp_context_parse_config("smf", "upf");
     if (rv != OGS_OK) return rv;
 
-    rv = ogs_sbi_context_parse_config("smf", "nrf");
+    rv = ogs_sbi_context_parse_config("smf", "nrf", "scp");
+    if (rv != OGS_OK) return rv;
+
+    rv = ogs_metrics_context_parse_config();
     if (rv != OGS_OK) return rv;
 
     rv = smf_context_parse_config();
@@ -63,6 +67,9 @@ int smf_initialize()
 
     rv = ogs_pfcp_ue_pool_generate();
     if (rv != OGS_OK) return rv;
+
+    rv = smf_metrics_open();
+    if (rv != 0) return OGS_ERROR;
 
     rv = smf_fd_init();
     if (rv != 0) return OGS_ERROR;
@@ -105,7 +112,7 @@ static void event_termination(void)
 
     /* Sending NF Instance De-registeration to NRF */
     ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance)
-        smf_nf_fsm_fini(nf_instance);
+        ogs_sbi_nf_fsm_fini(nf_instance);
 
     /* Starting holding timer */
     t_termination_holding = ogs_timer_add(ogs_app()->timer_mgr, NULL, NULL);
@@ -130,6 +137,7 @@ void smf_terminate(void)
     smf_gtp_close();
     smf_pfcp_close();
     smf_sbi_close();
+    smf_metrics_close();
 
     smf_fd_final();
 
@@ -138,11 +146,10 @@ void smf_terminate(void)
     ogs_pfcp_context_final();
     ogs_sbi_context_final();
     ogs_gtp_context_final();
+    ogs_metrics_context_final();
 
     ogs_pfcp_xact_final();
     ogs_gtp_xact_final();
-
-    smf_event_final(); /* Destroy event */
 }
 
 static void smf_main(void *data)
@@ -150,8 +157,7 @@ static void smf_main(void *data)
     ogs_fsm_t smf_sm;
     int rv;
 
-    ogs_fsm_create(&smf_sm, smf_state_initial, smf_state_final);
-    ogs_fsm_init(&smf_sm, 0);
+    ogs_fsm_init(&smf_sm, smf_state_initial, smf_state_final, 0);
 
     for ( ;; ) {
         ogs_pollset_poll(ogs_app()->pollset,
@@ -184,11 +190,10 @@ static void smf_main(void *data)
 
             ogs_assert(e);
             ogs_fsm_dispatch(&smf_sm, e);
-            smf_event_free(e);
+            ogs_event_free(e);
         }
     }
 done:
 
     ogs_fsm_fini(&smf_sm, 0);
-    ogs_fsm_delete(&smf_sm);
 }

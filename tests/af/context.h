@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -24,7 +24,6 @@
 #include "ogs-app.h"
 
 #include "event.h"
-#include "timer.h"
 #include "local.h"
 #include "af-sm.h"
 
@@ -38,8 +37,6 @@ extern int __af_log_domain;
 #define OGS_LOG_DOMAIN __af_log_domain
 
 typedef struct af_context_s {
-    OpenAPI_nf_type_e   nf_type;
-
     ogs_hash_t      *supi_hash;     /* hash table (SUPI) */
     ogs_hash_t      *ipv4_hash;     /* hash table (IPv4 Address) */
     ogs_hash_t      *ipv6_hash;     /* hash table (IPv6 Address) */
@@ -47,22 +44,6 @@ typedef struct af_context_s {
 
     ogs_list_t      sess_list;
 } af_context_t;
-
-#define AF_NF_INSTANCE_CLEAR(_cAUSE, _nFInstance) \
-    do { \
-        ogs_assert(_nFInstance); \
-        if ((_nFInstance)->reference_count == 1) { \
-            ogs_info("[%s] (%s) NF removed", (_nFInstance)->id, (_cAUSE)); \
-            af_nf_fsm_fini((_nFInstance)); \
-        } else { \
-            /* There is an assocation with other context */ \
-            ogs_info("[%s:%d] (%s) NF suspended", \
-                    _nFInstance->id, _nFInstance->reference_count, (_cAUSE)); \
-            OGS_FSM_TRAN(&_nFInstance->sm, af_nf_state_de_registered); \
-            ogs_fsm_dispatch(&_nFInstance->sm, NULL); \
-        } \
-        ogs_sbi_nf_instance_remove(_nFInstance); \
-    } while(0)
 
 typedef struct af_sess_s af_sess_t;
 
@@ -114,8 +95,6 @@ bool af_sess_set_pcf_app_session_id(af_sess_t *sess, char *pcf_app_session_id);
 af_sess_t *af_sess_find(uint32_t index);
 af_sess_t *af_sess_find_by_af_app_session_id(char *af_app_session_id);
 af_sess_t *af_sess_find_by_pcf_app_session_id(char *pcf_app_session_id);
-
-void af_sess_select_nf(af_sess_t *sess, OpenAPI_nf_type_e nf_type);
 
 void af_sess_associate_pcf_client(af_sess_t *sess);
 

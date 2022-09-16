@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -72,8 +72,6 @@ bsf_context_t *bsf_self(void)
 
 static int bsf_context_prepare(void)
 {
-    self.nf_type = OpenAPI_nf_type_BSF;
-
     return OGS_OK;
 }
 
@@ -105,6 +103,10 @@ int bsf_context_parse_config(void)
                 const char *bsf_key = ogs_yaml_iter_key(&bsf_iter);
                 ogs_assert(bsf_key);
                 if (!strcmp(bsf_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(bsf_key, "service_name")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(bsf_key, "discovery")) {
                     /* handle config in sbi library */
                 } else
                     ogs_warn("unknown key `%s`", bsf_key);
@@ -281,7 +283,7 @@ bsf_sess_t *bsf_sess_find_by_snssai_and_dnn(ogs_s_nssai_t *s_nssai, char *dnn)
 
     ogs_list_for_each(&self.sess_list, sess)
         if (sess->s_nssai.sst == s_nssai->sst &&
-            sess->dnn && strcmp(sess->dnn, dnn) == 0)
+            sess->dnn && ogs_strcasecmp(sess->dnn, dnn) == 0)
             return sess;
 
     return NULL;
@@ -324,15 +326,4 @@ bsf_sess_t *bsf_sess_find_by_ipv6prefix(char *ipv6prefix_string)
 
     return ogs_hash_get(self.ipv6prefix_hash,
             &ipv6prefix, (ipv6prefix.len >> 3) + 1);
-}
-
-void bsf_sess_select_nf(bsf_sess_t *sess, OpenAPI_nf_type_e nf_type)
-{
-    ogs_assert(sess);
-    ogs_assert(nf_type);
-
-    if (nf_type == OpenAPI_nf_type_NRF)
-        ogs_sbi_select_nrf(&sess->sbi, bsf_nf_state_registered);
-    else
-        ogs_sbi_select_first_nf(&sess->sbi, nf_type, bsf_nf_state_registered);
 }

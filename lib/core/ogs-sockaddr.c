@@ -70,7 +70,7 @@ int ogs_getnameinfo(
 }
 #endif
 
-int ogs_getaddrinfo(ogs_sockaddr_t **sa_list, 
+int ogs_getaddrinfo(ogs_sockaddr_t **sa_list,
         int family, const char *hostname, uint16_t port, int flags)
 {
     *sa_list = NULL;
@@ -93,7 +93,7 @@ int ogs_freeaddrinfo(ogs_sockaddr_t *sa_list)
     return OGS_OK;
 }
 
-int ogs_addaddrinfo(ogs_sockaddr_t **sa_list, 
+int ogs_addaddrinfo(ogs_sockaddr_t **sa_list,
         int family, const char *hostname, uint16_t port, int flags)
 {
     int rc;
@@ -246,7 +246,7 @@ int ogs_sortaddrinfo(ogs_sockaddr_t **sa_list, int family)
             new->next = addr;
         }
     }
-    
+
     *sa_list = head;
 
     return OGS_OK;
@@ -255,23 +255,23 @@ int ogs_sortaddrinfo(ogs_sockaddr_t **sa_list, int family)
 ogs_sockaddr_t *ogs_link_local_addr(const char *dev, const ogs_sockaddr_t *sa)
 {
 #if defined(HAVE_GETIFADDRS)
-	struct ifaddrs *iflist, *cur;
+    struct ifaddrs *iflist, *cur;
     int rc;
 
-	rc = getifaddrs(&iflist);
+    rc = getifaddrs(&iflist);
     if (rc != 0) {
         ogs_log_message(OGS_LOG_ERROR, ogs_socket_errno, "getifaddrs failed");
         return NULL;
     }
 
-	for (cur = iflist; cur != NULL; cur = cur->ifa_next) {
+    for (cur = iflist; cur != NULL; cur = cur->ifa_next) {
         ogs_sockaddr_t *ifa_addr = NULL;
         ogs_sockaddr_t *addr = NULL;
 
         ifa_addr = (ogs_sockaddr_t *)cur->ifa_addr;
 
-		if (ifa_addr == NULL) /* may happen with ppp interfaces */
-			continue;
+        if (ifa_addr == NULL) /* may happen with ppp interfaces */
+            continue;
 
         if (ifa_addr->ogs_sa_family == AF_INET)
             continue;
@@ -293,9 +293,9 @@ ogs_sockaddr_t *ogs_link_local_addr(const char *dev, const ogs_sockaddr_t *sa)
 
         freeifaddrs(iflist);
         return addr;
-	}
+    }
 
-	freeifaddrs(iflist);
+    freeifaddrs(iflist);
 #endif
     return NULL;
 }
@@ -312,11 +312,11 @@ ogs_sockaddr_t *ogs_link_local_addr_by_sa(const ogs_sockaddr_t *sa)
     return ogs_link_local_addr(NULL, sa);
 }
 
-int ogs_filter_ip_version(ogs_sockaddr_t **addr, 
+int ogs_filter_ip_version(ogs_sockaddr_t **addr,
         int no_ipv4, int no_ipv6, int prefer_ipv4)
 {
     int rv;
-    
+
     if (no_ipv4 == 1) {
         rv = ogs_filteraddrinfo(addr, AF_INET6);
         ogs_assert(rv == OGS_OK);
@@ -416,17 +416,23 @@ bool ogs_sockaddr_is_equal(void *p, void *q)
     if (a->ogs_sa_family != b->ogs_sa_family)
         return false;
 
-    if (a->ogs_sa_family == AF_INET && memcmp(
-        &a->sin.sin_addr, &b->sin.sin_addr, sizeof(struct in_addr)) == 0)
+    switch (a->ogs_sa_family) {
+    case AF_INET:
+        if (a->sin.sin_port != b->sin.sin_port)
+            return false;
+        if (memcmp(&a->sin.sin_addr, &b->sin.sin_addr, sizeof(struct in_addr)) != 0)
+            return false;
         return true;
-    else if (a->ogs_sa_family == AF_INET6 && memcmp(
-        &a->sin6.sin6_addr, &b->sin6.sin6_addr, sizeof(struct in6_addr)) == 0)
+    case AF_INET6:
+        if (a->sin6.sin6_port != b->sin6.sin6_port)
+            return false;
+        if (memcmp(&a->sin6.sin6_addr, &b->sin6.sin6_addr, sizeof(struct in6_addr)) != 0)
+            return false;
         return true;
-    else {
-        return false;
+    default:
+        ogs_error("Unexpected address faimily %u", a->ogs_sa_family);
+        ogs_abort();
     }
-
-    return false;
 }
 
 static int parse_network(ogs_ipsubnet_t *ipsub, const char *network)
@@ -491,7 +497,7 @@ static int parse_ip(
     /* supported flavors of IP:
      *
      * . IPv6 numeric address string (e.g., "fe80::1")
-     * 
+     *
      *   IMPORTANT: Don't store IPv4-mapped IPv6 address as an IPv6 address.
      *
      * . IPv4 numeric address string (e.g., "127.0.0.1")
@@ -506,7 +512,7 @@ static int parse_ip(
     if (rc == 1) {
         if (IN6_IS_ADDR_V4MAPPED((struct in6_addr *)ipsub->sub)) {
             /* ipsubnet_test() assumes that we don't create IPv4-mapped IPv6
-             * addresses; this of course forces the user to specify 
+             * addresses; this of course forces the user to specify
              * IPv4 addresses in a.b.c.d style instead of ::ffff:a.b.c.d style.
              */
             ogs_error("Cannot support IPv4-mapped IPv6: "
@@ -535,7 +541,7 @@ static int looks_like_ip(const char *ipstr)
 {
     if (strlen(ipstr) == 0)
         return 0;
-    
+
     if (strchr(ipstr, ':')) {
         /* definitely not a hostname;
          * assume it is intended to be an IPv6 address */
@@ -572,13 +578,13 @@ int ogs_ipsubnet(ogs_ipsubnet_t *ipsub,
     ogs_assert(ipstr);
 
     /* filter out stuff which doesn't look remotely like an IP address;
-     * this helps callers like mod_access which have a syntax allowing 
+     * this helps callers like mod_access which have a syntax allowing
      * hostname or IP address;
-     * CORE_EINVAL tells the caller that it was probably not intended 
+     * CORE_EINVAL tells the caller that it was probably not intended
      * to be an IP address
      */
     if (!looks_like_ip(ipstr)) {
-        ogs_error("looks_like_ip() is failed");
+        ogs_error("looks_like_ip(%s, %s) failed", ipstr, mask_or_numbits);
         return OGS_ERROR;
     }
 
@@ -587,7 +593,7 @@ int ogs_ipsubnet(ogs_ipsubnet_t *ipsub,
 
     rv = parse_ip(ipsub, ipstr, mask_or_numbits == NULL);
     if (rv != OGS_OK) {
-        ogs_error("parse_ip() is failed");
+        ogs_error("parse_ip(%s, %s) failed", ipstr, mask_or_numbits);
         return rv;
     }
 
@@ -619,7 +625,7 @@ int ogs_ipsubnet(ogs_ipsubnet_t *ipsub,
             ipsub->family == AF_INET) {
             /* valid IPv4 netmask */
         } else {
-            ogs_error("Bad netmask");
+            ogs_error("Bad netmask %s", mask_or_numbits);
             return OGS_ERROR;
         }
     }

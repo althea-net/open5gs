@@ -18,9 +18,8 @@
  */
 
 #include "ogs-sbi.h"
-#include "ogs-app.h"
 
-bool ogs_sbi_send(ogs_sbi_nf_instance_t *nf_instance,
+bool ogs_sbi_send_request(ogs_sbi_nf_instance_t *nf_instance,
         ogs_sbi_client_cb_f client_cb, ogs_sbi_xact_t *xact)
 {
     ogs_sbi_request_t *request = NULL;
@@ -39,7 +38,8 @@ bool ogs_sbi_send(ogs_sbi_nf_instance_t *nf_instance,
         client = ogs_sbi_client_find_by_service_name(nf_instance,
                 request->h.service.name, request->h.api.version);
         if (!client) {
-            ogs_error("[%s] Cannot find client [%s:%s]",
+            ogs_error("[%s:%s] Cannot find client [%s:%s]",
+                    OpenAPI_nf_type_ToString(nf_instance->nf_type),
                     nf_instance->id,
                     request->h.service.name, request->h.api.version);
             return false;
@@ -50,12 +50,16 @@ bool ogs_sbi_send(ogs_sbi_nf_instance_t *nf_instance,
 
         addr = ogs_sbi_getaddr_from_uri(request->h.uri);
         if (!addr) {
-            ogs_error("[%s] Invalid URL [%s]", nf_instance->id, request->h.uri);
+            ogs_error("[%s:%s] Invalid URL [%s]",
+                    OpenAPI_nf_type_ToString(nf_instance->nf_type),
+                    nf_instance->id, request->h.uri);
             return false;
         }
         client = ogs_sbi_client_find(addr);
         if (!client) {
-            ogs_error("[%s] Cannot find client [%s:%d]", nf_instance->id,
+            ogs_error("[%s:%s] Cannot find client [%s:%d]",
+                    OpenAPI_nf_type_ToString(nf_instance->nf_type),
+                    nf_instance->id,
                     OGS_ADDR(addr, buf), OGS_PORT(addr));
             ogs_freeaddrinfo(addr);
             return false;
@@ -63,60 +67,120 @@ bool ogs_sbi_send(ogs_sbi_nf_instance_t *nf_instance,
         ogs_freeaddrinfo(addr);
     }
 
+    /* ogs_sbi_xact_remove() will call ogs_sbi_request_free()
+     * As such, we'll use ogs_sbi_client_send_reqmem_persistent() */
     ogs_expect_or_return_val(true ==
-        ogs_sbi_client_send_request(
+        ogs_sbi_scp_send_reqmem_persistent(
             client, client_cb, request, xact), false);
-
-    /* Prevent ogs_sbi_request_free() in ogs_sbi_xact_remove() */
-    xact->request = NULL;
 
     return true;
 }
 
-bool ogs_sbi_discover_and_send(ogs_sbi_xact_t *xact,
-        ogs_fsm_handler_t nf_state_registered, ogs_sbi_client_cb_f client_cb)
+bool ogs_sbi_discover_only(
+        ogs_sbi_xact_t *xact, ogs_sbi_client_cb_f client_cb)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
 
-    ogs_assert(xact);
-    ogs_assert(xact->sbi_object);
-    ogs_assert(xact->target_nf_type);
-    ogs_assert(nf_state_registered);
+    ogs_sbi_object_t *sbi_object = NULL;
+    ogs_sbi_service_type_e service_type = OGS_SBI_SERVICE_TYPE_NULL;
+    ogs_sbi_discovery_option_t *discovery_option = NULL;
+
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+
+    sbi_object = xact->sbi_object;
+    ogs_assert(sbi_object);
+    service_type = xact->service_type;
+    ogs_assert(service_type);
+    target_nf_type = ogs_sbi_service_type_to_nf_type(service_type);
+    ogs_assert(target_nf_type);
     ogs_assert(client_cb);
 
-    /* Target NF-Instance */
-    nf_instance = OGS_SBI_NF_INSTANCE(xact->sbi_object, xact->target_nf_type);
-    if (!nf_instance) {
-        ogs_assert(xact->target_nf_type != OpenAPI_nf_type_NRF);
-        ogs_sbi_select_first_nf(
-                xact->sbi_object, xact->target_nf_type, nf_state_registered);
-        nf_instance = OGS_SBI_NF_INSTANCE(
-                xact->sbi_object, xact->target_nf_type);
-    }
-
-    if (nf_instance) {
-        return ogs_sbi_send(nf_instance, client_cb, xact);
-    }
+    discovery_option = xact->discovery_option;
 
     /* NRF NF-Instance */
-    nf_instance = OGS_SBI_NF_INSTANCE(xact->sbi_object, OpenAPI_nf_type_NRF);
+    nf_instance = sbi_object->nf_type_array[OpenAPI_nf_type_NRF].nf_instance;
     if (!nf_instance) {
-        ogs_sbi_select_nrf(xact->sbi_object, nf_state_registered);
-        nf_instance = OGS_SBI_NF_INSTANCE(
-                xact->sbi_object, OpenAPI_nf_type_NRF);
+        nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                        OpenAPI_nf_type_NRF, NULL);
+        if (nf_instance)
+            OGS_SBI_SETUP_NF_INSTANCE(
+                sbi_object->nf_type_array[OpenAPI_nf_type_NRF], nf_instance);
     }
 
     if (nf_instance) {
+        ogs_sbi_client_t *client = NULL;
+        ogs_sbi_request_t *request = NULL;
+
         ogs_warn("Try to discover [%s]",
-                    OpenAPI_nf_type_ToString(xact->target_nf_type));
-        return ogs_nnrf_disc_send_nf_discover(
-                nf_instance, xact->target_nf_type, xact);
+                    ogs_sbi_service_type_to_name(service_type));
+
+        request = ogs_nnrf_disc_build_discover(
+                    target_nf_type, discovery_option);
+        ogs_expect_or_return_val(request, false);
+
+        client = nf_instance->client;
+        ogs_assert(client);
+
+        return ogs_sbi_client_send_request(client, client_cb, request, xact);
     }
 
     ogs_error("Cannot discover [%s]",
-                OpenAPI_nf_type_ToString(xact->target_nf_type));
+                ogs_sbi_service_type_to_name(service_type));
 
     return false;
+}
+
+bool ogs_sbi_discover_and_send(
+        ogs_sbi_xact_t *xact, ogs_sbi_client_cb_f client_cb)
+{
+    ogs_sbi_nf_instance_t *nf_instance = NULL;
+
+    ogs_sbi_object_t *sbi_object = NULL;
+    ogs_sbi_service_type_e service_type = OGS_SBI_SERVICE_TYPE_NULL;
+    ogs_sbi_discovery_option_t *discovery_option = NULL;
+
+    OpenAPI_nf_type_e target_nf_type = OpenAPI_nf_type_NULL;
+
+    sbi_object = xact->sbi_object;
+    ogs_assert(sbi_object);
+    service_type = xact->service_type;
+    ogs_assert(service_type);
+    target_nf_type = ogs_sbi_service_type_to_nf_type(service_type);
+    ogs_assert(target_nf_type);
+    ogs_assert(client_cb);
+
+    discovery_option = xact->discovery_option;
+
+    /* Target NF-Instance */
+    nf_instance = sbi_object->service_type_array[service_type].nf_instance;
+    if (!nf_instance) {
+        nf_instance = ogs_sbi_nf_instance_find_by_discovery_param(
+                        target_nf_type, discovery_option);
+        if (nf_instance)
+            OGS_SBI_SETUP_NF_INSTANCE(
+                    sbi_object->service_type_array[service_type], nf_instance);
+    }
+
+    if (nf_instance) {
+        return ogs_sbi_send_request(nf_instance, client_cb, xact);
+    }
+
+    return ogs_sbi_discover_only(xact, client_cb);
+}
+
+bool ogs_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
+{
+    ogs_sbi_request_t *request = NULL;
+    ogs_sbi_client_t *client = NULL;
+
+    ogs_assert(nf_instance);
+    client = nf_instance->client;
+    ogs_assert(client);
+
+    request = ogs_nnrf_nfm_build_register();
+    ogs_expect_or_return_val(request, false);
+
+    return ogs_sbi_scp_send_request(client, client->cb, request, nf_instance);
 }
 
 bool ogs_nnrf_nfm_send_nf_update(ogs_sbi_nf_instance_t *nf_instance)
@@ -128,11 +192,10 @@ bool ogs_nnrf_nfm_send_nf_update(ogs_sbi_nf_instance_t *nf_instance)
     client = nf_instance->client;
     ogs_assert(client);
 
-    request = ogs_nnrf_nfm_build_update(nf_instance);
+    request = ogs_nnrf_nfm_build_update();
     ogs_expect_or_return_val(request, false);
 
-    return ogs_sbi_client_send_request(
-            client, client->cb, request, nf_instance);
+    return ogs_sbi_scp_send_request(client, client->cb, request, nf_instance);
 }
 
 bool ogs_nnrf_nfm_send_nf_de_register(ogs_sbi_nf_instance_t *nf_instance)
@@ -144,71 +207,83 @@ bool ogs_nnrf_nfm_send_nf_de_register(ogs_sbi_nf_instance_t *nf_instance)
     client = nf_instance->client;
     ogs_assert(client);
 
-    request = ogs_nnrf_nfm_build_de_register(nf_instance);
+    request = ogs_nnrf_nfm_build_de_register();
     ogs_expect_or_return_val(request, false);
 
-    return ogs_sbi_client_send_request(
-            client, client->cb, request, nf_instance);
+    return ogs_sbi_scp_send_request(client, client->cb, request, nf_instance);
 }
 
-bool ogs_nnrf_nfm_send_nf_status_subscribe(ogs_sbi_client_t *client,
-        OpenAPI_nf_type_e req_nf_type, char *req_nf_instance_id,
-        OpenAPI_nf_type_e subscr_cond_nf_type)
-{
-    ogs_sbi_request_t *request = NULL;
-    ogs_sbi_subscription_t *subscription = NULL;
-
-    ogs_assert(client);
-
-    subscription = ogs_sbi_subscription_add();
-    ogs_assert(subscription);
-
-    OGS_SBI_SETUP_CLIENT(subscription, client);
-    subscription->req_nf_type = req_nf_type;
-    if (req_nf_instance_id) {
-        subscription->req_nf_instance_id = ogs_strdup(req_nf_instance_id);
-        ogs_expect_or_return_val(req_nf_instance_id, false);
-    }
-    subscription->subscr_cond.nf_type = subscr_cond_nf_type;
-
-    request = ogs_nnrf_nfm_build_status_subscribe(subscription);
-    ogs_expect_or_return_val(request, false);
-
-    return ogs_sbi_client_send_request(
-            client, client->cb, request, subscription);
-}
-
-bool ogs_nnrf_nfm_send_nf_status_unsubscribe(
-        ogs_sbi_subscription_t *subscription)
+bool ogs_nnrf_nfm_send_nf_profile_retrieve(ogs_sbi_nf_instance_t *nf_instance,
+        char *nf_instance_id, void *data)
 {
     ogs_sbi_request_t *request = NULL;
     ogs_sbi_client_t *client = NULL;
 
-    ogs_assert(subscription);
-    client = subscription->client;
+    ogs_assert(nf_instance);
+    client = nf_instance->client;
     ogs_assert(client);
+    ogs_assert(nf_instance_id);
 
-    request = ogs_nnrf_nfm_build_status_unsubscribe(subscription);
+    request = ogs_nnrf_nfm_build_profile_retrieve(nf_instance_id);
     ogs_expect_or_return_val(request, false);
 
     return ogs_sbi_client_send_request(
-            client, client->cb, request, subscription);
+            client, client->cb, request, data);
 }
 
-bool ogs_nnrf_disc_send_nf_discover(ogs_sbi_nf_instance_t *nf_instance,
-        OpenAPI_nf_type_e target_nf_type, void *data)
+bool ogs_nnrf_nfm_send_nf_status_subscribe(
+        ogs_sbi_subscription_data_t *subscription_data)
+{
+    ogs_sbi_request_t *request = NULL;
+    ogs_sbi_client_t *client = NULL;
+
+    ogs_assert(subscription_data);
+
+    request = ogs_nnrf_nfm_build_status_subscribe(subscription_data);
+    ogs_expect_or_return_val(request, false);
+
+    client = subscription_data->client;
+    ogs_assert(client);
+
+    return ogs_sbi_scp_send_request(
+            client, client->cb, request, subscription_data);
+}
+
+bool ogs_nnrf_nfm_send_nf_status_unsubscribe(
+        ogs_sbi_subscription_data_t *subscription_data)
+{
+    ogs_sbi_request_t *request = NULL;
+    ogs_sbi_client_t *client = NULL;
+
+    ogs_assert(subscription_data);
+
+    request = ogs_nnrf_nfm_build_status_unsubscribe(subscription_data);
+    ogs_expect_or_return_val(request, false);
+
+    client = subscription_data->client;
+    ogs_assert(client);
+
+    return ogs_sbi_scp_send_request(
+            client, client->cb, request, subscription_data);
+}
+
+bool ogs_nnrf_disc_send_nf_discover(
+        ogs_sbi_nf_instance_t *nf_instance,
+        OpenAPI_nf_type_e target_nf_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        void *data)
 {
     ogs_sbi_client_t *client = NULL;
     ogs_sbi_request_t *request = NULL;
 
     ogs_assert(nf_instance);
-    ogs_assert(nf_instance->nf_type);
+    ogs_assert(target_nf_type);
+
+    request = ogs_nnrf_disc_build_discover(target_nf_type, discovery_option);
+    ogs_expect_or_return_val(request, false);
+
     client = nf_instance->client;
     ogs_assert(client);
-
-    request = ogs_nnrf_disc_build_discover(
-            target_nf_type, nf_instance->nf_type);
-    ogs_expect_or_return_val(request, false);
 
     return ogs_sbi_client_send_request(client, client->cb, request, data);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -27,38 +27,47 @@ static int server_cb(ogs_sbi_request_t *request, void *data)
     ogs_assert(request);
     ogs_assert(data);
 
-    e = udr_event_new(UDR_EVT_SBI_SERVER);
+    e = udr_event_new(OGS_EVENT_SBI_SERVER);
     ogs_assert(e);
 
-    e->sbi.request = request;
-    e->sbi.data = data;
+    e->h.sbi.request = request;
+    e->h.sbi.data = data;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
-        udr_event_free(e);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        ogs_sbi_request_free(request);
+        ogs_event_free(e);
         return OGS_ERROR;
     }
 
     return OGS_OK;
 }
 
-static int client_cb(ogs_sbi_response_t *response, void *data)
+static int client_cb(int status, ogs_sbi_response_t *response, void *data)
 {
     udr_event_t *e = NULL;
     int rv;
 
+    if (status != OGS_OK) {
+        ogs_log_message(
+                status == OGS_DONE ? OGS_LOG_DEBUG : OGS_LOG_WARN, 0,
+                "client_cb() failed [%d]", status);
+        return OGS_ERROR;
+    }
+
     ogs_assert(response);
 
-    e = udr_event_new(UDR_EVT_SBI_CLIENT);
+    e = udr_event_new(OGS_EVENT_SBI_CLIENT);
     ogs_assert(e);
-    e->sbi.response = response;
-    e->sbi.data = data;
+    e->h.sbi.response = response;
+    e->h.sbi.data = data;
 
     rv = ogs_queue_push(ogs_app()->queue, e);
     if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed:%d", (int)rv);
-        udr_event_free(e);
+        ogs_error("ogs_queue_push() failed:%d", (int)rv);
+        ogs_sbi_response_free(response);
+        ogs_event_free(e);
         return OGS_ERROR;
     }
 
@@ -68,38 +77,34 @@ static int client_cb(ogs_sbi_response_t *response, void *data)
 int udr_sbi_open(void)
 {
     ogs_sbi_nf_instance_t *nf_instance = NULL;
+    ogs_sbi_nf_service_t *service = NULL;
 
-    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
-        return OGS_ERROR;
+    /* Add SELF NF instance */
+    nf_instance = ogs_sbi_self()->nf_instance;
+    ogs_assert(nf_instance);
+    ogs_sbi_nf_fsm_init(nf_instance);
 
-    /*
-     * The connection between NF and NRF is a little special.
-     *
-     * NF and NRF share nf_instance. I get the NRF EndPoint(client) information
-     * the configuration file via lib/sbi/context.c.
-     * And, the NFService information will be transmitted to NRF.
-     *
-     * ogs_sbi_self()->nf_instance_id means NF's InstanceId.
-     */
-    ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance) {
-        ogs_sbi_nf_service_t *service = NULL;
-        ogs_sbi_client_t *client = NULL;
+    /* Build NF instance information. It will be transmitted to NRF. */
+    ogs_sbi_nf_instance_build_default(nf_instance, OpenAPI_nf_type_UDR);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_PCF);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_UDM);
+    ogs_sbi_nf_instance_add_allowed_nf_type(nf_instance, OpenAPI_nf_type_SCP);
 
-        /* Build NF instance information. It will be transmitted to NRF. */
-        ogs_sbi_nf_instance_build_default(nf_instance, udr_self()->nf_type);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_PCF);
-        ogs_sbi_nf_instance_add_allowed_nf_type(
-                nf_instance, OpenAPI_nf_type_UDM);
-
-        /* Build NF service information. It will be transmitted to NRF. */
-        service = ogs_sbi_nf_service_build_default(nf_instance,
-                (char*)OGS_SBI_SERVICE_NAME_NUDR_DR);
+    /* Build NF service information. It will be transmitted to NRF. */
+    if (ogs_sbi_nf_service_is_available(OGS_SBI_SERVICE_NAME_NUDR_DR)) {
+        service = ogs_sbi_nf_service_build_default(
+                    nf_instance, OGS_SBI_SERVICE_NAME_NUDR_DR);
         ogs_assert(service);
-        ogs_sbi_nf_service_add_version(service, (char*)OGS_SBI_API_V1,
-                (char*)OGS_SBI_API_V1_0_0, NULL);
+        ogs_sbi_nf_service_add_version(
+                    service, OGS_SBI_API_V1, OGS_SBI_API_V1_0_0, NULL);
         ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_PCF);
         ogs_sbi_nf_service_add_allowed_nf_type(service, OpenAPI_nf_type_UDM);
+    }
+
+    /* Initialize NRF NF Instance */
+    nf_instance = ogs_sbi_self()->nrf_instance;
+    if (nf_instance) {
+        ogs_sbi_client_t *client = NULL;
 
         /* Client callback is only used when NF sends to NRF */
         client = nf_instance->client;
@@ -108,27 +113,17 @@ int udr_sbi_open(void)
 
         /* NFRegister is sent and the response is received
          * by the above client callback. */
-        udr_nf_fsm_init(nf_instance);
+        ogs_sbi_nf_fsm_init(nf_instance);
     }
+
+    if (ogs_sbi_server_start_all(server_cb) != OGS_OK)
+        return OGS_ERROR;
 
     return OGS_OK;
 }
 
 void udr_sbi_close(void)
 {
+    ogs_sbi_client_stop_all();
     ogs_sbi_server_stop_all();
-}
-
-bool udr_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance)
-{
-    ogs_sbi_request_t *request = NULL;
-    ogs_sbi_client_t *client = NULL;
-
-    ogs_assert(nf_instance);
-    client = nf_instance->client;
-    ogs_assert(client);
-
-    request = udr_nnrf_nfm_build_register(nf_instance);
-    ogs_expect_or_return_val(request, false);
-    return ogs_sbi_client_send_request(client, client->cb, request, nf_instance);
 }

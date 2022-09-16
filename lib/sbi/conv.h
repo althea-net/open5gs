@@ -34,10 +34,13 @@ typedef struct ogs_sbi_header_s ogs_sbi_header_t;
 
 char *ogs_uridup(bool https, ogs_sockaddr_t *addr, ogs_sbi_header_t *h);
 char *ogs_sbi_server_uri(ogs_sbi_server_t *server, ogs_sbi_header_t *h);
+char *ogs_sbi_client_apiroot(ogs_sbi_client_t *client);
 char *ogs_sbi_client_uri(ogs_sbi_client_t *client, ogs_sbi_header_t *h);
 
 char *ogs_sbi_parse_uri(char *uri, const char *delim, char **saveptr);
+
 ogs_sockaddr_t *ogs_sbi_getaddr_from_uri(char *uri);
+char *ogs_sbi_getpath_from_uri(char *uri);
 
 #define OGS_SBI_BITRATE_BPS     0
 #define OGS_SBI_BITRATE_KBPS    1
@@ -50,7 +53,7 @@ uint64_t ogs_sbi_bitrate_from_string(char *str);
 int ogs_strftimezone(char *str, size_t size, int tm_gmtoff);
 char *ogs_sbi_localtime_string(ogs_time_t time);
 char *ogs_sbi_gmtime_string(ogs_time_t time);
-char *ogs_sbi_timezone_string(int tm_offset);
+char *ogs_sbi_timezone_string(int tm_gmtoff);
 bool ogs_sbi_time_from_string(ogs_time_t *time, char *str);
 
 char *ogs_sbi_s_nssai_to_string(ogs_s_nssai_t *s_nssai);

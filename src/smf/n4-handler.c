@@ -18,7 +18,6 @@
  */
 
 #include "context.h"
-#include "timer.h"
 #include "s5c-build.h"
 #include "pfcp-path.h"
 #include "gtp-path.h"
@@ -280,7 +279,7 @@ void smf_5gc_n4_handle_session_modification_response(
     status = OGS_SBI_HTTP_STATUS_OK;
 
     if (!sess) {
-        ogs_warn("No Context");
+        ogs_error("No Context");
         status = OGS_SBI_HTTP_STATUS_NOT_FOUND;
     }
 
@@ -401,7 +400,14 @@ void smf_5gc_n4_handle_session_modification_response(
 
         } else {
             sess->paging.ue_requested_pdu_session_establishment_done = true;
-            ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+
+            if (sess->up_cnx_state == OpenAPI_up_cnx_state_ACTIVATING) {
+                sess->up_cnx_state = OpenAPI_up_cnx_state_ACTIVATED;
+                smf_sbi_send_sm_context_updated_data_up_cnx_state(
+                        sess, stream, OpenAPI_up_cnx_state_ACTIVATED);
+            } else {
+                ogs_assert(true == ogs_sbi_send_http_status_no_content(stream));
+            }
         }
 
     } else if (flags & OGS_PFCP_MODIFY_DEACTIVATE) {
@@ -624,10 +630,7 @@ int smf_5gc_n4_handle_session_deletion_response(
 
     status = OGS_SBI_HTTP_STATUS_OK;
 
-    if (!sess) {
-        ogs_warn("No Context");
-        status = OGS_SBI_HTTP_STATUS_NOT_FOUND;
-    }
+    ogs_assert(sess);
 
     if (rsp->cause.presence) {
         if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED &&
@@ -669,8 +672,6 @@ int smf_5gc_n4_handle_session_deletion_response(
         ogs_free(strerror);
         return status;
     }
-
-    ogs_assert(sess);
 
     return status;
 }
@@ -1072,6 +1073,7 @@ uint8_t smf_epc_n4_handle_session_deletion_response(
             &rsp->usage_report[i];
         uint32_t urr_id;
         ogs_pfcp_volume_measurement_t volume;
+        ogs_pfcp_usage_report_trigger_t rep_trig;
         if (use_rep->presence == 0)
             break;
         if (use_rep->urr_id.presence == 0)
@@ -1086,6 +1088,10 @@ uint8_t smf_epc_n4_handle_session_deletion_response(
         if (volume.dlvol)
             sess->gy.dl_octets += volume.downlink_volume;
         sess->gy.duration += use_rep->duration_measurement.u32;
+        ogs_pfcp_parse_usage_report_trigger(
+                &rep_trig, &use_rep->usage_report_trigger);
+        sess->gy.reporting_reason =
+            smf_pfcp_urr_usage_report_trigger2diam_gy_reporting_reason(&rep_trig);
     }
 
     return OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
@@ -1112,7 +1118,7 @@ void smf_n4_handle_session_report_request(
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
     if (!sess) {
-        ogs_warn("No Context");
+        ogs_error("No Context");
         cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
     }
 
@@ -1235,6 +1241,7 @@ void smf_n4_handle_session_report_request(
                 &pfcp_req->usage_report[i];
             uint32_t urr_id;
             ogs_pfcp_volume_measurement_t volume;
+            ogs_pfcp_usage_report_trigger_t rep_trig;
             if (use_rep->presence == 0)
                 break;
             if (use_rep->urr_id.presence == 0)
@@ -1249,6 +1256,10 @@ void smf_n4_handle_session_report_request(
             if (volume.dlvol)
                 sess->gy.dl_octets += volume.downlink_volume;
             sess->gy.duration += use_rep->duration_measurement.u32;
+            ogs_pfcp_parse_usage_report_trigger(
+                    &rep_trig, &use_rep->usage_report_trigger);
+            sess->gy.reporting_reason =
+                smf_pfcp_urr_usage_report_trigger2diam_gy_reporting_reason(&rep_trig);
         }
         switch(smf_use_gy_iface()) {
         case 1:

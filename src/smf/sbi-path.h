@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -20,7 +20,6 @@
 #ifndef SMF_SBI_PATH_H
 #define SMF_SBI_PATH_H
 
-#include "nnrf-build.h"
 #include "nudm-build.h"
 #include "namf-build.h"
 #include "gsm-build.h"
@@ -34,13 +33,12 @@ extern "C" {
 int smf_sbi_open(void);
 void smf_sbi_close(void);
 
-bool smf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance);
-
-bool smf_sbi_send(ogs_sbi_nf_instance_t *nf_instance, ogs_sbi_xact_t *xact);
-
-bool smf_sbi_discover_and_send(OpenAPI_nf_type_e target_nf_type,
-        smf_sess_t *sess, ogs_sbi_stream_t *stream, int state, void *data,
-        ogs_sbi_request_t *(*build)(smf_sess_t *sess, void *data));
+bool smf_sbi_send_request(ogs_sbi_nf_instance_t *nf_instance, void *data);
+bool smf_sbi_discover_and_send(
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option,
+        ogs_sbi_request_t *(*build)(smf_sess_t *sess, void *data),
+        smf_sess_t *sess, ogs_sbi_stream_t *stream, int state, void *data);
 
 void smf_namf_comm_send_n1_n2_message_transfer(
         smf_sess_t *sess, smf_n1_n2_message_transfer_param_t *param);

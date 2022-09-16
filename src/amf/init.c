@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -19,6 +19,7 @@
 
 #include "sbi-path.h"
 #include "ngap-path.h"
+#include "metrics.h"
 
 static ogs_thread_t *thread;
 static void amf_main(void *data);
@@ -28,11 +29,15 @@ int amf_initialize()
 {
     int rv;
 
-    amf_context_init();
-    amf_event_init();
+    ogs_metrics_context_init();
     ogs_sbi_context_init();
 
-    rv = ogs_sbi_context_parse_config("amf", "nrf");
+    amf_context_init();
+
+    rv = ogs_sbi_context_parse_config("amf", "nrf", "scp");
+    if (rv != OGS_OK) return rv;
+
+    rv = ogs_metrics_context_parse_config();
     if (rv != OGS_OK) return rv;
 
     rv = amf_context_parse_config();
@@ -40,6 +45,9 @@ int amf_initialize()
 
     rv = amf_m_tmsi_pool_generate();
     if (rv != OGS_OK) return rv;
+
+    rv = amf_metrics_open();
+    if (rv != 0) return OGS_ERROR;
 
     rv = ogs_log_config_domain(
             ogs_app()->logger.domain, ogs_app()->logger.level);
@@ -67,7 +75,7 @@ static void event_termination(void)
 
     /* Sending NF Instance De-registeration to NRF */
     ogs_list_for_each(&ogs_sbi_self()->nf_instance_list, nf_instance)
-        amf_nf_fsm_fini(nf_instance);
+        ogs_sbi_nf_fsm_fini(nf_instance);
 
     /* Starting holding timer */
     t_termination_holding = ogs_timer_add(ogs_app()->timer_mgr, NULL, NULL);
@@ -91,11 +99,11 @@ void amf_terminate(void)
 
     ngap_close();
     amf_sbi_close();
+    amf_metrics_close();
 
     amf_context_final();
     ogs_sbi_context_final();
-
-    amf_event_final(); /* Destroy event */
+    ogs_metrics_context_final();
 }
 
 static void amf_main(void *data)
@@ -103,8 +111,7 @@ static void amf_main(void *data)
     ogs_fsm_t amf_sm;
     int rv;
 
-    ogs_fsm_create(&amf_sm, amf_state_initial, amf_state_final);
-    ogs_fsm_init(&amf_sm, 0);
+    ogs_fsm_init(&amf_sm, amf_state_initial, amf_state_final, 0);
 
     for ( ;; ) {
         ogs_pollset_poll(ogs_app()->pollset,
@@ -137,11 +144,10 @@ static void amf_main(void *data)
 
             ogs_assert(e);
             ogs_fsm_dispatch(&amf_sm, e);
-            amf_event_free(e);
+            ogs_event_free(e);
         }
     }
 done:
 
     ogs_fsm_fini(&amf_sm, 0);
-    ogs_fsm_delete(&amf_sm);
 }

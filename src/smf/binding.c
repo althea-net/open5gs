@@ -168,6 +168,22 @@ void smf_bearer_binding(smf_sess_t *sess)
 
                 ogs_assert(sess->pfcp_node);
                 if (sess->pfcp_node->up_function_features.ftup) {
+
+           /* TS 129 244 V16.5.0 8.2.3
+            *
+            * At least one of the V4 and V6 flags shall be set to "1",
+            * and both may be set to "1" for both scenarios:
+            *
+            * - when the CP function is providing F-TEID, i.e.
+            *   both IPv4 address field and IPv6 address field may be present;
+            *   or
+            * - when the UP function is requested to allocate the F-TEID,
+            *   i.e. when CHOOSE bit is set to "1",
+            *   and the IPv4 address and IPv6 address fields are not present.
+            */
+
+                    ul_pdr->f_teid.ipv4 = 1;
+                    ul_pdr->f_teid.ipv6 = 1;
                     ul_pdr->f_teid.ch = 1;
                     ul_pdr->f_teid_len = 1;
                 } else {
@@ -353,6 +369,7 @@ void smf_bearer_binding(smf_sess_t *sess)
                 xact = ogs_gtp_xact_local_create(
                         sess->gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
                 ogs_expect_or_return(xact);
+                xact->local_teid = sess->smf_n4_teid;
 
                 if (ogs_list_count(&bearer->pf_to_add_list) > 0)
                     xact->update_flags |= OGS_GTP_MODIFY_TFT_UPDATE;
@@ -422,6 +439,7 @@ int smf_gtp2_send_create_bearer_request(smf_bearer_t *bearer)
     xact = ogs_gtp_xact_local_create(
             sess->gnode, &h, pkbuf, gtp_bearer_timeout, bearer);
     ogs_expect_or_return_val(xact, OGS_ERROR);
+    xact->local_teid = sess->smf_n4_teid;
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect(rv == OGS_OK);
@@ -490,6 +508,22 @@ void smf_qos_flow_binding(smf_sess_t *sess)
                 /* Set UPF-N3 TEID & ADDR to the UL PDR */
                 ogs_assert(sess->pfcp_node);
                 if (sess->pfcp_node->up_function_features.ftup) {
+
+           /* TS 129 244 V16.5.0 8.2.3
+            *
+            * At least one of the V4 and V6 flags shall be set to "1",
+            * and both may be set to "1" for both scenarios:
+            *
+            * - when the CP function is providing F-TEID, i.e.
+            *   both IPv4 address field and IPv6 address field may be present;
+            *   or
+            * - when the UP function is requested to allocate the F-TEID,
+            *   i.e. when CHOOSE bit is set to "1",
+            *   and the IPv4 address and IPv6 address fields are not present.
+            */
+
+                    ul_pdr->f_teid.ipv4 = 1;
+                    ul_pdr->f_teid.ipv6 = 1;
                     ul_pdr->f_teid.ch = 1;
                     ul_pdr->f_teid.chid = 1;
                     ul_pdr->f_teid.choose_id = OGS_PFCP_DEFAULT_CHOOSE_ID;

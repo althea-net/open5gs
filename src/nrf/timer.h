@@ -32,17 +32,11 @@ typedef enum {
 
     NRF_TIMER_NF_INSTANCE_NO_HEARTBEAT,
     NRF_TIMER_SUBSCRIPTION_VALIDITY,
+    NRF_TIMER_SBI_CLIENT_WAIT,
 
     MAX_NUM_OF_NRF_TIMER,
 
 } nrf_timer_e;
-
-typedef struct nrf_timer_cfg_s {
-    int max_count;
-    ogs_time_t duration;
-} nrf_timer_cfg_t;
-
-nrf_timer_cfg_t *nrf_timer_cfg(nrf_timer_e id);
 
 const char *nrf_timer_get_name(nrf_timer_e id);
 

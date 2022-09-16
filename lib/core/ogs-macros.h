@@ -196,8 +196,8 @@ static ogs_inline ogs_uint24_t ogs_htobe24(ogs_uint24_t x)
                               __switch_p__; \
                               __switch_p__ = 0, __switch_next__ = 1) { {
     #define CASE(X)            } if (!__switch_next__ || \
-                                     !(__switch_next__ = \
-                                         strcmp(__switch_p__, X))) {
+                                     (__switch_next__ = \
+                                         strcmp(__switch_p__, X)) == 0) {
     #define DEFAULT            } {
     #define END          }}}
 #endif
@@ -209,6 +209,14 @@ static ogs_inline ogs_uint24_t ogs_htobe24(ogs_uint24_t x)
 #define OGS_FILE_LINE __FILE__ ":" OGS_STRINGIFY(__LINE__)
 
 #define ogs_uint64_to_uint32(x) ((x >= 0xffffffffUL) ? 0xffffffffU : x)
+
+#define OGS_OBJECT_REF(__oBJ) \
+    ((__oBJ)->reference_count)++, \
+    ogs_debug("[REF] %d", ((__oBJ)->reference_count))
+#define OGS_OBJECT_UNREF(__oBJ) \
+    ogs_debug("[UNREF] %d", ((__oBJ)->reference_count)), \
+    ((__oBJ)->reference_count)--
+#define OGS_OBJECT_IS_REF(__oBJ) ((__oBJ)->reference_count > 1)
 
 #ifdef __cplusplus
 }

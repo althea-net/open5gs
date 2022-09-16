@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -59,8 +59,6 @@ nssf_context_t *nssf_self(void)
 
 static int nssf_context_prepare(void)
 {
-    self.nf_type = OpenAPI_nf_type_NSSF;
-
     return OGS_OK;
 }
 
@@ -97,6 +95,10 @@ int nssf_context_parse_config(void)
                 const char *nssf_key = ogs_yaml_iter_key(&nssf_iter);
                 ogs_assert(nssf_key);
                 if (!strcmp(nssf_key, "sbi")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(nssf_key, "service_name")) {
+                    /* handle config in sbi library */
+                } else if (!strcmp(nssf_key, "discovery")) {
                     /* handle config in sbi library */
                 } else if (!strcmp(nssf_key, "nsi")) {
                     ogs_list_t list, list6;

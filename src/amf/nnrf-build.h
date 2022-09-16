@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -26,12 +26,10 @@
 extern "C" {
 #endif
 
-ogs_sbi_request_t *amf_nnrf_nfm_build_register(
-        ogs_sbi_nf_instance_t *nf_instance);
-
 ogs_sbi_request_t *amf_nnrf_disc_build_discover(
         char *nrf_id,
-        OpenAPI_nf_type_e target_nf_type, OpenAPI_nf_type_e requester_nf_type);
+        ogs_sbi_service_type_e service_type,
+        ogs_sbi_discovery_option_t *discovery_option);
 
 #ifdef __cplusplus
 }

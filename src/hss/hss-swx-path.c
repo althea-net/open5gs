@@ -33,10 +33,10 @@ static struct disp_hdl *hdl_swx_sar = NULL;
 static int hss_ogs_diam_swx_fb_cb(struct msg **msg, struct avp *avp,
         struct session *session, void *opaque, enum disp_action *act)
 {
-	/* This CB should never be called */
-	ogs_warn("Unexpected message received!");
-	
-	return ENOTSUP;
+    /* This CB should never be called */
+    ogs_warn("Unexpected message received!");
+
+    return ENOTSUP;
 }
 
 /* Callback for incoming Multimedia-Auth-Request messages */
@@ -46,7 +46,7 @@ static int hss_ogs_diam_swx_mar_cb( struct msg **msg, struct avp *avp,
     int rv, ret;
     uint32_t result_code = 0;
 
-	struct msg *ans, *qry;
+    struct msg *ans, *qry;
 
     struct avp *sip_auth_data_item_avp = NULL;
     struct avp *authentication_scheme_avp = NULL;
@@ -82,9 +82,9 @@ static int hss_ogs_diam_swx_mar_cb( struct msg **msg, struct avp *avp,
 
     ogs_debug("Multimedia-Auth-Request");
 
-	/* Create answer header */
-	qry = *msg;
-	ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
+    /* Create answer header */
+    qry = *msg;
+    ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
     ogs_assert(ret == 0);
     ans = *msg;
 
@@ -238,8 +238,8 @@ static int hss_ogs_diam_swx_mar_cb( struct msg **msg, struct avp *avp,
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	/* Set the Origin-Host, Origin-Realm, and Result-Code AVPs */
-	ret = fd_msg_rescode_set(ans, (char*)"DIAMETER_SUCCESS", NULL, NULL, 1);
+    /* Set the Origin-Host, Origin-Realm, and Result-Code AVPs */
+    ret = fd_msg_rescode_set(ans, (char*)"DIAMETER_SUCCESS", NULL, NULL, 1);
     ogs_assert(ret == 0);
 
     /* Set the User-Name AVP */
@@ -327,23 +327,23 @@ static int hss_ogs_diam_swx_mar_cb( struct msg **msg, struct avp *avp,
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	/* Send the answer */
-	ret = fd_msg_send(msg, NULL, NULL);
+    /* Send the answer */
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     ogs_debug("Multimedia-Auth-Answer");
 
-	/* Add this value to the stats */
-	ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
-	ogs_diam_logger_self()->stats.nb_echoed++;
-	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
+    /* Add this value to the stats */
+    ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
+    ogs_diam_logger_self()->stats.nb_echoed++;
+    ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
     if (authentication_scheme)
         ogs_free(authentication_scheme);
 
     ogs_free(user_name);
 
-	return 0;
+    return 0;
 
 out:
     /* Set Vendor-Specific-Application-Id AVP */
@@ -351,7 +351,7 @@ out:
             ans, OGS_DIAM_SWX_APPLICATION_ID);
     ogs_assert(ret == 0);
 
-	/* Set the Experimental-Result, Origin-Host and Origin-Realm AVPs */
+    /* Set the Experimental-Result, Origin-Host and Origin-Realm AVPs */
     ret = ogs_diam_message_experimental_rescode_set(ans, result_code);
     ogs_assert(ret == 0);
 
@@ -364,7 +364,7 @@ out:
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	ret = fd_msg_send(msg, NULL, NULL);
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     if (authentication_scheme)
@@ -382,7 +382,7 @@ static int hss_ogs_diam_swx_sar_cb( struct msg **msg, struct avp *avp,
     int rv, ret;
     uint32_t result_code = 0;
 
-	struct msg *ans, *qry;
+    struct msg *ans, *qry;
 
     struct avp_hdr *hdr;
     union avp_value val;
@@ -402,9 +402,9 @@ static int hss_ogs_diam_swx_sar_cb( struct msg **msg, struct avp *avp,
 
     memset(&subscription_data, 0, sizeof(ogs_subscription_data_t));
 
-	/* Create answer header */
-	qry = *msg;
-	ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
+    /* Create answer header */
+    qry = *msg;
+    ret = fd_msg_new_answer_from_req(fd_g_config->cnf_dict, msg, 0);
     ogs_assert(ret == 0);
     ans = *msg;
 
@@ -427,34 +427,6 @@ static int hss_ogs_diam_swx_sar_cb( struct msg **msg, struct avp *avp,
         result_code = OGS_DIAM_S6A_ERROR_USER_UNKNOWN;
         goto out;
     }
-
-    /* Set Vendor-Specific-Application-Id AVP */
-    ret = ogs_diam_message_vendor_specific_appid_set(
-            ans, OGS_DIAM_SWX_APPLICATION_ID);
-    ogs_assert(ret == 0);
-
-    /* Set the Auth-Session-State AVP */
-    ret = fd_msg_avp_new(ogs_diam_auth_session_state, 0, &avp);
-    ogs_assert(ret == 0);
-    val.i32 = OGS_DIAM_AUTH_SESSION_NO_STATE_MAINTAINED;
-    ret = fd_msg_avp_setvalue(avp, &val);
-    ogs_assert(ret == 0);
-    ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
-    ogs_assert(ret == 0);
-
-	/* Set the Origin-Host, Origin-Realm, and Result-Code AVPs */
-	ret = fd_msg_rescode_set(ans, (char*)"DIAMETER_SUCCESS", NULL, NULL, 1);
-    ogs_assert(ret == 0);
-
-    /* Set the User-Name AVP */
-    ret = fd_msg_avp_new(ogs_diam_user_name, 0, &avp);
-    ogs_assert(ret == 0);
-    val.os.data = (uint8_t *)user_name;
-    val.os.len = strlen(user_name);
-    ret = fd_msg_avp_setvalue(avp, &val);
-    ogs_assert(ret == 0);
-    ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
-    ogs_assert(ret == 0);
 
     /* Get Server-Assignment-Type AVP (Mandatory) */
     ret = fd_msg_search_avp(qry,
@@ -592,7 +564,15 @@ static int hss_ogs_diam_swx_sar_cb( struct msg **msg, struct avp *avp,
             struct avp *pdn_gw_allocation_type;
             struct avp *vplmn_dynamic_address_allowed;
 
-            ogs_session_t *session = &slice_data->session[i];
+            ogs_session_t *session = NULL;
+
+            if (i >= OGS_MAX_NUM_OF_SESS) {
+                ogs_warn("Ignore max session count overflow [%d>=%d]",
+                    slice_data->num_of_session, OGS_MAX_NUM_OF_SESS);
+                break;
+            }
+
+            session = &slice_data->session[i];
             ogs_assert(session);
             session->context_identifier = i+1;
 
@@ -832,21 +812,49 @@ static int hss_ogs_diam_swx_sar_cb( struct msg **msg, struct avp *avp,
         ogs_assert(ret == 0);
     }
 
-	/* Send the answer */
-	ret = fd_msg_send(msg, NULL, NULL);
+    /* Set Vendor-Specific-Application-Id AVP */
+    ret = ogs_diam_message_vendor_specific_appid_set(
+            ans, OGS_DIAM_SWX_APPLICATION_ID);
+    ogs_assert(ret == 0);
+
+    /* Set the Auth-Session-State AVP */
+    ret = fd_msg_avp_new(ogs_diam_auth_session_state, 0, &avp);
+    ogs_assert(ret == 0);
+    val.i32 = OGS_DIAM_AUTH_SESSION_NO_STATE_MAINTAINED;
+    ret = fd_msg_avp_setvalue(avp, &val);
+    ogs_assert(ret == 0);
+    ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
+    ogs_assert(ret == 0);
+
+    /* Set the Origin-Host, Origin-Realm, and Result-Code AVPs */
+    ret = fd_msg_rescode_set(ans, (char*)"DIAMETER_SUCCESS", NULL, NULL, 1);
+    ogs_assert(ret == 0);
+
+    /* Set the User-Name AVP */
+    ret = fd_msg_avp_new(ogs_diam_user_name, 0, &avp);
+    ogs_assert(ret == 0);
+    val.os.data = (uint8_t *)user_name;
+    val.os.len = strlen(user_name);
+    ret = fd_msg_avp_setvalue(avp, &val);
+    ogs_assert(ret == 0);
+    ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
+    ogs_assert(ret == 0);
+
+    /* Send the answer */
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     ogs_debug("Server-Assignment-Answer");
 
-	/* Add this value to the stats */
-	ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
-	ogs_diam_logger_self()->stats.nb_echoed++;
-	ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
+    /* Add this value to the stats */
+    ogs_assert(pthread_mutex_lock(&ogs_diam_logger_self()->stats_lock) == 0);
+    ogs_diam_logger_self()->stats.nb_echoed++;
+    ogs_assert(pthread_mutex_unlock(&ogs_diam_logger_self()->stats_lock) == 0);
 
     ogs_subscription_data_free(&subscription_data);
     ogs_free(user_name);
 
-	return 0;
+    return 0;
 
 out:
     /* Set Vendor-Specific-Application-Id AVP */
@@ -854,7 +862,7 @@ out:
             ans, OGS_DIAM_SWX_APPLICATION_ID);
     ogs_assert(ret == 0);
 
-	/* Set the Experimental-Result, Origin-Host and Origin-Realm AVPs */
+    /* Set the Experimental-Result, Origin-Host and Origin-Realm AVPs */
     ret = ogs_diam_message_experimental_rescode_set(ans, result_code);
     ogs_assert(ret == 0);
 
@@ -867,7 +875,7 @@ out:
     ret = fd_msg_avp_add(ans, MSG_BRW_LAST_CHILD, avp);
     ogs_assert(ret == 0);
 
-	ret = fd_msg_send(msg, NULL, NULL);
+    ret = fd_msg_send(msg, NULL, NULL);
     ogs_assert(ret == 0);
 
     ogs_subscription_data_free(&subscription_data);
@@ -879,45 +887,45 @@ out:
 int hss_swx_init(void)
 {
     int ret;
-	struct disp_when data;
+    struct disp_when data;
 
-	/* Install objects definitions for this application */
-	ret = ogs_diam_swx_init();
+    /* Install objects definitions for this application */
+    ret = ogs_diam_swx_init();
     ogs_assert(ret == 0);
 
-	memset(&data, 0, sizeof(data));
-	data.app = ogs_diam_swx_application;
-	
-	/* Fallback CB if command != unexpected message received */
-	ret = fd_disp_register(hss_ogs_diam_swx_fb_cb, DISP_HOW_APPID,
+    memset(&data, 0, sizeof(data));
+    data.app = ogs_diam_swx_application;
+
+    /* Fallback CB if command != unexpected message received */
+    ret = fd_disp_register(hss_ogs_diam_swx_fb_cb, DISP_HOW_APPID,
                                 &data, NULL, &hdl_swx_fb);
     ogs_assert(ret == 0);
-	
-	/* Specific handler for Multimedia-Auth-Request */
-	data.command = ogs_diam_cx_cmd_mar;
-	ret = fd_disp_register(hss_ogs_diam_swx_mar_cb, DISP_HOW_CC, &data, NULL,
+
+    /* Specific handler for Multimedia-Auth-Request */
+    data.command = ogs_diam_cx_cmd_mar;
+    ret = fd_disp_register(hss_ogs_diam_swx_mar_cb, DISP_HOW_CC, &data, NULL,
                 &hdl_swx_mar);
     ogs_assert(ret == 0);
 
-	/* Specific handler for Server-Assignment-Request */
-	data.command = ogs_diam_cx_cmd_sar;
-	ret = fd_disp_register(hss_ogs_diam_swx_sar_cb, DISP_HOW_CC, &data, NULL,
+    /* Specific handler for Server-Assignment-Request */
+    data.command = ogs_diam_cx_cmd_sar;
+    ret = fd_disp_register(hss_ogs_diam_swx_sar_cb, DISP_HOW_CC, &data, NULL,
                 &hdl_swx_sar);
     ogs_assert(ret == 0);
 
-	/* Advertise the support for the application in the peer */
-	ret = fd_disp_app_support(ogs_diam_swx_application, ogs_diam_vendor, 1, 0);
+    /* Advertise the support for the application in the peer */
+    ret = fd_disp_app_support(ogs_diam_swx_application, ogs_diam_vendor, 1, 0);
     ogs_assert(ret == 0);
 
-	return OGS_OK;
+    return OGS_OK;
 }
 
 void hss_swx_final(void)
 {
-	if (hdl_swx_fb)
-		(void) fd_disp_unregister(&hdl_swx_fb, NULL);
-	if (hdl_swx_mar)
-		(void) fd_disp_unregister(&hdl_swx_mar, NULL);
-	if (hdl_swx_sar)
-		(void) fd_disp_unregister(&hdl_swx_sar, NULL);
+    if (hdl_swx_fb)
+        (void) fd_disp_unregister(&hdl_swx_fb, NULL);
+    if (hdl_swx_mar)
+        (void) fd_disp_unregister(&hdl_swx_mar, NULL);
+    if (hdl_swx_sar)
+        (void) fd_disp_unregister(&hdl_swx_sar, NULL);
 }

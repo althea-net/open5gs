@@ -143,9 +143,9 @@ static uint32_t dec_mbr_kbps(uint8_t mbr_byte, const uint8_t *extended_mbr_byte,
             return (256 + embr2 * 4) * 1000;
         }
         if (embr1 >= 0xbb && embr1 <= 0xfa)
-            return (128 + (embr1 - (0xbb - 1)) * 1000) * 1000;
+            return (128 + (embr1 - (0xbb - 1)) * 2) * 1000;
         if (embr1 >= 0x4b && embr1 <= 0xba)
-            return (16 + (embr1 - (0x4b - 1)) * 100) * 1000;
+            return (16 + (embr1 - (0x4b - 1)) * 1) * 1000;
         return 8600 + embr1 * 100;
     }
     if (mbr & 0x80) {
@@ -222,6 +222,19 @@ int16_t ogs_gtp1_parse_qos_profile(
                                            &source->data.extended.max_bit_rate_uplink : NULL,
                                         decoded->bit_rate_uplink_extended2_present ?
                                           &source->data.extended2.max_bit_rate_uplink : NULL);
+      /* GBR is encoded the same way as MBR: */
+      decoded->dec_gbr_kbps_dl = dec_mbr_kbps(
+                                      source->data.guaranteed_bit_rate_downlink,
+                                      decoded->bit_rate_downlink_extended_present ?
+                                          &source->data.extended.guaranteed_bit_rate_downlink : NULL,
+                                      decoded->bit_rate_downlink_extended2_present ?
+                                         &source->data.extended2.guaranteed_bit_rate_downlink : NULL);
+      decoded->dec_gbr_kbps_ul = dec_mbr_kbps(
+                                      source->data.guaranteed_bit_rate_uplink,
+                                      decoded->bit_rate_uplink_extended_present ?
+                                         &source->data.extended.guaranteed_bit_rate_uplink : NULL,
+                                      decoded->bit_rate_uplink_extended2_present ?
+                                        &source->data.extended2.guaranteed_bit_rate_uplink : NULL);
     }
 
     return octet->len;
@@ -241,7 +254,9 @@ static uint8_t enc_transfer_delay_ms(uint16_t transfer_delay_ms)
     }
     if (transfer_delay_ms > 150)
         transfer_delay_ms = 150;
-    return transfer_delay_ms / 10;
+    if (transfer_delay_ms >= 10)
+        return transfer_delay_ms / 10;
+    return 1; /* 0 is "Reserved" Network->MS */
 }
 
 #define CHECK_EXT1 0xfe
@@ -323,6 +338,8 @@ int16_t ogs_gtp1_build_qos_profile(ogs_tlv_octet_t *octet,
     const ogs_gtp1_qos_profile_decoded_t *decoded, void *data, int data_len)
 {
     ogs_gtp1_qos_profile_t *target;
+    int mbr_extended_dl, mbr_extended_ul;
+    int gbr_extended_dl, gbr_extended_ul;
     int extended_dl, extended_ul;
 
     ogs_assert(octet);
@@ -332,34 +349,51 @@ int16_t ogs_gtp1_build_qos_profile(ogs_tlv_octet_t *octet,
     octet->data = data;
     target = (ogs_gtp1_qos_profile_t *)octet->data;
 
-    /* First, encode in the target position the decoded-provided fields: */
+    /* First, copy the encoded buffer as it is: */
+    memcpy(target, &decoded->qos_profile, sizeof(ogs_gtp1_qos_profile_t));
 
+    /* Avoid setting Traffic Handling to 0=Reserved even if ignored based on
+     * Interactive/Background Traffic Class: */
+    if (target->data.traffic_handling_priority == 0)
+        target->data.traffic_handling_priority = 1;
+
+    /* Then, encode in the target position the decoded-provided fields: */
     if (decoded->data_octet6_to_13_present)
         target->data.transfer_delay = enc_transfer_delay_ms(decoded->dec_transfer_delay);
 
-    /* TODO: prefill with default values the extended bytes */
-    extended_dl = enc_mbr_kbps(decoded->dec_mbr_kbps_dl,
-                                &target->data.max_bit_rate_downlink,
-                                &target->data.extended.max_bit_rate_downlink,
-                                &target->data.extended2.max_bit_rate_downlink);
-    extended_ul = enc_mbr_kbps(decoded->dec_mbr_kbps_ul,
-                                &target->data.max_bit_rate_uplink,
-                                &target->data.extended.max_bit_rate_uplink,
-                                &target->data.extended2.max_bit_rate_uplink);
+    mbr_extended_dl = enc_mbr_kbps(decoded->dec_mbr_kbps_dl,
+                                   &target->data.max_bit_rate_downlink,
+                                   &target->data.extended.max_bit_rate_downlink,
+                                   &target->data.extended2.max_bit_rate_downlink);
+    mbr_extended_ul = enc_mbr_kbps(decoded->dec_mbr_kbps_ul,
+                                   &target->data.max_bit_rate_uplink,
+                                   &target->data.extended.max_bit_rate_uplink,
+                                   &target->data.extended2.max_bit_rate_uplink);
+    /* GBR is encoded the same way as MBR: */
+    gbr_extended_dl = enc_mbr_kbps(decoded->dec_gbr_kbps_dl,
+                                  &target->data.guaranteed_bit_rate_downlink,
+                                  &target->data.extended.guaranteed_bit_rate_downlink,
+                                  &target->data.extended2.guaranteed_bit_rate_downlink);
+    gbr_extended_ul = enc_mbr_kbps(decoded->dec_gbr_kbps_ul,
+                                  &target->data.guaranteed_bit_rate_uplink,
+                                  &target->data.extended.guaranteed_bit_rate_uplink,
+                                  &target->data.extended2.guaranteed_bit_rate_uplink);
+    extended_dl = ogs_max(mbr_extended_dl, gbr_extended_dl);
+    extended_ul = ogs_max(mbr_extended_ul, gbr_extended_ul);
 
-    memcpy(target, &decoded->qos_profile, sizeof(ogs_gtp1_qos_profile_t));
+    /* Finally, set len based on the required octets to encode the fields: */
     if (extended_ul == 2)
-        octet->len = 23;
-    else if (extended_dl == 2)
         octet->len = 21;
-    else if (extended_ul == 1)
+    else if (extended_dl == 2)
         octet->len = 19;
-    else if (extended_dl == 1)
+    else if (extended_ul == 1)
         octet->len = 17;
-    else if (decoded->data_octet14_present)
+    else if (extended_dl == 1)
         octet->len = 15;
+    else if (decoded->data_octet14_present)
+        octet->len = 13;
     else if (decoded->data_octet6_to_13_present)
-        octet->len = 14;
+        octet->len = 12;
     else
         octet->len = 6;
     return octet->len;

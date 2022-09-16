@@ -64,6 +64,7 @@ typedef struct ogs_app_context_s {
         int no_nssf;
         int no_bsf;
         int no_udr;
+        int no_scp;
         int no_nrf;
 
         /* Network */
@@ -85,49 +86,38 @@ typedef struct ogs_app_context_s {
     } sockopt;
 
     struct {
-        int heartbit_interval;
-        int sack_delay;
-        int rto_initial;
-        int rto_min;
-        int rto_max;
-        int max_num_of_ostreams;
-        int max_num_of_istreams;
-        int max_attempts;
-        int max_initial_timeout;
-    } sctp;
-
-    struct {
         int udp_port;
     } usrsctp;
 
     struct {
         uint64_t ue;
-        uint64_t gnb;
+        uint64_t peer;
+        uint64_t gtp_peer;
     } max;
 
     struct {
         ogs_pkbuf_config_t defconfig;
-        uint64_t packet;
 
-        uint64_t nf;
+        uint64_t packet;
 
         uint64_t sess;
         uint64_t bearer;
         uint64_t tunnel;
+
         uint64_t nf_service;
-        uint64_t nf_subscription;
 
-        uint64_t csmap;
-
+        uint64_t timer;
         uint64_t message;
         uint64_t event;
-        uint64_t timer;
-
         uint64_t socket;
-        uint64_t gtp_xact;
+        uint64_t subscription;
+        uint64_t xact;
+        uint64_t stream;
+
+        uint64_t nf;
         uint64_t gtp_node;
-        uint64_t pfcp_xact;
-        uint64_t pfcp_node;
+
+        uint64_t csmap;
 
         uint64_t impi;
         uint64_t impu;
@@ -175,6 +165,10 @@ typedef struct ogs_app_context_s {
         } handover;
 
     } time;
+
+    struct metrics {
+        uint64_t max_specs;
+    } metrics;
 } ogs_app_context_t;
 
 int ogs_app_context_init(void);

@@ -1,4 +1,4 @@
-# Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+# Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
 
 # This file is part of Open5GS.
 
@@ -18,12 +18,8 @@
 libausf_sources = files('''
     context.c
     event.c
-    timer.c
 
-    nnrf-build.c
     nnrf-handler.c
-    nf-sm.c
-
     nausf-handler.c
 
     nudm-build.c
@@ -38,15 +34,13 @@ libausf_sources = files('''
 
 libausf = static_library('ausf',
     sources : libausf_sources,
-    dependencies : [libapp_dep,
-                    libcrypt_dep,
+    dependencies : [libcrypt_dep,
                     libsbi_dep],
     install : false)
 
 libausf_dep = declare_dependency(
     link_with : libausf,
-    dependencies : [libapp_dep,
-                    libcrypt_dep,
+    dependencies : [libcrypt_dep,
                     libsbi_dep])
 
 ausf_sources = files('''

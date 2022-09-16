@@ -35,13 +35,13 @@
 static uint8_t gtp_cause_from_esm(uint8_t esm_cause)
 {
     switch (esm_cause) {
-    case ESM_CAUSE_SEMANTIC_ERROR_IN_THE_TFT_OPERATION:
+    case OGS_NAS_ESM_CAUSE_SEMANTIC_ERROR_IN_THE_TFT_OPERATION:
         return OGS_GTP2_CAUSE_SEMANTIC_ERROR_IN_THE_TFT_OPERATION;
-    case ESM_CAUSE_SYNTACTICAL_ERROR_IN_THE_TFT_OPERATION:
+    case OGS_NAS_ESM_CAUSE_SYNTACTICAL_ERROR_IN_THE_TFT_OPERATION:
         return OGS_GTP2_CAUSE_SYNTACTIC_ERROR_IN_THE_TFT_OPERATION;
-    case ESM_CAUSE_SYNTACTICAL_ERROR_IN_PACKET_FILTERS:
+    case OGS_NAS_ESM_CAUSE_SYNTACTICAL_ERROR_IN_PACKET_FILTERS:
         return OGS_GTP2_CAUSE_SYNTACTIC_ERRORS_IN_PACKET_FILTER;
-    case ESM_CAUSE_SEMANTIC_ERRORS_IN_PACKET_FILTERS:
+    case OGS_NAS_ESM_CAUSE_SEMANTIC_ERRORS_IN_PACKET_FILTERS:
         return OGS_GTP2_CAUSE_SEMANTIC_ERRORS_IN_PACKET_FILTER;
     default:
         break;
@@ -96,7 +96,7 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
         break;
     case OGS_FSM_EXIT_SIG:
         break;
-    case MME_EVT_ESM_MESSAGE:
+    case MME_EVENT_ESM_MESSAGE:
         message = e->nas_message;
         ogs_assert(message);
 
@@ -139,8 +139,8 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
                 ogs_error("[%s] No Integrity Protected", mme_ue->imsi_bcd);
                 ogs_assert(OGS_OK ==
                     nas_eps_send_attach_reject(mme_ue,
-                        EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED,
-                        ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                        OGS_NAS_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED,
+                        OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
                 ogs_assert(mme_ue->enb_ue);
                 ogs_assert(OGS_OK ==
                     s1ap_send_ue_context_release_command(mme_ue->enb_ue,
@@ -154,8 +154,8 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
                 ogs_warn("[%s] No Security Context", mme_ue->imsi_bcd);
                 ogs_assert(OGS_OK ==
                     nas_eps_send_attach_reject(mme_ue,
-                        EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED,
-                        ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
+                        OGS_NAS_EMM_CAUSE_SECURITY_MODE_REJECTED_UNSPECIFIED,
+                        OGS_NAS_ESM_CAUSE_PROTOCOL_ERROR_UNSPECIFIED));
                 ogs_assert(mme_ue->enb_ue);
                 ogs_assert(OGS_OK ==
                     s1ap_send_ue_context_release_command(mme_ue->enb_ue,
@@ -221,7 +221,7 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
             break;
         }
         break;
-    case MME_EVT_ESM_TIMER:
+    case MME_EVENT_ESM_TIMER:
         switch (e->timer_id) {
         case MME_TIMER_T3489:
             if (bearer->t3489.retry_count >=
@@ -232,7 +232,7 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
 
                 ogs_assert(OGS_OK ==
                     nas_eps_send_pdn_connectivity_reject(sess,
-                        ESM_CAUSE_ESM_INFORMATION_NOT_RECEIVED,
+                        OGS_NAS_ESM_CAUSE_ESM_INFORMATION_NOT_RECEIVED,
                         e->create_action));
             } else {
                 rv = nas_eps_send_esm_information_request(bearer);
@@ -281,7 +281,7 @@ void esm_state_active(ogs_fsm_t *s, mme_event_t *e)
         break;
     case OGS_FSM_EXIT_SIG:
         break;
-    case MME_EVT_ESM_MESSAGE:
+    case MME_EVENT_ESM_MESSAGE:
         message = e->nas_message;
         ogs_assert(message);
 
@@ -382,7 +382,7 @@ void esm_state_pdn_will_disconnect(ogs_fsm_t *s, mme_event_t *e)
         break;
     case OGS_FSM_EXIT_SIG:
         break;
-    case MME_EVT_ESM_MESSAGE:
+    case MME_EVENT_ESM_MESSAGE:
         message = e->nas_message;
         ogs_assert(message);
 

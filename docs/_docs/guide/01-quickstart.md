@@ -249,7 +249,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        addr: 127.0.0.2
      gummei:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 +        mcc: 001 # set your PLMN-MCC
 +        mnc: 01  # set your PLMN-MNC
@@ -257,7 +257,7 @@ $ diff -u /etc/open5gs/mme.yaml.old /etc/open5gs/mme.yaml
        mme_code: 1
      tai:
        plmn_id:
--        mcc: 901
+-        mcc: 999
 -        mnc: 70
 -      tac: 1
 +        mcc: 001 # set your PLMN-MCC
@@ -308,7 +308,7 @@ amf:
 +      - addr: 10.10.0.5 # for external gNB - a local address that can be reached by the gNB
      guami:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 +          mcc: 001 # set your PLMN-MCC
 +          mnc: 01  # set your PLMN-MNC
@@ -317,7 +317,7 @@ amf:
            set: 1
      tai:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 -        tac: 1
 +          mcc: 001 # set your PLMN-MCC
@@ -325,7 +325,7 @@ amf:
 +        tac: 2 # should match the TAC used by your gNB
      plmn_support:
        - plmn_id:
--          mcc: 901
+-          mcc: 999
 -          mnc: 70
 +          mcc: 001 # set your PLMN-MCC
 +          mnc: 01  # set your PLMN-MNC
@@ -379,8 +379,8 @@ To add subscriber information, you can do WebUI operations in the following orde
 
 Enter the subscriber details of your SIM cards using this tool, to save the subscriber profile in the HSS and UDR MongoDB database backend. If you are using test SIMs, the details are normally printed on the card.
 
-**Tip:** Subscribers added with this tool immediately register in the Open5GS HSS/ UDR without the need to restart any daemon.
-{: .notice--info}
+**Note:** Subscribers added with this tool immediately register in the Open5GS HSS/UDR without the need to restart any daemon. However, if you use the WebUI to change subscriber profile, you must restart the Open5GS AMF/MME daemon for the changes to take effect.
+{: .notice--warning}
 
 
 #### Adding a route for the UE to have WAN connectivity {#UEInternet}

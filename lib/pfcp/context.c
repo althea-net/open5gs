@@ -48,7 +48,7 @@ void ogs_pfcp_context_init(void)
 
     ogs_log_install_domain(&__ogs_pfcp_domain, "pfcp", ogs_core()->log.level);
 
-    ogs_pool_init(&ogs_pfcp_node_pool, ogs_app()->pool.pfcp_node);
+    ogs_pool_init(&ogs_pfcp_node_pool, ogs_app()->pool.nf);
 
     ogs_pool_init(&ogs_pfcp_sess_pool, ogs_app()->pool.sess);
 
@@ -1226,6 +1226,9 @@ void ogs_pfcp_far_remove(ogs_pfcp_far_t *far)
     if (far->hash.f_teid.len)
         ogs_hash_set(self.far_f_teid_hash,
                 &far->hash.f_teid.key, far->hash.f_teid.len, NULL);
+
+    if (far->dnn)
+        ogs_free(far->dnn);
 
     for (i = 0; i < far->num_of_buffered_packet; i++)
         ogs_pkbuf_free(far->buffered_packet[i]);

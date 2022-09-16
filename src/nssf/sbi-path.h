@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019,2020 by Sukchan Lee <acetcom@gmail.com>
+ * Copyright (C) 2019-2022 by Sukchan Lee <acetcom@gmail.com>
  *
  * This file is part of Open5GS.
  *
@@ -20,7 +20,7 @@
 #ifndef NSSF_SBI_PATH_H
 #define NSSF_SBI_PATH_H
 
-#include "nnrf-build.h"
+#include "context.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -28,8 +28,6 @@ extern "C" {
 
 int nssf_sbi_open(void);
 void nssf_sbi_close(void);
-
-bool nssf_nnrf_nfm_send_nf_register(ogs_sbi_nf_instance_t *nf_instance);
 
 #ifdef __cplusplus
 }

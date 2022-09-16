@@ -82,7 +82,7 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
     addr = node->sa_list;
     ogs_assert(addr);
 
-    switch (e->id) {
+    switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
         if (node->t_association) {
             ogs_timer_start(node->t_association,
@@ -99,7 +99,7 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
         break;
 
     case SMF_EVT_N4_TIMER:
-        switch(e->timer_id) {
+        switch(e->h.timer_id) {
         case SMF_TIMER_PFCP_ASSOCIATION:
             node = e->pfcp_node;
             ogs_assert(node);
@@ -115,7 +115,7 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
             break;
         default:
             ogs_error("Unknown timer[%s:%d]",
-                    smf_timer_get_name(e->timer_id), e->timer_id);
+                    smf_timer_get_name(e->h.timer_id), e->h.timer_id);
             break;
         }
         break;
@@ -175,7 +175,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
     addr = node->sa_list;
     ogs_assert(addr);
 
-    switch (e->id) {
+    switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
         ogs_info("PFCP associated [%s]:%d",
             OGS_ADDR(&node->addr, buf),
@@ -195,8 +195,16 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         xact = e->pfcp_xact;
         ogs_assert(xact);
 
-        if (message->h.seid_presence && message->h.seid != 0)
-            sess = smf_sess_find_by_seid(message->h.seid);
+        if (message->h.seid_presence && message->h.seid != 0) {
+               sess = smf_sess_find_by_seid(message->h.seid);
+        } else if (xact->local_seid) { /* rx no SEID or SEID=0 */
+            /* 3GPP TS 29.244 7.2.2.4.2: we receive SEID=0 under some
+             * conditions, such as cause "Session context not found". In those
+             * cases, we still want to identify the local session which
+             * originated the message, so try harder by using the SEID we
+             * locally stored in xact when sending the original request: */
+            sess = smf_sess_find_by_seid(xact->local_seid);
+        }
         if (sess)
             e->sess = sess;
 
@@ -232,29 +240,29 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
 
             break;
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
-            if (!message->h.seid_presence)
-                ogs_error("No SEID");
+            if (!message->h.seid_presence) ogs_error("No SEID");
+
             if (!sess) {
                 ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
-                ogs_assert(gtp_xact);
+                if (!gtp_xact) {
+                    ogs_error("No associated GTP transaction");
+                    break;
+                }
                 if (gtp_xact->gtp_version == 1)
                     ogs_gtp1_send_error_message(gtp_xact, 0,
-                            OGS_GTP1_CREATE_PDP_CONTEXT_RESPONSE_TYPE,
-                            OGS_GTP1_CAUSE_CONTEXT_NOT_FOUND);
+                        OGS_GTP1_CREATE_PDP_CONTEXT_RESPONSE_TYPE,
+                        OGS_GTP1_CAUSE_CONTEXT_NOT_FOUND);
                 else
                     ogs_gtp2_send_error_message(gtp_xact, 0,
-                            OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
-                            OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
-                return;
+                        OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
+                        OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
+                break;
             }
             ogs_fsm_dispatch(&sess->sm, e);
             break;
 
         case OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE:
-            if (!message->h.seid_presence) {
-                ogs_error("No SEID");
-                break;
-            }
+            if (!message->h.seid_presence) ogs_error("No SEID");
 
             if (xact->epc)
                 smf_epc_n4_handle_session_modification_response(
@@ -280,11 +288,24 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
                     e->sess = sess;
             }
 
-            if (sess) {
-                ogs_fsm_dispatch(&sess->sm, e);                
-            } else {
+            if (!sess) {
                 ogs_warn("No session associated with Session Deletion Response");
+                ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
+                if (!gtp_xact) {
+                    ogs_error("No associated GTP transaction");
+                    break;
+                }
+                if (gtp_xact->gtp_version == 1)
+                    ogs_gtp1_send_error_message(gtp_xact, 0,
+                        OGS_GTP1_DELETE_PDP_CONTEXT_RESPONSE_TYPE,
+                        OGS_GTP1_CAUSE_CONTEXT_NOT_FOUND);
+                else
+                    ogs_gtp2_send_error_message(gtp_xact, 0,
+                        OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE,
+                        OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND);
+                break;                
             }
+            ogs_fsm_dispatch(&sess->sm, e);                
             break;
 
         case OGS_PFCP_SESSION_SET_DELETION_RESPONSE_TYPE:
@@ -292,10 +313,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             break;
 
         case OGS_PFCP_SESSION_REPORT_REQUEST_TYPE:
-            if (!message->h.seid_presence) {
-                ogs_error("No SEID");
-                break;
-            }
+            if (!message->h.seid_presence) ogs_error("No SEID");
 
             smf_n4_handle_session_report_request(
                 sess, xact, &message->pfcp_session_report_request);
@@ -309,7 +327,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
 
         break;
     case SMF_EVT_N4_TIMER:
-        switch(e->timer_id) {
+        switch(e->h.timer_id) {
         case SMF_TIMER_PFCP_NO_HEARTBEAT:
             node = e->pfcp_node;
             ogs_assert(node);
@@ -319,7 +337,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             break;
         default:
             ogs_error("Unknown timer[%s:%d]",
-                    smf_timer_get_name(e->timer_id), e->timer_id);
+                    smf_timer_get_name(e->h.timer_id), e->h.timer_id);
             break;
         }
         break;
@@ -341,7 +359,7 @@ void smf_pfcp_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
     smf_sm_debug(e);
 
-    switch (e->id) {
+    switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
         break;
     case OGS_FSM_EXIT_SIG:
@@ -371,8 +389,8 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
 
         rv = ogs_queue_push(ogs_app()->queue, e);
         if (rv != OGS_OK) {
-            ogs_warn("ogs_queue_push() failed:%d", (int)rv);
-            smf_event_free(e);
+            ogs_error("ogs_queue_push() failed:%d", (int)rv);
+            ogs_event_free(e);
         }
         break;
     case OGS_PFCP_ASSOCIATION_SETUP_REQUEST_TYPE:
