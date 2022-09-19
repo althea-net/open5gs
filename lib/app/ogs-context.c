@@ -173,7 +173,7 @@ static void app_context_prepare(void)
     self.sockopt.no_delay = true;
 
 #define MAX_NUM_OF_UE               1024    /* Num of UEs */
-#define MAX_NUM_OF_PEER             64      /* Num of Peer */
+#define MAX_NUM_OF_PEER             256      /* Num of Peer */
 
     self.max.ue = MAX_NUM_OF_UE;
     self.max.peer = MAX_NUM_OF_PEER;
