@@ -52,13 +52,10 @@ static OGS_POOL(mme_bearer_pool, mme_bearer_t);
 static int context_initialized = 0;
 
 static int num_of_enb_ue = 0;
-static int num_of_mme_ue = 0;
 static int num_of_mme_sess = 0;
 
 static void stats_add_enb_ue(void);
 static void stats_remove_enb_ue(void);
-static void stats_add_mme_ue(mme_ue_t *mme_ue);
-static void stats_remove_mme_ue(mme_ue_t *mme_ue);
 static void stats_add_mme_session(mme_sess_t *sess);
 static void stats_remove_mme_session(mme_sess_t *sess);
 
@@ -1842,10 +1839,7 @@ mme_enb_t *mme_enb_add(ogs_sock_t *sock, ogs_sockaddr_t *addr)
     ogs_info("[Added] Number of eNBs is now %d",
             ogs_list_count(&self.enb_list));
 
-    char buffer[20];
-    sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("mme/num_enbs", buffer);
-    stats_write_list_mme_enbs();
+    stats_update_mme_enbs();
 
     return enb;
 }
@@ -1881,10 +1875,7 @@ int mme_enb_remove(mme_enb_t *enb)
     ogs_info("[Removed] Number of eNBs is now %d",
             ogs_list_count(&self.enb_list));
 
-    char buffer[20];
-    sprintf(buffer, "%d\n", ogs_list_count(&self.enb_list));
-    ogs_write_file_value("mme/num_enbs", buffer);
-    stats_write_list_mme_enbs();
+    stats_update_mme_enbs();
 
     return OGS_OK;
 }
@@ -2360,7 +2351,7 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
     ogs_info("[Added] Number of MME-UEs is now %d",
             ogs_list_count(&self.mme_ue_list));
 
-    stats_add_mme_ue(mme_ue);
+    stats_update_mme_ues();
 
     return mme_ue;
 }
@@ -2427,7 +2418,7 @@ void mme_ue_remove(mme_ue_t *mme_ue)
     ogs_info("[Removed] Number of MME-UEs is now %d",
             ogs_list_count(&self.mme_ue_list));
 
-    stats_remove_mme_ue(mme_ue);
+    stats_update_mme_ues();
 }
 
 void mme_ue_remove_all(void)
@@ -2724,7 +2715,7 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
 
     ogs_hash_set(self.imsi_ue_hash, mme_ue->imsi, mme_ue->imsi_len, mme_ue);
 
-    stats_write_list_mme_ues();
+    stats_update_mme_ues();
 
     return OGS_OK;
 }
@@ -3547,7 +3538,41 @@ uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue)
     return 0;
 }
 
-void stats_write_list_mme_enbs(void) {
+static void stats_add_enb_ue(void)
+{
+    mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_ENB_UE);
+    num_of_enb_ue = num_of_enb_ue + 1;
+    ogs_info("[Added] Number of eNB-UEs is now %d", num_of_enb_ue);
+}
+
+static void stats_remove_enb_ue(void)
+{
+    mme_metrics_inst_global_dec(MME_METR_GLOB_GAUGE_ENB_UE);
+    num_of_enb_ue = num_of_enb_ue - 1;
+    ogs_info("[Removed] Number of eNB-UEs is now %d", num_of_enb_ue);
+}
+
+static void stats_add_mme_session(mme_sess_t *sess)
+{
+    mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_MME_SESS);
+    num_of_mme_sess = num_of_mme_sess + 1;
+    ogs_info("[Added] Number of MME-Sessions is now %d", num_of_mme_sess);
+
+    stats_update_mme_sessions();
+}
+
+static void stats_remove_mme_session(mme_sess_t *sess)
+{
+
+    mme_metrics_inst_global_dec(MME_METR_GLOB_GAUGE_MME_SESS);
+    num_of_mme_sess = num_of_mme_sess - 1;
+    ogs_info("[Removed] Number of MME-Sessions is now %d", num_of_mme_sess);
+
+    stats_update_mme_sessions();
+}
+
+void stats_update_mme_enbs(void)
+{
     mme_enb_t *enb = NULL;
 
     char buf[OGS_ADDRSTRLEN];
@@ -3555,8 +3580,11 @@ void stats_write_list_mme_enbs(void) {
     char *ptr = NULL;
     int i = 0;
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.enb_list));
+    ogs_write_file_value("mme/num_enbs", num);
 
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
     ogs_list_for_each(&self.enb_list, enb) {
         ptr += sprintf(ptr, "ip:%s tac:%u",
             OGS_ADDR(enb->sctp.addr, buf),enb->supported_ta_list[0].tac);
@@ -3570,17 +3598,20 @@ void stats_write_list_mme_enbs(void) {
     ogs_free(buffer);
 }
 
-void stats_write_list_mme_ues(void) {
+void stats_update_mme_ues(void)
+{
     mme_ue_t *mme_ue = NULL;
     char *buffer = NULL;
     char *ptr = NULL;
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.mme_ue_list));
+    ogs_write_file_value("mme/num_ues", num);
 
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
     ogs_list_for_each(&self.mme_ue_list, mme_ue) {
         ptr += sprintf(ptr, "%s\n", mme_ue->imsi_bcd);
     }
-
     ogs_write_file_value("mme/list_ues", buffer);
     ogs_free(buffer);
 }
@@ -3588,7 +3619,8 @@ void stats_write_list_mme_ues(void) {
 #define MAX_APN 63
 #define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
 
-void stats_write_list_mme_sessions(void) {
+void stats_update_mme_sessions(void)
+{
     mme_ue_t *mme_ue = NULL;
     mme_sess_t *sess = NULL;
     ogs_session_t *session = NULL;
@@ -3598,8 +3630,11 @@ void stats_write_list_mme_sessions(void) {
     char *buffer = NULL;
     char *ptr = NULL;
 
-    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    char num[20];
+    sprintf(num, "%d\n", num_of_mme_sess);
+    ogs_write_file_value("mme/num_sessions", num);
 
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
     ogs_list_for_each(&self.mme_ue_list, mme_ue) {
         ogs_list_for_each(&mme_ue->sess_list, sess) {
             ptr += sprintf(ptr, "imsi:%s ", mme_ue->imsi_bcd);
@@ -3614,69 +3649,6 @@ void stats_write_list_mme_sessions(void) {
             }
         }
     }
-
     ogs_write_file_value("mme/list_sessions", buffer);
     ogs_free(buffer);
-}
-
-static void stats_add_enb_ue(void)
-{
-    mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_ENB_UE);
-    num_of_enb_ue = num_of_enb_ue + 1;
-    ogs_info("[Added] Number of eNB-UEs is now %d", num_of_enb_ue);
-}
-
-static void stats_remove_enb_ue(void)
-{
-    num_of_enb_ue = num_of_enb_ue - 1;
-    ogs_info("[Removed] Number of eNB-UEs is now %d", num_of_enb_ue);
-}
-
-static void stats_add_mme_ue(mme_ue_t *enb_ue)
-{
-    num_of_mme_ue = num_of_mme_ue + 1;
-
-    char buffer[20];
-    sprintf(buffer, "%d\n", num_of_mme_ue);
-    ogs_write_file_value("mme/num_ues", buffer);
-    stats_write_list_mme_ues();
-}
-
-static void stats_remove_mme_ue(mme_ue_t *enb_ue)
-{
-    mme_metrics_inst_global_dec(MME_METR_GLOB_GAUGE_ENB_UE);
-    num_of_mme_ue = num_of_mme_ue - 1;
-
-    char buffer[20];
-    sprintf(buffer, "%d\n", num_of_mme_ue);
-    ogs_write_file_value("mme/num_ues", buffer);
-    stats_write_list_mme_ues();
-}
-
-static void stats_add_mme_session(mme_sess_t *sess)
-{
-    mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_MME_SESS);
-    char buffer[20];
-
-    num_of_mme_sess = num_of_mme_sess + 1;
-    ogs_info("[Added] Number of MME-Sessions is now %d", num_of_mme_sess);
-
-    sprintf(buffer, "%d\n", num_of_mme_sess);
-    ogs_write_file_value("mme/num_sessions", buffer);
-
-    stats_write_list_mme_sessions();
-}
-
-static void stats_remove_mme_session(mme_sess_t *sess)
-{
-    mme_metrics_inst_global_dec(MME_METR_GLOB_GAUGE_MME_SESS);
-    char buffer[20];
-
-    num_of_mme_sess = num_of_mme_sess - 1;
-    ogs_info("[Removed] Number of MME-Sessions is now %d", num_of_mme_sess);
-
-    sprintf(buffer, "%d\n", num_of_mme_sess);
-    ogs_write_file_value("mme/num_sessions", buffer);
-
-    stats_write_list_mme_sessions();
 }
