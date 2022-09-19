@@ -892,7 +892,6 @@ static smf_ue_t *smf_ue_add(void)
 
     ogs_list_add(&self.smf_ue_list, smf_ue);
 
-
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
     ogs_info("[Added] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
@@ -956,7 +955,6 @@ void smf_ue_remove(smf_ue_t *smf_ue)
     }
 
     ogs_pool_free(&smf_ue_pool, smf_ue);
-
 
     smf_metrics_inst_global_dec(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
     ogs_info("[Removed] Number of SMF-UEs is now %d",

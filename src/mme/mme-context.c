@@ -56,8 +56,8 @@ static int num_of_mme_sess = 0;
 
 static void stats_add_enb_ue(void);
 static void stats_remove_enb_ue(void);
-static void stats_add_mme_session(mme_sess_t *sess);
-static void stats_remove_mme_session(mme_sess_t *sess);
+static void stats_add_mme_session(void);
+static void stats_remove_mme_session(void);
 
 static bool compare_ue_info(mme_sgw_t *node, enb_ue_t *enb_ue);
 static mme_sgw_t *selected_sgw_node(mme_sgw_t *current, enb_ue_t *enb_ue);
@@ -2914,7 +2914,7 @@ mme_sess_t *mme_sess_add(mme_ue_t *mme_ue, uint8_t pti)
 
     ogs_list_add(&mme_ue->sess_list, sess);
 
-    stats_add_mme_session(sess);
+    stats_add_mme_session();
 
     return sess;
 }
@@ -2936,7 +2936,7 @@ void mme_sess_remove(mme_sess_t *sess)
 
     ogs_pool_free(&mme_sess_pool, sess);
 
-    stats_remove_mme_session(sess);
+    stats_remove_mme_session();
 }
 
 void mme_sess_remove_all(mme_ue_t *mme_ue)
@@ -3552,7 +3552,7 @@ static void stats_remove_enb_ue(void)
     ogs_info("[Removed] Number of eNB-UEs is now %d", num_of_enb_ue);
 }
 
-static void stats_add_mme_session(mme_sess_t *sess)
+static void stats_add_mme_session(void)
 {
     mme_metrics_inst_global_inc(MME_METR_GLOB_GAUGE_MME_SESS);
     num_of_mme_sess = num_of_mme_sess + 1;
@@ -3561,7 +3561,7 @@ static void stats_add_mme_session(mme_sess_t *sess)
     stats_update_mme_sessions();
 }
 
-static void stats_remove_mme_session(mme_sess_t *sess)
+static void stats_remove_mme_session(void)
 {
 
     mme_metrics_inst_global_dec(MME_METR_GLOB_GAUGE_MME_SESS);
