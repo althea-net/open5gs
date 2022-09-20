@@ -259,7 +259,7 @@ int sgwc_pfcp_send_session_establishment_request(
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
-    ogs_expect(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     return rv;
 }
@@ -364,7 +364,7 @@ int sgwc_pfcp_send_session_deletion_request(
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
-    ogs_expect(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     return rv;
 }
