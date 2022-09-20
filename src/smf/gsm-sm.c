@@ -793,7 +793,15 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 ogs_assert(up_f_seid);
                 sess->upf_n4_seid = be64toh(up_f_seid->seid);
             } else {
-                ogs_error("cannot handle PFCP Session Establishment Response");
+                ogs_warn("Received PFCP Session Establishment Response for already established session");
+
+                if (pfcp_xact->epc) {
+                    smf_epc_n4_handle_session_establishment_response(
+                            sess, pfcp_xact, &pfcp_message->pfcp_session_establishment_response);
+                } else {
+                    ogs_error("5GC PFCP re-establish session not yet written");
+                }
+                break;
             }
             break;
 
@@ -1180,16 +1188,16 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
         }
         break;
 
-        case SMF_EVT_N4_TIMER:
-            switch (e->h.timer_id) {
-            case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
-                OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
-                break;
-            default:
-                ogs_error("Unknown timer[%s:%d]",
-                        ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
-            }
+    case SMF_EVT_N4_TIMER:
+        switch (e->h.timer_id) {
+        case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+            OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
             break;
+        default:
+            ogs_error("Unknown timer[%s:%d]",
+                    ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
+        }
+        break;
 
     default:
         ogs_error("Unknown event [%s]", smf_event_get_name(e));

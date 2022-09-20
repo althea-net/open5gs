@@ -77,6 +77,7 @@ typedef struct sgwc_sess_s {
     ogs_pool_id_t   *sgwc_sxa_seid_node;    /* A node of SGWC-SXA-SEID */
 
     ogs_pfcp_sess_t pfcp;           /* PFCP session context */
+    bool pfcp_established;          /* PFCP session established? */
 
     uint32_t        sgw_s5c_teid;   /* SGW-S5C-TEID is derived from NODE */
     uint32_t        pgw_s5c_teid;   /* PGW-S5C-TEID is received from PGW */
