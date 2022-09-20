@@ -74,7 +74,8 @@ typedef struct sgwc_sess_s {
     uint32_t        index;          /**< An index of this node */
 
     ogs_pfcp_sess_t pfcp;           /* PFCP session context */
-
+    bool pfcp_established;          /* PFCP session established? */
+    
     uint32_t        sgw_s5c_teid;   /* SGW-S5C-TEID is derived from INDEX */
     uint32_t        pgw_s5c_teid;   /* PGW-S5C-TEID is received from PGW */
 
