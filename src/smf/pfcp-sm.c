@@ -265,6 +265,8 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             if (!message->h.seid_presence) ogs_error("No SEID");
 
             if (!sess) {
+                ogs_warn("No session associated with Session Deletion Response");
+                
                 ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
                 if (!gtp_xact) {
                     ogs_error("No associated GTP transaction");
