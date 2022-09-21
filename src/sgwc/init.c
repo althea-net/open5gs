@@ -67,6 +67,12 @@ int sgwc_initialize()
 
     initialized = 1;
 
+    ogs_write_file_start("sgwc_start_time");
+    ogs_write_file_subdir("sgwc");
+    stats_update_sgwc_pfcp_nodes();
+    stats_update_sgwc_ues();
+    stats_update_sgwc_sessions();
+
     return OGS_OK;
 }
 

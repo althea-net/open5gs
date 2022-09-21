@@ -172,10 +172,16 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
         ogs_info("PFCP associated");
         ogs_timer_start(node->t_no_heartbeat,
                 ogs_app()->time.message.pfcp.no_heartbeat_duration);
+
+        stats_update_sgwc_pfcp_nodes();
+
         break;
     case OGS_FSM_EXIT_SIG:
         ogs_info("PFCP de-associated");
         ogs_timer_stop(node->t_no_heartbeat);
+
+        stats_update_sgwc_pfcp_nodes();
+
         break;
     case SGWC_EVT_SXA_MESSAGE:
         message = e->pfcp_message;
@@ -216,6 +222,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_establishment_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_establishment_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE:
@@ -227,6 +234,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_modification_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_modification_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
@@ -238,6 +246,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_deletion_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_deletion_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_REPORT_REQUEST_TYPE:
@@ -248,6 +257,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
 
             sgwc_sxa_handle_session_report_request(
                 sess, xact, &message->pfcp_session_report_request);
+            stats_update_sgwc_sessions();
             break;
 
         default:
@@ -330,4 +340,39 @@ static void node_timeout(ogs_pfcp_xact_t *xact, void *data)
         ogs_error("Not implemented [type:%d]", type);
         break;
     }
+}
+
+#define MAX_PFCP_STRING_LEN 9 + INET_ADDRSTRLEN + (4 * OGS_MAX_NUM_OF_TAI)
+
+void stats_update_sgwc_pfcp_nodes(void) {
+    ogs_pfcp_node_t *node = NULL;
+    char buf[OGS_ADDRSTRLEN];
+    int i;
+
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    int num_pfcp = 0;
+
+    ptr = buffer = ogs_calloc(MAX_PFCP_STRING_LEN * OGS_MAX_NUM_OF_SERVED_TAI, 1);
+    ogs_list_for_each(&ogs_pfcp_self()->pfcp_peer_list, node) {
+        if (node->sm.state == (ogs_fsm_handler_t) &sgwc_pfcp_state_associated) {
+            num_pfcp++;
+            ptr += sprintf(ptr, "ip:%s tac:", OGS_ADDR(&node->addr, buf));
+            for(i = 0; i < node->num_of_tac; i++) {
+                ptr += sprintf(ptr, "%u,",node->tac[i]);
+            }
+            if (node->num_of_tac > 0) {
+                ptr--;
+            }
+            ptr += sprintf(ptr, "\n");
+        }
+    }
+
+    char num[20];
+    sprintf(num, "%d\n", num_pfcp);
+    ogs_write_file_value("sgwc/num_pfcp", num);
+
+    ogs_write_file_value("sgwc/list_pfcp", buffer);
+    ogs_free(buffer);
 }
