@@ -233,6 +233,10 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
             sgwu_sxa_handle_session_report_response(
                 sess, xact, &message->pfcp_session_report_response);
             break;
+        case OGS_PFCP_SESSION_SET_DELETION_REQUEST_TYPE:
+            sgwu_sxa_handle_session_set_deletion_request(
+                node, xact, &message->pfcp_session_set_deletion_request);
+            break;
         default:
             ogs_error("Not implemented PFCP message type[%d]",
                     message->h.type);
