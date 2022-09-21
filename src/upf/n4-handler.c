@@ -198,6 +198,8 @@ void upf_n4_handle_session_establishment_request(
         }
     }
 
+    stats_update_upf_sessions();
+
     if (restoration_indication == true ||
         ogs_pfcp_self()->up_function_features.ftup == 0)
         ogs_assert(OGS_OK ==
@@ -217,6 +219,7 @@ cleanup:
     ogs_pfcp_send_error_message(xact, sess ? sess->smf_n4_f_seid.seid : 0,
             OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE,
             cause_value, offending_ie_value);
+    stats_update_upf_sessions();
 }
 
 void upf_n4_handle_session_modification_request(
@@ -401,6 +404,8 @@ void upf_n4_handle_session_modification_request(
         }
     }
 
+    stats_update_upf_sessions();
+
     if (ogs_pfcp_self()->up_function_features.ftup == 0)
         ogs_assert(OGS_OK ==
             upf_pfcp_send_session_modification_response(
@@ -416,6 +421,7 @@ cleanup:
     ogs_pfcp_send_error_message(xact, sess ? sess->smf_n4_f_seid.seid : 0,
             OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE,
             cause_value, offending_ie_value);
+    stats_update_upf_sessions();
 }
 
 void upf_n4_handle_session_deletion_request(

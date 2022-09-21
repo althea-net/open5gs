@@ -290,6 +290,8 @@ void sgwc_s5c_handle_create_session_response(
     /* Setup GTP Node */
     OGS_SETUP_GTP_NODE(sess, pgw);
 
+    stats_update_sgwc_sessions();
+
     ogs_assert(OGS_OK ==
         sgwc_pfcp_send_session_modification_request(
             sess, s11_xact, gtpbuf,
@@ -415,6 +417,8 @@ void sgwc_s5c_handle_modify_bearer_response(
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
 
+    stats_update_sgwc_sessions();
+
     if (modify_action == OGS_GTP_MODIFY_IN_PATH_SWITCH_REQUEST) {
         ogs_assert(OGS_OK ==
             sgwc_gtp_send_create_session_response(sess, s11_xact));
@@ -524,6 +528,8 @@ void sgwc_s5c_handle_delete_session_response(
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
+
+    stats_update_sgwc_sessions();
 
     /*
      * 1. MME sends Delete Session Request to SGW/SMF.
@@ -647,6 +653,8 @@ void sgwc_s5c_handle_create_bearer_request(
             &far->outer_header_creation, &far->outer_header_creation_len));
     far->outer_header_creation.teid = ul_tunnel->remote_teid;
 
+    stats_update_sgwc_sessions();
+
     ogs_assert(OGS_OK ==
         sgwc_pfcp_send_bearer_modification_request(
             bearer, s5c_xact, gtpbuf,
@@ -759,6 +767,8 @@ void sgwc_s5c_handle_update_bearer_request(
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
+
+    stats_update_sgwc_sessions();
 
     ogs_debug("Update Bearer Request : SGW <-- PGW");
 }
@@ -916,6 +926,8 @@ void sgwc_s5c_handle_delete_bearer_request(
         }
     }
     s11_xact->local_teid = sgwc_ue->sgw_s11_teid;
+
+    stats_update_sgwc_sessions();
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);

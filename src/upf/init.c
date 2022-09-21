@@ -79,6 +79,11 @@ int upf_initialize(void)
 
     initialized = 1;
 
+    ogs_write_file_start("upf_start_time");
+    ogs_write_file_subdir("upf");
+    stats_update_upf_pfcp_nodes();
+    stats_update_upf_sessions();
+
     return OGS_OK;
 }
 

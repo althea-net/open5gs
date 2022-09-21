@@ -185,6 +185,9 @@ sgwc_tunnel_t *sgwc_tunnel_find_by_far_id(
 sgwc_tunnel_t *sgwc_dl_tunnel_in_bearer(sgwc_bearer_t *bearer);
 sgwc_tunnel_t *sgwc_ul_tunnel_in_bearer(sgwc_bearer_t *bearer);
 
+void stats_update_sgwc_ues(void);
+void stats_update_sgwc_sessions(void);
+
 #ifdef __cplusplus
 }
 #endif

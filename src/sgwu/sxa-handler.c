@@ -297,6 +297,8 @@ void sgwu_sxa_handle_session_modification_request(
         }
     }
 
+    stats_update_sgwu_sessions();
+
     if (ogs_pfcp_self()->up_function_features.ftup == 0)
         ogs_assert(OGS_OK ==
             sgwu_pfcp_send_session_modification_response(
@@ -312,6 +314,7 @@ cleanup:
     ogs_pfcp_send_error_message(xact, sess ? sess->sgwu_sxa_seid : 0,
             OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE,
             cause_value, offending_ie_value);
+    stats_update_sgwu_sessions();
 }
 
 void sgwu_sxa_handle_session_deletion_request(

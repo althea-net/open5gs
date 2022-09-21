@@ -84,6 +84,12 @@ int mme_initialize(void)
 
     initialized = 1;
 
+    ogs_write_file_start("mme_start_time");
+    ogs_write_file_subdir("mme");
+    stats_update_mme_enbs();
+    stats_update_mme_ues();
+    stats_update_mme_sessions();
+
     return OGS_OK;
 }
 

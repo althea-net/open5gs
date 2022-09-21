@@ -170,6 +170,8 @@ int esm_handle_pdn_connectivity_request(mme_bearer_t *bearer,
         return OGS_ERROR;
     }
 
+    stats_update_mme_sessions();
+
     return OGS_OK;
 }
 
@@ -264,6 +266,8 @@ int esm_handle_information_response(mme_sess_t *sess,
         ogs_assert(r != OGS_ERROR);
         return OGS_ERROR;
     }
+
+    stats_update_mme_sessions();
 
     return OGS_OK;
 }
