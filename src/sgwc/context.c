@@ -210,6 +210,8 @@ sgwc_ue_t *sgwc_ue_add(uint8_t *imsi, int imsi_len)
     ogs_info("[Added] Number of SGWC-UEs is now %d",
             ogs_list_count(&self.sgw_ue_list));
 
+    stats_update_sgwc_ues();
+
     return sgwc_ue;
 }
 
@@ -228,6 +230,8 @@ int sgwc_ue_remove(sgwc_ue_t *sgwc_ue)
     ogs_info("[Removed] Number of SGWC-UEs is now %d",
             ogs_list_count(&self.sgw_ue_list));
 
+    stats_update_sgwc_ues();
+    
     return OGS_OK;
 }
 
@@ -889,10 +893,62 @@ static void stats_add_sgwc_session(void)
 {
     num_of_sgwc_sess = num_of_sgwc_sess + 1;
     ogs_info("[Added] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
+
+    stats_update_sgwc_sessions();
 }
 
 static void stats_remove_sgwc_session(void)
 {
     num_of_sgwc_sess = num_of_sgwc_sess - 1;
     ogs_info("[Removed] Number of SGWC-Sessions is now %d", num_of_sgwc_sess);
+
+    stats_update_sgwc_sessions();
 }
+
+void stats_update_sgwc_ues(void)
+{
+    sgwc_ue_t *sgwc_ue = NULL;
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.sgw_ue_list));
+    ogs_write_file_value("sgwc/num_ues", num);
+
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    ogs_list_for_each(&self.sgw_ue_list, sgwc_ue) {
+        ptr += sprintf(ptr, "%s\n", sgwc_ue->imsi_bcd);
+    }
+    ogs_write_file_value("sgwc/list_ues", buffer);
+    ogs_free(buffer);
+}
+
+#define MAX_APN 63
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+
+void stats_update_sgwc_sessions(void) {
+    sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_sess_t *sess = NULL;
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", num_of_sgwc_sess);
+    ogs_write_file_value("sgwc/num_sessions", num);
+
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ogs_list_for_each(&self.sgw_ue_list, sgwc_ue) {
+        ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+            ptr += sprintf(ptr, "imsi:%s apn:%s ip4:%s ip6:%s\n",
+                sgwc_ue->imsi_bcd,
+                sess->session.name ? sess->session.name : "",
+                sess->session.ue_ip.ipv4 ? OGS_INET_NTOP(&sess->session.ue_ip.addr, buf1) : "",
+                sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(&sess->session.ue_ip.addr6, buf2) : "");
+        }
+    }
+    ogs_write_file_value("sgwc/list_sessions", buffer);
+    ogs_free(buffer);
+}
+

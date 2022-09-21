@@ -895,6 +895,9 @@ static smf_ue_t *smf_ue_add(void)
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
     ogs_info("[Added] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
+
+    stats_update_smf_ues();
+
     return smf_ue;
 }
 
@@ -929,6 +932,8 @@ smf_ue_t *smf_ue_add_by_imsi(uint8_t *imsi, int imsi_len)
     ogs_buffer_to_bcd(smf_ue->imsi, smf_ue->imsi_len, smf_ue->imsi_bcd);
     ogs_hash_set(self.imsi_hash, smf_ue->imsi, smf_ue->imsi_len, smf_ue);
 
+    stats_update_smf_ues();
+
     return smf_ue;
 }
 
@@ -954,6 +959,8 @@ void smf_ue_remove(smf_ue_t *smf_ue)
     smf_metrics_inst_global_dec(SMF_METR_GLOB_GAUGE_UES_ACTIVE);
     ogs_info("[Removed] Number of SMF-UEs is now %d",
             ogs_list_count(&self.smf_ue_list));
+
+    stats_update_smf_ues();
 }
 
 void smf_ue_remove_all(void)
@@ -1490,6 +1497,8 @@ uint8_t smf_sess_set_ue_ip(smf_sess_t *sess)
         ogs_assert_if_reached();
     }
 
+    stats_update_smf_sessions();
+
     return cause_value;
 }
 
@@ -1686,6 +1695,8 @@ void smf_sess_remove(smf_sess_t *sess)
     }
     stats_remove_smf_session();
     ogs_pool_free(&smf_sess_pool, sess);
+
+    stats_remove_smf_session();
 }
 
 void smf_sess_remove_all(smf_ue_t *smf_ue)
@@ -2971,6 +2982,8 @@ static void stats_add_smf_session(void)
     smf_metrics_inst_global_inc(SMF_METR_GLOB_GAUGE_SESSIONS_ACTIVE);
     num_of_smf_sess = num_of_smf_sess + 1;
     ogs_info("[Added] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    stats_update_smf_sessions();
 }
 
 static void stats_remove_smf_session(void)
@@ -2978,4 +2991,54 @@ static void stats_remove_smf_session(void)
     smf_metrics_inst_global_dec(SMF_METR_GLOB_GAUGE_SESSIONS_ACTIVE);
     num_of_smf_sess = num_of_smf_sess - 1;
     ogs_info("[Removed] Number of SMF-Sessions is now %d", num_of_smf_sess);
+
+    stats_update_smf_sessions();
+}
+
+void stats_update_smf_ues(void)
+{
+    smf_ue_t *smf_ue = NULL;
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.smf_ue_list));
+    ogs_write_file_value("smf/num_ues", num);
+
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    ogs_list_for_each(&self.smf_ue_list, smf_ue) {
+        ptr += sprintf(ptr, "%s\n", smf_ue->imsi_bcd);
+    }
+    ogs_write_file_value("smf/list_ues", buffer);
+    ogs_free(buffer);
+}
+
+#define MAX_APN 63
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+
+void stats_update_smf_sessions(void) {
+    smf_ue_t *smf_ue = NULL;
+    smf_sess_t *sess = NULL;
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", num_of_smf_sess);
+    ogs_write_file_value("smf/num_sessions", num);
+
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ogs_list_for_each(&self.smf_ue_list, smf_ue) {
+        ogs_list_for_each(&smf_ue->sess_list, sess) {
+            ptr += sprintf(ptr, "imsi:%s apn:%s ip4:%s ip6:%s\n",
+                smf_ue->imsi_bcd,
+                sess->session.name ? sess->session.name : "",
+                sess->session.ue_ip.ipv4 ? OGS_INET_NTOP(&sess->session.ue_ip.addr, buf1) : "",
+                sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(&sess->session.ue_ip.addr6, buf2) : "");
+        }
+    }
+    ogs_write_file_value("smf/list_sessions", buffer);
+    ogs_free(buffer);
+
 }
