@@ -274,6 +274,75 @@ int ogs_pfcp_cp_send_association_setup_response(ogs_pfcp_xact_t *xact,
     return rv;
 }
 
+int ogs_pfcp_cp_send_session_set_deletion_request(ogs_pfcp_node_t *node,
+        void (*cb)(ogs_pfcp_xact_t *xact, void *data))
+{
+    int rv;
+    ogs_pkbuf_t *pkbuf = NULL;
+    ogs_pfcp_header_t h;
+    ogs_pfcp_xact_t *xact = NULL;
+
+    ogs_assert(node);
+
+    memset(&h, 0, sizeof(ogs_pfcp_header_t));
+    h.type = OGS_PFCP_SESSION_SET_DELETION_REQUEST_TYPE;
+    h.seid = 0;
+
+    xact = ogs_pfcp_xact_local_create(node, cb, node);
+    if (!xact) {
+        ogs_error("ogs_pfcp_xact_local_create() failed");
+        return OGS_ERROR;
+    }
+
+    pkbuf = ogs_pfcp_cp_build_session_set_deletion_request(h.type);
+    if (!pkbuf) {
+        ogs_error("ogs_pfcp_cp_build_session_set_deletion_request() failed");
+        return OGS_ERROR;
+    }
+
+    rv = ogs_pfcp_xact_update_tx(xact, &h, pkbuf);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_pfcp_xact_update_tx() failed");
+        return OGS_ERROR;
+    }
+
+    rv = ogs_pfcp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
+int ogs_pfcp_up_send_session_set_deletion_response(ogs_pfcp_xact_t *xact,
+        uint8_t cause)
+{
+    int rv;
+    ogs_pkbuf_t *pkbuf = NULL;
+    ogs_pfcp_header_t h;
+
+    ogs_assert(xact);
+
+    memset(&h, 0, sizeof(ogs_pfcp_header_t));
+    h.type = OGS_PFCP_SESSION_SET_DELETION_RESPONSE_TYPE;
+    h.seid = 0;
+
+    pkbuf = ogs_pfcp_up_build_session_set_deletion_response(h.type, cause);
+    if (!pkbuf) {
+        ogs_error("ogs_pfcp_up_build_session_set_deletion_response() failed");
+        return OGS_ERROR;
+    }
+
+    rv = ogs_pfcp_xact_update_tx(xact, &h, pkbuf);
+    if (rv != OGS_OK) {
+        ogs_error("ogs_pfcp_xact_update_tx() failed");
+        return OGS_ERROR;
+    }
+    
+    rv = ogs_pfcp_xact_commit(xact);
+    ogs_expect(rv == OGS_OK);
+
+    return rv;
+}
+
 int ogs_pfcp_up_send_association_setup_request(ogs_pfcp_node_t *node,
         void (*cb)(ogs_pfcp_xact_t *xact, void *data))
 {
