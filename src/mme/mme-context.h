@@ -871,6 +871,10 @@ void mme_ebi_pool_clear(mme_ue_t *mme_ue);
 uint8_t mme_selected_int_algorithm(mme_ue_t *mme_ue);
 uint8_t mme_selected_enc_algorithm(mme_ue_t *mme_ue);
 
+void stats_update_mme_enbs(void);
+void stats_update_mme_ues(void);
+void stats_update_mme_sessions(void);
+
 #ifdef __cplusplus
 }
 #endif

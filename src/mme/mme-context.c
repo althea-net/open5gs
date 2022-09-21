@@ -1837,6 +1837,8 @@ mme_enb_t *mme_enb_add(ogs_sock_t *sock, ogs_sockaddr_t *addr)
     ogs_info("[Added] Number of eNBs is now %d",
             ogs_list_count(&self.enb_list));
 
+    stats_update_mme_enbs();
+
     return enb;
 }
 
@@ -1871,6 +1873,8 @@ int mme_enb_remove(mme_enb_t *enb)
 
     ogs_info("[Removed] Number of eNBs is now %d",
             ogs_list_count(&self.enb_list));
+
+    stats_update_mme_enbs();
 
     return OGS_OK;
 }
@@ -2308,6 +2312,8 @@ mme_ue_t *mme_ue_add(enb_ue_t *enb_ue)
     ogs_info("[Added] Number of MME-UEs is now %d",
             ogs_list_count(&self.mme_ue_list));
 
+    stats_update_mme_ues();
+
     return mme_ue;
 }
 
@@ -2372,6 +2378,8 @@ void mme_ue_remove(mme_ue_t *mme_ue)
 
     ogs_info("[Removed] Number of MME-UEs is now %d",
             ogs_list_count(&self.mme_ue_list));
+
+    stats_update_mme_ues();
 }
 
 void mme_ue_remove_all(void)
@@ -2664,6 +2672,8 @@ int mme_ue_set_imsi(mme_ue_t *mme_ue, char *imsi_bcd)
                 mme_ue->imsi, mme_ue->imsi_len, NULL);
 
     ogs_hash_set(self.imsi_ue_hash, mme_ue->imsi, mme_ue->imsi_len, mme_ue);
+
+    stats_update_mme_ues();
 
     return OGS_OK;
 }
@@ -3499,10 +3509,106 @@ static void stats_add_mme_session(void)
 {
     num_of_mme_sess = num_of_mme_sess + 1;
     ogs_info("[Added] Number of MME-Sessions is now %d", num_of_mme_sess);
+
+    stats_update_mme_sessions();
 }
 
 static void stats_remove_mme_session(void)
 {
     num_of_mme_sess = num_of_mme_sess - 1;
     ogs_info("[Removed] Number of MME-Sessions is now %d", num_of_mme_sess);
+
+    stats_update_mme_sessions();
+}
+
+#define MAX_ENB_STRING_LEN (8 + OGS_MAX_IMSI_BCD_LEN + INET_ADDRSTRLEN + (8 * 4))
+
+void stats_update_mme_enbs(void)
+{
+    mme_enb_t *enb = NULL;
+
+    char buf[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+    int i = 0;
+
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.enb_list));
+    ogs_write_file_value("mme/num_enbs", num);
+
+    ptr = buffer = ogs_malloc(MAX_ENB_STRING_LEN * ogs_list_count(&self.enb_list));
+    ogs_list_for_each(&self.enb_list, enb) {
+        ptr += sprintf(ptr, "ip:%s tac:%u",
+            OGS_ADDR(enb->sctp.addr, buf),enb->supported_ta_list[0].tac);
+        for(i = 1; i < enb->num_of_supported_ta_list; i++) {
+            ptr += sprintf(ptr, ",%u",enb->supported_ta_list[i].tac);
+        }
+        ptr += sprintf(ptr, "\n");
+    }
+
+    ogs_write_file_value("mme/list_enbs", buffer);
+    ogs_free(buffer);
+}
+
+#define MAX_UE_STRING_LEN (17 + OGS_MAX_IMSI_BCD_LEN + INET_ADDRSTRLEN + 3)
+
+void stats_update_mme_ues(void)
+{
+    mme_ue_t *mme_ue = NULL;
+    char buf1[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", ogs_list_count(&self.mme_ue_list));
+    ogs_write_file_value("mme/num_ues", num);
+
+    ptr = buffer = ogs_malloc(MAX_UE_STRING_LEN * ogs_list_count(&self.mme_ue_list));
+    ogs_list_for_each(&self.mme_ue_list, mme_ue) {
+        ptr += sprintf(ptr, "imsi:%s enb:%s tac:%d\n", mme_ue->imsi_bcd,
+            mme_ue->enb_ue ? OGS_ADDR(mme_ue->enb_ue->enb->sctp.addr, buf1) : "",
+            mme_ue->tai.tac);
+    }
+    ogs_write_file_value("mme/list_ues", buffer);
+    ogs_free(buffer);
+}
+
+#define MAX_APN 63
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+
+void stats_update_mme_sessions(void)
+{
+    mme_ue_t *mme_ue = NULL;
+    mme_sess_t *sess = NULL;
+    ogs_session_t *session = NULL;
+
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+    char buf3[OGS_ADDRSTRLEN];
+    char *buffer = NULL;
+    char *ptr = NULL;
+
+    char num[20];
+    sprintf(num, "%d\n", num_of_mme_sess);
+    ogs_write_file_value("mme/num_sessions", num);
+
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * num_of_mme_sess);
+    ogs_list_for_each(&self.mme_ue_list, mme_ue) {
+        ogs_list_for_each(&mme_ue->sess_list, sess) {
+            ptr += sprintf(ptr, "imsi:%s enb:%s tac:%d ", mme_ue->imsi_bcd,
+                mme_ue->enb_ue ? OGS_ADDR(mme_ue->enb_ue->enb->sctp.addr, buf1) : "", 
+                mme_ue->tai.tac);
+            if (sess->session) {
+                session = sess->session;
+                ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s\n",
+                    session->name ? session->name : "",
+                    session->ue_ip.ipv4 ? OGS_INET_NTOP(session->ue_ip.addr, buf2) : "",
+                    session->ue_ip.ipv6 ? OGS_INET6_NTOP(session->ue_ip.addr6, buf3) : "");
+            } else {
+                ptr += sprintf(ptr, "apn: ip4: ip6:\n");
+            }
+        }
+    }
+    ogs_write_file_value("mme/list_sessions", buffer);
+    ogs_free(buffer);
 }
