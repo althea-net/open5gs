@@ -109,6 +109,10 @@ typedef struct upf_sess_s {
     /* APN Configuration */
     ogs_pfcp_ue_ip_t *ipv4;
     ogs_pfcp_ue_ip_t *ipv6;
+    union {
+        char *apn;
+        char *dnn;
+    };
 
     ogs_ipsubnet_t   *ipv4_framed_routes;
     ogs_ipsubnet_t   *ipv6_framed_routes;
@@ -150,6 +154,8 @@ void upf_sess_urr_acc_fill_usage_report(upf_sess_t *sess, const ogs_pfcp_urr_t *
                                         ogs_pfcp_user_plane_report_t *report, unsigned int idx);
 void upf_sess_urr_acc_snapshot(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
 void upf_sess_urr_acc_timers_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr);
+
+void stats_update_upf_sessions(void);
 
 #ifdef __cplusplus
 }

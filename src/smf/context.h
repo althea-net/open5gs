@@ -528,6 +528,9 @@ int smf_maximum_integrity_protected_data_rate_downlink_value2enum(
         const char *value);
 int get_sess_load(void);
 
+void stats_update_smf_ues(void);
+void stats_update_smf_sessions(void);
+
 #ifdef __cplusplus
 }
 #endif

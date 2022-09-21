@@ -51,7 +51,9 @@ int hss_initialize(void)
 
     initialized = 1;
 
-    return OGS_OK;
+    ogs_write_file_start("hss_start_time");
+
+	return OGS_OK;
 }
 
 void hss_terminate(void)
