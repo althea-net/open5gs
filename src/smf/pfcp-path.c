@@ -330,7 +330,7 @@ int smf_5gc_pfcp_send_session_establishment_request(
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE;
-    h.seid = sess->upf_n4_seid;
+    h.seid = 0;
 
     n4buf = smf_n4_build_session_establishment_request(h.type, sess);
     ogs_expect_or_return_val(n4buf, OGS_ERROR);
@@ -446,7 +446,7 @@ int smf_epc_pfcp_send_session_establishment_request(
 
     memset(&h, 0, sizeof(ogs_pfcp_header_t));
     h.type = OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE;
-    h.seid = sess->upf_n4_seid;
+    h.seid = 0;
 
     n4buf = smf_n4_build_session_establishment_request(h.type, sess);
     ogs_expect_or_return_val(n4buf, OGS_ERROR);
@@ -458,6 +458,23 @@ int smf_epc_pfcp_send_session_establishment_request(
     ogs_expect(rv == OGS_OK);
 
     return rv;
+}
+
+int smf_epc_pfcp_resend_established_sessions(ogs_pfcp_node_t *node)
+{
+    smf_ue_t *smf_ue = NULL;
+    smf_sess_t *sess = NULL;
+
+    ogs_pfcp_cp_send_session_set_deletion_request(node, NULL);
+
+    ogs_list_for_each(&smf_self()->smf_ue_list, smf_ue) {
+        ogs_list_for_each(&smf_ue->sess_list, sess) {
+            if (sess->pfcp_node == node) {
+                smf_epc_pfcp_send_session_establishment_request(sess, NULL);
+            }
+        }
+    }
+    return OGS_OK;    
 }
 
 int smf_epc_pfcp_send_all_pdr_modification_request(
