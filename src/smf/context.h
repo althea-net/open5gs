@@ -425,7 +425,8 @@ typedef struct smf_sess_s {
 
     ogs_gtp_node_t  *gnode;
     ogs_pfcp_node_t *pfcp_node;
-
+    bool pfcp_established;
+    
     smf_ue_t *smf_ue;
 
     bool n1_released;

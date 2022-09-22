@@ -718,9 +718,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+        sess->pfcp_established = true;        
         break;
 
     case OGS_FSM_EXIT_SIG:
+        sess->pfcp_established = false;
         break;
 
     case SMF_EVT_GN_MESSAGE:

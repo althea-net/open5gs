@@ -35,6 +35,7 @@ int sgwc_pfcp_send_bearer_to_modify_list(
 int sgwc_pfcp_send_session_establishment_request(
         sgwc_sess_t *sess, ogs_gtp_xact_t *gtp_xact, ogs_pkbuf_t *gtpbuf,
         uint64_t flags);
+int sgwc_pfcp_resend_established_sessions(ogs_pfcp_node_t *node);
 
 int sgwc_pfcp_send_session_modification_request(
         sgwc_sess_t *sess, ogs_gtp_xact_t *gtp_xact,
