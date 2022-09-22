@@ -174,6 +174,12 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         ogs_info("PFCP associated");
         ogs_timer_start(node->t_no_heartbeat,
                 ogs_app()->time.message.pfcp.no_heartbeat_duration);
+
+        if (node->already_associated) {
+            smf_epc_pfcp_resend_established_sessions(node);
+        }
+        node->already_associated = true;
+
         break;
     case OGS_FSM_EXIT_SIG:
         ogs_info("PFCP de-associated");
@@ -213,11 +219,13 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
             ogs_warn("PFCP[REQ] has already been associated");
             ogs_pfcp_cp_handle_association_setup_request(node, xact,
                     &message->pfcp_association_setup_request);
+            smf_epc_pfcp_resend_established_sessions(node);
             break;
         case OGS_PFCP_ASSOCIATION_SETUP_RESPONSE_TYPE:
             ogs_warn("PFCP[RSP] has already been associated");
             ogs_pfcp_cp_handle_association_setup_response(node, xact,
                     &message->pfcp_association_setup_response);
+            smf_epc_pfcp_resend_established_sessions(node);
             break;
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             if (!message->h.seid_presence) ogs_error("No SEID");
