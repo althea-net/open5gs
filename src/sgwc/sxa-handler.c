@@ -175,15 +175,11 @@ void sgwc_sxa_handle_session_establishment_response(
 
     ogs_debug("Session Establishment Response");
 
-    if (sess && sess->pfcp_state != PFCP_WAIT_ESTABLISHMENT) {
-        if (sess->pfcp_state == PFCP_ESTABLISHED) {
-            ogs_warn("Received PFCP Session Establishment Response for already established session");
-            return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);            
-        } else {
-            ogs_warn("PFCP State = [%d]", sess->pfcp_state);            
-        }
+    if (sess->pfcp_established == true) {
+        ogs_warn("Received PFCP Session Establishment Response for already established session");
+        return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);
     }
-    sess->pfcp_state = PFCP_ERROR;
+    sess->pfcp_established = true;
 
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
@@ -281,7 +277,6 @@ void sgwc_sxa_handle_session_establishment_response(
     }
 
     ogs_assert(sess);
-    sess->pfcp_state = PFCP_ESTABLISHED;
 
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
@@ -1245,10 +1240,6 @@ void sgwc_sxa_handle_session_deletion_response(
     if (!sess) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
-    }
-
-    if (sess->pfcp_state != PFCP_WAIT_DELETION) {
-        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
     }
 
     if (pfcp_rsp->cause.presence) {

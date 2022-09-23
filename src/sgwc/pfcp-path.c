@@ -261,8 +261,6 @@ int sgwc_pfcp_send_session_establishment_request(
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
-    sess->pfcp_state = PFCP_WAIT_ESTABLISHMENT;
-
     return rv;
 }
 
@@ -385,8 +383,6 @@ int sgwc_pfcp_send_session_deletion_request(
 
     rv = ogs_pfcp_xact_commit(xact);
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
-
-    sess->pfcp_state = PFCP_WAIT_DELETION;
 
     return rv;
 }
