@@ -175,7 +175,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
         ogs_timer_start(node->t_no_heartbeat,
                 ogs_app()->time.message.pfcp.no_heartbeat_duration);
 
-        if (node->already_associated == false) {
+        if (node->already_associated) {
             sgwc_pfcp_resend_established_sessions(node);
         }
         node->already_associated = true;
