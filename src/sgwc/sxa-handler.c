@@ -1237,10 +1237,6 @@ void sgwc_sxa_handle_session_deletion_response(
 
     ogs_debug("Session Deletion Response");
 
-    if (sess->pfcp_state != PFCP_WAIT_DELETION) {
-        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
-    }
-
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
 
@@ -1249,6 +1245,10 @@ void sgwc_sxa_handle_session_deletion_response(
     if (!sess) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    if (sess->pfcp_state != PFCP_WAIT_DELETION) {
+        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
     }
 
     if (pfcp_rsp->cause.presence) {
