@@ -175,12 +175,13 @@ void sgwc_sxa_handle_session_establishment_response(
 
     ogs_debug("Session Establishment Response");
 
-    if (sess->pfcp_state == PFCP_ESTABLISHED) {
-        ogs_warn("Received PFCP Session Establishment Response for already established session");
-        return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);
-    }
-    if (sess->pfcp_state != PFCP_WAIT_ESTABLISHMENT) {
-        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
+    if (sess && sess->pfcp_state != PFCP_WAIT_ESTABLISHMENT) {
+        if (sess->pfcp_state == PFCP_ESTABLISHED) {
+            ogs_warn("Received PFCP Session Establishment Response for already established session");
+            return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);            
+        } else {
+            ogs_warn("PFCP State = [%d]", sess->pfcp_state);            
+        }
     }
     sess->pfcp_state = PFCP_ERROR;
 
@@ -280,6 +281,7 @@ void sgwc_sxa_handle_session_establishment_response(
     }
 
     ogs_assert(sess);
+    sess->pfcp_state = PFCP_ESTABLISHED;
 
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
@@ -455,8 +457,6 @@ void sgwc_sxa_handle_session_establishment_response(
 
     rv = ogs_gtp_xact_commit(s5c_xact);
     ogs_expect_or_return(rv == OGS_OK);
-
-    sess->pfcp_state = PFCP_ESTABLISHED;
 }
 
 void sgwc_sxa_handle_session_modification_response(
