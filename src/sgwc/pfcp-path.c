@@ -259,9 +259,29 @@ int sgwc_pfcp_send_session_establishment_request(
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
-    ogs_expect(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+
+    sess->pfcp_state = PFCP_WAIT_ESTABLISHMENT;
 
     return rv;
+}
+
+int sgwc_pfcp_resend_established_sessions(ogs_pfcp_node_t *node)
+{
+    sgwc_ue_t *sgwc_ue = NULL;
+    sgwc_sess_t *sess = NULL;
+
+    ogs_pfcp_cp_send_session_set_deletion_request(node, NULL);
+
+    ogs_list_for_each(&sgwc_self()->sgw_ue_list, sgwc_ue) {
+        ogs_list_for_each(&sgwc_ue->sess_list, sess) {
+            if (sess->pfcp_node == node) {
+                sess->sgwu_sxa_seid = 0;
+                sgwc_pfcp_send_session_establishment_request(sess, NULL, NULL);                
+            }
+        }
+    }
+    return OGS_OK;
 }
 
 int sgwc_pfcp_send_session_modification_request(
@@ -364,7 +384,9 @@ int sgwc_pfcp_send_session_deletion_request(
     ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
 
     rv = ogs_pfcp_xact_commit(xact);
-    ogs_expect(rv == OGS_OK);
+    ogs_expect_or_return_val(rv == OGS_OK, OGS_ERROR);
+
+    sess->pfcp_state = PFCP_WAIT_DELETION;
 
     return rv;
 }

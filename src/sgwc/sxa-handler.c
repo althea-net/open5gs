@@ -124,6 +124,24 @@ static void bearer_timeout(ogs_gtp_xact_t *xact, void *data)
     }
 }
 
+static void sgwc_sxa_handle_session_reestablishment(
+        sgwc_sess_t *sess, ogs_pfcp_xact_t *pfcp_xact,
+        ogs_pfcp_session_establishment_response_t *pfcp_rsp)
+{
+    ogs_assert(sess);
+    ogs_assert(pfcp_xact);
+    ogs_assert(pfcp_rsp);
+
+    ogs_pfcp_xact_commit(pfcp_xact);
+
+    ogs_pfcp_f_seid_t *up_f_seid = NULL;
+    up_f_seid = pfcp_rsp->up_f_seid.data;
+    ogs_assert(up_f_seid);
+    sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
+
+    return;
+}
+
 void sgwc_sxa_handle_session_establishment_response(
         sgwc_sess_t *sess, ogs_pfcp_xact_t *pfcp_xact,
         ogs_gtp2_message_t *recv_message,
@@ -157,8 +175,18 @@ void sgwc_sxa_handle_session_establishment_response(
 
     ogs_debug("Session Establishment Response");
 
+    if (sess->pfcp_state == PFCP_ESTABLISHED) {
+        ogs_warn("Received PFCP Session Establishment Response for already established session");
+        return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);
+    }
+    if (sess->pfcp_state != PFCP_WAIT_ESTABLISHMENT) {
+        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
+    }
+    sess->pfcp_state = PFCP_ERROR;
+
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
+
     ogs_assert(recv_message);
 
     create_session_request = &recv_message->create_session_request;
@@ -426,7 +454,9 @@ void sgwc_sxa_handle_session_establishment_response(
     ogs_gtp_xact_associate(s11_xact, s5c_xact);
 
     rv = ogs_gtp_xact_commit(s5c_xact);
-    ogs_expect(rv == OGS_OK);
+    ogs_expect_or_return(rv == OGS_OK);
+
+    sess->pfcp_state = PFCP_ESTABLISHED;
 }
 
 void sgwc_sxa_handle_session_modification_response(
@@ -1207,6 +1237,10 @@ void sgwc_sxa_handle_session_deletion_response(
 
     ogs_debug("Session Deletion Response");
 
+    if (sess->pfcp_state != PFCP_WAIT_DELETION) {
+        ogs_warn("PFCP State = [%d]", sess->pfcp_state);
+    }
+
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
 
@@ -1218,7 +1252,8 @@ void sgwc_sxa_handle_session_deletion_response(
     }
 
     if (pfcp_rsp->cause.presence) {
-        if (pfcp_rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+        if (pfcp_rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED &&
+            pfcp_rsp->cause.u8 != OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND) {
             ogs_warn("PFCP Cause[%d] : Not Accepted", pfcp_rsp->cause.u8);
             cause_value = gtp_cause_from_pfcp(pfcp_rsp->cause.u8);
         }
@@ -1309,6 +1344,20 @@ void sgwc_sxa_handle_session_deletion_response(
 
 cleanup:
     sgwc_sess_remove(sess);
+}
+
+void sgwc_sxa_handle_session_set_deletion_response(
+        ogs_pfcp_xact_t *pfcp_xact,
+        ogs_pfcp_session_set_deletion_response_t *pfcp_rsp)
+{
+    ogs_debug("Session Set Deletion Response");
+
+    ogs_assert(pfcp_xact);
+    ogs_assert(pfcp_rsp);
+
+    ogs_pfcp_xact_commit(pfcp_xact);
+
+    return;
 }
 
 void sgwc_sxa_handle_session_report_request(

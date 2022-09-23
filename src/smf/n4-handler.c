@@ -633,7 +633,8 @@ int smf_5gc_n4_handle_session_deletion_response(
     ogs_assert(sess);
 
     if (rsp->cause.presence) {
-        if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+        if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED &&
+            rsp->cause.u8 != OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND) {
             ogs_warn("PFCP Cause [%d] : Not Accepted", rsp->cause.u8);
             status = sbi_status_from_pfcp(rsp->cause.u8);
         }
@@ -684,7 +685,6 @@ uint8_t smf_epc_n4_handle_session_establishment_response(
     uint8_t cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
     smf_bearer_t *bearer = NULL;
-    ogs_gtp_xact_t *gtp_xact = NULL;
 
     ogs_pfcp_f_seid_t *up_f_seid = NULL;
 
@@ -693,9 +693,6 @@ uint8_t smf_epc_n4_handle_session_establishment_response(
     ogs_assert(rsp);
 
     ogs_debug("Session Establishment Response [epc]");
-
-    gtp_xact = xact->assoc_xact;
-    ogs_assert(gtp_xact);
 
     ogs_pfcp_xact_commit(xact);
 
@@ -1062,7 +1059,8 @@ uint8_t smf_epc_n4_handle_session_deletion_response(
         ogs_error("No Cause");
         return OGS_PFCP_CAUSE_MANDATORY_IE_MISSING;
     }
-    if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
+    if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED &&
+        rsp->cause.u8 != OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND) {
             ogs_warn("PFCP Cause[%d] : Not Accepted", rsp->cause.u8);
             return rsp->cause.u8;
     }
@@ -1097,6 +1095,19 @@ uint8_t smf_epc_n4_handle_session_deletion_response(
     }
 
     return OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
+}
+
+void smf_epc_n4_handle_session_set_deletion_response(
+        ogs_pfcp_xact_t *xact, ogs_pfcp_session_set_deletion_response_t *rsp)
+{
+    ogs_debug("Session Set Deletion Response");
+
+    ogs_assert(xact);
+    ogs_assert(rsp);
+
+    ogs_pfcp_xact_commit(xact);
+
+    return;
 }
 
 void smf_n4_handle_session_report_request(

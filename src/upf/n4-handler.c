@@ -461,7 +461,7 @@ void upf_n4_handle_session_deletion_request(
     ogs_debug("Session Deletion Request");
 
     if (!sess) {
-        ogs_error("No Context");
+        ogs_warn("No Context");
         ogs_pfcp_send_error_message(xact, 0,
                 OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE,
                 OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND, 0);
@@ -469,6 +469,26 @@ void upf_n4_handle_session_deletion_request(
     }
     upf_pfcp_send_session_deletion_response(xact, sess);
     upf_sess_remove(sess);
+}
+
+void upf_n4_handle_session_set_deletion_request(
+        ogs_pfcp_node_t *node, ogs_pfcp_xact_t *xact,
+        ogs_pfcp_session_set_deletion_request_t *req)
+{
+    upf_sess_t *sess = NULL, *next = NULL;;
+    ogs_assert(node);
+    ogs_assert(xact);
+    ogs_assert(req);
+
+    ogs_debug("Session Set Deletion Request");
+
+    ogs_list_for_each_safe(&upf_self()->sess_list, next, sess) {
+        if (sess->pfcp_node == node) {
+            upf_sess_remove(sess);
+        }
+    }
+
+    ogs_pfcp_up_send_session_set_deletion_response(xact, OGS_PFCP_CAUSE_REQUEST_ACCEPTED);
 }
 
 void upf_n4_handle_session_report_response(
