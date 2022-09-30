@@ -192,7 +192,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         ogs_timer_stop(node->t_no_heartbeat);
 
         stats_update_smf_pfcp_nodes();
-        
+
         break;
     case SMF_EVT_N4_MESSAGE:
         message = e->pfcp_message;
@@ -404,7 +404,10 @@ void stats_update_smf_pfcp_nodes(void) {
             num_pfcp++;
             ptr += sprintf(ptr, "ip:%s tac:", OGS_ADDR(&node->addr, buf));
             for(i = 0; i < node->num_of_tac; i++) {
-                ptr += sprintf(ptr, ",%u",node->tac[i]);
+                ptr += sprintf(ptr, "%u,",node->tac[i]);
+            }
+            if (node->num_of_tac > 0) {
+                ptr--;
             }
             ptr += sprintf(ptr, "\n");
         }
