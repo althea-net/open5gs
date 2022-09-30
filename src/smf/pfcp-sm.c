@@ -398,7 +398,7 @@ void stats_update_smf_pfcp_nodes(void) {
 
     int num_pfcp = 0;
 
-    ptr = buffer = ogs_malloc(MAX_PFCP_STRING_LEN * OGS_MAX_NUM_OF_SERVED_TAI);
+    ptr = buffer = ogs_calloc(MAX_PFCP_STRING_LEN * OGS_MAX_NUM_OF_SERVED_TAI, 1);
     ogs_list_for_each(&ogs_pfcp_self()->pfcp_peer_list, node) {
         if (node->sm.state == (ogs_fsm_handler_t) &smf_pfcp_state_associated) {
             num_pfcp++;
