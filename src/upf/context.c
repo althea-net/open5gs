@@ -546,9 +546,46 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
 #define MAX_APN 63
 #define MAX_SESSION_STRING_LEN (43 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + 16 + 16)
 
+static char *print_far(char *buf, ogs_pfcp_far_t *far) {
+    char buf1[OGS_ADDRSTRLEN];
+
+    buf += sprintf(buf, "\tfar ");
+    if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
+        buf += sprintf(buf, "act:DROP ");
+    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
+        buf += sprintf(buf, "act:FORW ");
+    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_BUFF) {
+        buf += sprintf(buf, "act:BUFF ");
+    } else {
+        buf += sprintf(buf, "act:%u ", far->apply_action);
+    }
+
+    switch (far->dst_if) {
+    case OGS_PFCP_INTERFACE_ACCESS:
+        buf += sprintf(buf, "dst:ACCESS ");
+        break;
+    case OGS_PFCP_INTERFACE_CORE:
+        buf += sprintf(buf, "dst:CORE ");
+        break;
+    case OGS_PFCP_INTERFACE_CP_FUNCTION:
+        buf += sprintf(buf, "dst:CP ");
+        break;
+    default:
+        buf += sprintf(buf, "dst:%u ", far->dst_if);
+    }
+
+    if (far->outer_header_creation.addr) {
+        buf += sprintf(buf, "hdr:%s ", OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
+    }
+
+    buf += sprintf(buf, "\n");
+    return buf;
+}
+
 void stats_update_upf_sessions(void)
 {
     upf_sess_t *sess = NULL;
+    ogs_pfcp_far_t *far;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
     char *buffer = NULL;
@@ -558,13 +595,17 @@ void stats_update_upf_sessions(void)
     sprintf(num, "%d\n", ogs_list_count(&self.sess_list));
     ogs_write_file_value("upf/num_sessions", num);
 
-    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_calloc(1, MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
     ogs_list_for_each(&self.sess_list, sess) {
         ptr += sprintf(ptr, "apn:%s ip4:%s ip6:%s seid_cp:0x%lx seid_up:0x%lx\n",
             sess->dnn ? sess->dnn : "",
             sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
             sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "",
             (long)sess->smf_n4_f_seid.seid, (long)sess->upf_n4_seid);
+        
+        ogs_list_for_each(&sess->pfcp.far_list, far) {
+            ptr = print_far(ptr, far);
+        }
     }
     ogs_write_file_value("upf/list_sessions", buffer);
     ogs_free(buffer);
