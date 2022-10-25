@@ -2907,12 +2907,28 @@ void stats_update_smf_ues(void)
     ogs_free(buffer);
 }
 
+#define MAX_BEARER_STRING_LEN (48 + INET_ADDRSTRLEN + INET_ADDRSTRLEN)
 #define MAX_APN 63
-#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + (OGS_MAX_NUM_OF_BEARER * MAX_BEARER_STRING_LEN))
+
+static char *print_bearer(char *buf, smf_bearer_t *bearer) {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+
+    buf += sprintf(buf, "\tbearer ebi:%u ", bearer->ebi);
+
+    buf += sprintf(buf, "l_teid:%u l_addr:%s r_teid:%u r_addr:%s\n", 
+        bearer->pgw_s5u_teid,
+        bearer->pgw_s5u_addr ? OGS_ADDR(&bearer->pgw_s5u_addr, buf1) : "",
+        bearer->sgw_s5u_teid, OGS_INET_NTOP(bearer->sgw_s5u_ip.addr, buf2));
+
+    return buf;
+}
 
 void stats_update_smf_sessions(void) {
     smf_ue_t *smf_ue = NULL;
     smf_sess_t *sess = NULL;
+    smf_bearer_t *bearer = NULL;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
     char buf3[OGS_ADDRSTRLEN];
@@ -2933,6 +2949,10 @@ void stats_update_smf_sessions(void) {
                 sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(&sess->session.ue_ip.addr6, buf2) : "",
                 sess->pfcp_node ? OGS_ADDR(&sess->pfcp_node->addr, buf3) : "",
                 (long)sess->smf_n4_seid, (long)sess->upf_n4_seid);
+
+            ogs_list_for_each(&sess->bearer_list, bearer) {
+                ptr = print_bearer(ptr, bearer);
+            }
         }
     }
     ogs_write_file_value("smf/list_sessions", buffer);

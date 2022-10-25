@@ -255,7 +255,8 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message)
     return sess;
 }
 
-#define MAX_SESSION_STRING_LEN (22 + 16 + 16)
+#define MAX_FAR_STRING_LEN (38 + INET6_ADDRSTRLEN)
+#define MAX_SESSION_STRING_LEN (22 + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_FAR_STRING_LEN))
 
 static char *print_far(char *buf, ogs_pfcp_far_t *far) {
     char buf1[OGS_ADDRSTRLEN];
@@ -273,20 +274,22 @@ static char *print_far(char *buf, ogs_pfcp_far_t *far) {
 
     switch (far->dst_if) {
     case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "dst:ACCESS ");
+        buf += sprintf(buf, "if:ACCESS ");
         break;
     case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "dst:CORE ");
+        buf += sprintf(buf, "if:CORE ");
         break;
     case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "dst:CP ");
+        buf += sprintf(buf, "if:CP ");
         break;
     default:
-        buf += sprintf(buf, "dst:%u ", far->dst_if);
+        buf += sprintf(buf, "if:%u ", far->dst_if);
     }
 
+    buf += sprintf(buf, "teid:%u ", far->hash.f_teid.key.teid);
+
     if (far->outer_header_creation.addr) {
-        buf += sprintf(buf, "hdr:%s ", OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
+        buf += sprintf(buf, "dst:%s ", OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
     }
 
     buf += sprintf(buf, "\n");

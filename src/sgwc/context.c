@@ -906,12 +906,40 @@ void stats_update_sgwc_ues(void)
     ogs_free(buffer);
 }
 
+#define MAX_TUN_STRING_LEN (53 + INET_ADDRSTRLEN + INET_ADDRSTRLEN)
 #define MAX_APN 63
-#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN)
+#define MAX_SESSION_STRING_LEN (21 + OGS_MAX_IMSI_BCD_LEN + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + (3 * OGS_MAX_NUM_OF_BEARER * MAX_TUN_STRING_LEN))
+
+static char *print_tun(char *buf, sgwc_tunnel_t *tunnel, uint8_t ebi) {
+    char buf1[OGS_ADDRSTRLEN];
+    char buf2[OGS_ADDRSTRLEN];
+
+    buf += sprintf(buf, "\ttun ebi:%u", ebi);
+
+    switch (tunnel->interface_type) {
+    case OGS_GTP2_F_TEID_S5_S8_SGW_GTP_U:
+        buf += sprintf(buf, "if:DL ");
+        break;
+    case OGS_GTP2_F_TEID_S1_U_SGW_GTP_U:
+        buf += sprintf(buf, "if:UL ");
+        break;
+    default:
+        buf += sprintf(buf, "if:%u ", tunnel->interface_type);
+    }
+
+    buf += sprintf(buf, "l_teid:%u l_addr:%s r_teid:%u r_addr:%s\n", 
+        tunnel->local_teid,
+        tunnel->local_addr ? OGS_ADDR(&tunnel->local_addr, buf1) : "",
+        tunnel->remote_teid, OGS_INET_NTOP(tunnel->remote_ip.addr, buf2));
+
+    return buf;
+}
 
 void stats_update_sgwc_sessions(void) {
     sgwc_ue_t *sgwc_ue = NULL;
     sgwc_sess_t *sess = NULL;
+    sgwc_bearer_t *bearer = NULL;
+    sgwc_tunnel_t *tunnel = NULL;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
     char buf3[OGS_ADDRSTRLEN];
@@ -932,6 +960,12 @@ void stats_update_sgwc_sessions(void) {
                 sess->session.ue_ip.ipv6 ? OGS_INET6_NTOP(&sess->session.ue_ip.addr6, buf2) : "",
                 sess->pfcp_node ? OGS_ADDR(&sess->pfcp_node->addr, buf3) : "",
                 (long)sess->sgwc_sxa_seid, (long)sess->sgwu_sxa_seid);
+
+            ogs_list_for_each(&sess->bearer_list, bearer) {
+                ogs_list_for_each(&bearer->tunnel_list, tunnel) {
+                    ptr = print_tun(ptr, tunnel, bearer->ebi);
+                }
+            }
         }
     }
     ogs_write_file_value("sgwc/list_sessions", buffer);
