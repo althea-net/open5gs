@@ -929,8 +929,8 @@ static char *print_tun(char *buf, sgwc_tunnel_t *tunnel, uint8_t ebi) {
 
     buf += sprintf(buf, "l_teid:%u l_addr:%s r_teid:%u r_addr:%s\n", 
         tunnel->local_teid,
-        tunnel->local_addr ? OGS_ADDR(&tunnel->local_addr, buf1) : "",
-        tunnel->remote_teid, OGS_INET_NTOP(tunnel->remote_ip.addr, buf2));
+        tunnel->local_addr ? OGS_ADDR(tunnel->local_addr, buf1) : "",
+        tunnel->remote_teid, OGS_INET_NTOP(&tunnel->remote_ip.addr, buf2));
 
     return buf;
 }
