@@ -237,6 +237,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_establishment_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_establishment_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_MODIFICATION_RESPONSE_TYPE:
@@ -248,6 +249,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_modification_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_modification_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
@@ -271,11 +273,13 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
             sgwc_sxa_handle_session_deletion_response(
                 sess, xact, e->gtp_message,
                 &message->pfcp_session_deletion_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_SET_DELETION_RESPONSE_TYPE:
             sgwc_sxa_handle_session_set_deletion_response(
                 xact, &message->pfcp_session_set_deletion_response);
+            stats_update_sgwc_sessions();
             break;
 
         case OGS_PFCP_SESSION_REPORT_REQUEST_TYPE:
@@ -286,6 +290,7 @@ void sgwc_pfcp_state_associated(ogs_fsm_t *s, sgwc_event_t *e)
 
             sgwc_sxa_handle_session_report_request(
                 sess, xact, &message->pfcp_session_report_request);
+            stats_update_sgwc_sessions();
             break;
 
         default:

@@ -914,7 +914,7 @@ static char *print_tun(char *buf, sgwc_tunnel_t *tunnel, uint8_t ebi) {
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
 
-    buf += sprintf(buf, "\ttun ebi:%u", ebi);
+    buf += sprintf(buf, "\ttun ebi:%u ", ebi);
 
     switch (tunnel->interface_type) {
     case OGS_GTP2_F_TEID_S5_S8_SGW_GTP_U:
