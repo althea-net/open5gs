@@ -575,10 +575,9 @@ static char *print_far(char *buf, ogs_pfcp_far_t *far) {
         buf += sprintf(buf, "dst:%u ", far->dst_if);
     }
 
-    buf += sprintf(buf, "teid:%u ", far->hash.f_teid.key.teid);
-
     if (far->outer_header_creation.addr) {
-        buf += sprintf(buf, "dst:%s ", OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
+        buf += sprintf(buf, "teid:0x%x dst:%s ",
+            far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
     }
 
     buf += sprintf(buf, "\n");
