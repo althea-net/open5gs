@@ -1901,7 +1901,7 @@ static char *stats_print_far(char *buf, ogs_pfcp_far_t *far) {
         buf += sprintf(buf, "dst_teid:0x%x dst_addr:%s ",
             far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
     } else {
-        buf += sprintf(buf, "dst_teid:DEENCAP ");
+        buf += sprintf(buf, "dst_teid:OGSTUN ");
     }
 
     return buf;
@@ -1925,12 +1925,16 @@ char *stats_print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
         buf += sprintf(buf, "src_if:%u ", pdr->src_if);
     }
 
-    buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
+    if (pdr->hash.teid.key != 0) {
+        buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
+    } else {
+        buf += sprintf(buf, "src_teid:OGSTUN ");
+    }
 
     if (pdr->far) {
         buf = stats_print_far(buf, pdr->far);
     } else {
-        buf += sprintf(buf, "FAR: NULL");
+        buf += sprintf(buf, "far: NULL ");
     }
 
     return buf;
