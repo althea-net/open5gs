@@ -569,6 +569,7 @@ void stats_update_upf_sessions(void)
         
         ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
             ptr = stats_print_pdr(ptr, pdr);
+            ptr += sprintf(ptr, "\n");
         }
     }
     ogs_write_file_value("upf/list_sessions", buffer);
