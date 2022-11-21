@@ -255,78 +255,12 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message)
     return sess;
 }
 
-#define MAX_FAR_STRING_LEN (38 + INET6_ADDRSTRLEN)
 #define MAX_SESSION_STRING_LEN (22 + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_FAR_STRING_LEN))
-
-static char *print_far(char *buf, ogs_pfcp_far_t *far) {
-    char buf1[OGS_ADDRSTRLEN];
-
-    buf += sprintf(buf, "\tfar addr:%p", far);
-
-    if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
-        buf += sprintf(buf, "act:DROP ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
-        buf += sprintf(buf, "act:FORW ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_BUFF) {
-        buf += sprintf(buf, "act:BUFF ");
-    } else {
-        buf += sprintf(buf, "act:%u ", far->apply_action);
-    }
-
-    switch (far->dst_if) {
-    case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "if:ACCESS ");
-        break;
-    case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "if:CORE ");
-        break;
-    case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "if:CP ");
-        break;
-    default:
-        buf += sprintf(buf, "if:%u ", far->dst_if);
-    }
-
-    if (far->outer_header_creation.addr) {
-        buf += sprintf(buf, "f_teid:0x%x f_dst:%s ",
-            far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
-    }
-
-    buf += sprintf(buf, "\n");
-    return buf;
-}
-
-static char *print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
-
-    buf += sprintf(buf, "\tpdr ");
-
-    switch (pdr->src_if) {
-    case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "if:ACCESS ");
-        break;
-    case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "if:CORE ");
-        break;
-    case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "if:CP ");
-        break;
-    default:
-        buf += sprintf(buf, "if:%u ", pdr->src_if);
-    }
-
-    buf += sprintf(buf, "l_teid:%u ", pdr->hash.teid.key);
-
-    buf += sprintf(buf, "far:%p ", pdr->far);
-
-    buf += sprintf(buf, "\n");
-    return buf;
-}
 
 void stats_update_sgwu_sessions(void)
 {
     sgwu_sess_t *sess = NULL;
     ogs_pfcp_pdr_t *pdr;
-    ogs_pfcp_far_t *far;
     char *buffer = NULL;
     char *ptr = NULL;
 
@@ -340,10 +274,8 @@ void stats_update_sgwu_sessions(void)
             (long)sess->sgwc_sxa_f_seid.seid, (long)sess->sgwu_sxa_seid);
 
         ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
-            ptr = print_pdr(ptr, pdr);
-        }
-        ogs_list_for_each(&sess->pfcp.far_list, far) {
-            ptr = print_far(ptr, far);
+            ptr = stats_print_pdr(ptr, pdr);
+            ptr += sprintf(ptr, "\n");
         }
     }
     ogs_write_file_value("sgwu/list_sessions", buffer);

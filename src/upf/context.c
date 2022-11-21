@@ -544,50 +544,12 @@ static void upf_sess_urr_acc_remove_all(upf_sess_t *sess)
 }
 
 #define MAX_APN 63
-#define MAX_FAR_STRING_LEN (38 + INET6_ADDRSTRLEN)
 #define MAX_SESSION_STRING_LEN (43 + MAX_APN + INET_ADDRSTRLEN + INET6_ADDRSTRLEN + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_FAR_STRING_LEN))
-
-static char *print_far(char *buf, ogs_pfcp_far_t *far) {
-    char buf1[OGS_ADDRSTRLEN];
-
-    buf += sprintf(buf, "\tfar ");
-    if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
-        buf += sprintf(buf, "act:DROP ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
-        buf += sprintf(buf, "act:FORW ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_BUFF) {
-        buf += sprintf(buf, "act:BUFF ");
-    } else {
-        buf += sprintf(buf, "act:%u ", far->apply_action);
-    }
-
-    switch (far->dst_if) {
-    case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "if:ACCESS ");
-        break;
-    case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "if:CORE ");
-        break;
-    case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "if:CP ");
-        break;
-    default:
-        buf += sprintf(buf, "dst:%u ", far->dst_if);
-    }
-
-    if (far->outer_header_creation.addr) {
-        buf += sprintf(buf, "f_teid:0x%x f_dst:%s ",
-            far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
-    }
-
-    buf += sprintf(buf, "\n");
-    return buf;
-}
 
 void stats_update_upf_sessions(void)
 {
     upf_sess_t *sess = NULL;
-    ogs_pfcp_far_t *far;
+    ogs_pfcp_pdr_t *pdr;
     char buf1[OGS_ADDRSTRLEN];
     char buf2[OGS_ADDRSTRLEN];
     char *buffer = NULL;
@@ -605,8 +567,8 @@ void stats_update_upf_sessions(void)
             sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "",
             (long)sess->smf_n4_f_seid.seid, (long)sess->upf_n4_seid);
         
-        ogs_list_for_each(&sess->pfcp.far_list, far) {
-            ptr = print_far(ptr, far);
+        ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+            ptr = stats_print_pdr(ptr, pdr);
         }
     }
     ogs_write_file_value("upf/list_sessions", buffer);
