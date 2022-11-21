@@ -1870,39 +1870,8 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
     ogs_index_final(&sess->bar_id_pool);
 }
 
-char *stats_print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
-
-    buf += sprintf(buf, "\tpdr ");
-
-    switch (pdr->src_if) {
-    case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "src_if:ACCESS ");
-        break;
-    case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "src_if:CORE ");
-        break;
-    case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "src_if:CP ");
-        break;
-    default:
-        buf += sprintf(buf, "src_if:%u ", pdr->src_if);
-    }
-
-    buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
-
-    if (pdr->far) {
-        buf = stats_print_far(buf, pdr->far);
-    } else {
-        buf += sprintf(buf, "FAR: NULL");
-    }
-
-    return buf;
-}
-
-char *stats_print_far(char *buf, ogs_pfcp_far_t *far) {
+static char *stats_print_far(char *buf, ogs_pfcp_far_t *far) {
     char buf1[OGS_ADDRSTRLEN];
-
-    buf += sprintf(buf, "FAR: ");
 
     if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
         buf += sprintf(buf, "act:DROP ");
@@ -1931,6 +1900,37 @@ char *stats_print_far(char *buf, ogs_pfcp_far_t *far) {
     if (far->outer_header_creation.addr) {
         buf += sprintf(buf, "dst_teid:0x%x dst_addr:%s ",
             far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
+    } else {
+        buf += sprintf(buf, "dst_teid:DEENCAP ");
+    }
+
+    return buf;
+}
+
+char *stats_print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
+
+    buf += sprintf(buf, "\tpdr ");
+
+    switch (pdr->src_if) {
+    case OGS_PFCP_INTERFACE_ACCESS:
+        buf += sprintf(buf, "src_if:ACCESS ");
+        break;
+    case OGS_PFCP_INTERFACE_CORE:
+        buf += sprintf(buf, "src_if:CORE ");
+        break;
+    case OGS_PFCP_INTERFACE_CP_FUNCTION:
+        buf += sprintf(buf, "src_if:CP ");
+        break;
+    default:
+        buf += sprintf(buf, "src_if:%u ", pdr->src_if);
+    }
+
+    buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
+
+    if (pdr->far) {
+        buf = stats_print_far(buf, pdr->far);
+    } else {
+        buf += sprintf(buf, "FAR: NULL");
     }
 
     return buf;
