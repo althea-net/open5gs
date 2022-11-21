@@ -1891,7 +1891,7 @@ char *stats_print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
     buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
 
     if (pdr->far) {
-        stats_print_far(buf, pdr->far);
+        buf = stats_print_far(buf, pdr->far);
     } else {
         buf += sprintf(buf, "FAR: NULL");
     }
