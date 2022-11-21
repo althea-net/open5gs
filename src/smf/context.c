@@ -2917,7 +2917,7 @@ static char *print_bearer(char *buf, smf_bearer_t *bearer) {
 
     buf += sprintf(buf, "\tbearer ebi:%u ", bearer->ebi);
 
-    buf += sprintf(buf, "l_teid:0x%x l_addr:%s r_teid:0x%x r_addr:%s\n",
+    buf += sprintf(buf, "src_teid:0x%x src_addr:%s dst_teid:0x%x dst_addr:%s\n",
         bearer->pgw_s5u_teid,
         bearer->pgw_s5u_addr ? OGS_ADDR(bearer->pgw_s5u_addr, buf1) : "",
         bearer->sgw_s5u_teid, OGS_INET_NTOP(&bearer->sgw_s5u_ip.addr, buf2));
