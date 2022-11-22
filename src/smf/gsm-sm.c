@@ -789,10 +789,6 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
         default:
             ogs_error("Unknown SMF_EVT_PFCP_TIMER timer id [%d]", e->timer_id);
         }
-        break;
-
-    default:
-        ogs_error("Unknown event [%s]", smf_event_get_name(e));
     }
 }
 
