@@ -713,8 +713,6 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
             ogs_assert(OGS_OK ==
                 smf_5gc_pfcp_send_session_establishment_request(sess, stream));
         }
-
-        ogs_timer_start(sess->timer_pfcp_ser, SMF_SESS_PFCP_TIMEOUT);
         break;
 
     case OGS_FSM_EXIT_SIG:
