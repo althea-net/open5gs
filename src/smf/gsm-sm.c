@@ -1782,4 +1782,15 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
 void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
 { 
+    smf_sess_t *sess = NULL;
+    ogs_assert(s);
+    ogs_assert(e);
+
+    sess = e->sess;
+    ogs_assert(sess);
+
+    ogs_timer_delete(sess->timer_gx_cca);
+    ogs_timer_delete(sess->timer_gy_cca);    
+    ogs_timer_delete(sess->timer_pfcp_ser);    
+    ogs_timer_delete(sess->timer_pfcp_sdr);
 }
