@@ -255,48 +255,12 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message)
     return sess;
 }
 
-#define MAX_SESSION_STRING_LEN (22 + 16 + 16)
-
-static char *print_far(char *buf, ogs_pfcp_far_t *far) {
-    char buf1[OGS_ADDRSTRLEN];
-
-    buf += sprintf(buf, "\tfar ");
-    if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
-        buf += sprintf(buf, "act:DROP ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
-        buf += sprintf(buf, "act:FORW ");
-    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_BUFF) {
-        buf += sprintf(buf, "act:BUFF ");
-    } else {
-        buf += sprintf(buf, "act:%u ", far->apply_action);
-    }
-
-    switch (far->dst_if) {
-    case OGS_PFCP_INTERFACE_ACCESS:
-        buf += sprintf(buf, "dst:ACCESS ");
-        break;
-    case OGS_PFCP_INTERFACE_CORE:
-        buf += sprintf(buf, "dst:CORE ");
-        break;
-    case OGS_PFCP_INTERFACE_CP_FUNCTION:
-        buf += sprintf(buf, "dst:CP ");
-        break;
-    default:
-        buf += sprintf(buf, "dst:%u ", far->dst_if);
-    }
-
-    if (far->outer_header_creation.addr) {
-        buf += sprintf(buf, "hdr:%s ", OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
-    }
-
-    buf += sprintf(buf, "\n");
-    return buf;
-}
+#define MAX_SESSION_STRING_LEN (22 + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_FAR_STRING_LEN))
 
 void stats_update_sgwu_sessions(void)
 {
     sgwu_sess_t *sess = NULL;
-    ogs_pfcp_far_t *far;
+    ogs_pfcp_pdr_t *pdr;
     char *buffer = NULL;
     char *ptr = NULL;
 
@@ -309,8 +273,9 @@ void stats_update_sgwu_sessions(void)
         ptr += sprintf(ptr, "seid_cp:0x%lx seid_up:0x%lx\n",
             (long)sess->sgwc_sxa_f_seid.seid, (long)sess->sgwu_sxa_seid);
 
-        ogs_list_for_each(&sess->pfcp.far_list, far) {
-            ptr = print_far(ptr, far);
+        ogs_list_for_each(&sess->pfcp.pdr_list, pdr) {
+            ptr = stats_print_pdr(ptr, pdr);
+            ptr += sprintf(ptr, "\n");
         }
     }
     ogs_write_file_value("sgwu/list_sessions", buffer);

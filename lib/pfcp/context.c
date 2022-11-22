@@ -1869,3 +1869,73 @@ void ogs_pfcp_pool_final(ogs_pfcp_sess_t *sess)
     ogs_index_final(&sess->qer_id_pool);
     ogs_index_final(&sess->bar_id_pool);
 }
+
+static char *stats_print_far(char *buf, ogs_pfcp_far_t *far) {
+    char buf1[OGS_ADDRSTRLEN];
+
+    if (far->apply_action & OGS_PFCP_APPLY_ACTION_DROP) {
+        buf += sprintf(buf, "act:DROP ");
+    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_FORW) {
+        buf += sprintf(buf, "act:FORW ");
+    } else if (far->apply_action & OGS_PFCP_APPLY_ACTION_BUFF) {
+        buf += sprintf(buf, "act:BUFF ");
+    } else {
+        buf += sprintf(buf, "act:%u ", far->apply_action);
+    }
+
+    switch (far->dst_if) {
+    case OGS_PFCP_INTERFACE_ACCESS:
+        buf += sprintf(buf, "dst_if:ACCESS ");
+        break;
+    case OGS_PFCP_INTERFACE_CORE:
+        buf += sprintf(buf, "dst_if:CORE ");
+        break;
+    case OGS_PFCP_INTERFACE_CP_FUNCTION:
+        buf += sprintf(buf, "dst_if:CP ");
+        break;
+    default:
+        buf += sprintf(buf, "dst_if:%u ", far->dst_if);
+    }
+
+    if (far->outer_header_creation.addr) {
+        buf += sprintf(buf, "dst_teid:0x%x dst_addr:%s ",
+            far->hash.f_teid.key.teid, OGS_INET_NTOP(&far->outer_header_creation.addr, buf1));
+    } else {
+        buf += sprintf(buf, "dst_teid:OGSTUN ");
+    }
+
+    return buf;
+}
+
+char *stats_print_pdr(char *buf, ogs_pfcp_pdr_t *pdr) {
+
+    buf += sprintf(buf, "\tpdr ");
+
+    switch (pdr->src_if) {
+    case OGS_PFCP_INTERFACE_ACCESS:
+        buf += sprintf(buf, "src_if:ACCESS ");
+        break;
+    case OGS_PFCP_INTERFACE_CORE:
+        buf += sprintf(buf, "src_if:CORE ");
+        break;
+    case OGS_PFCP_INTERFACE_CP_FUNCTION:
+        buf += sprintf(buf, "src_if:CP ");
+        break;
+    default:
+        buf += sprintf(buf, "src_if:%u ", pdr->src_if);
+    }
+
+    if (pdr->hash.teid.key != 0) {
+        buf += sprintf(buf, "src_teid:0x%x ", pdr->hash.teid.key);
+    } else {
+        buf += sprintf(buf, "src_teid:OGSTUN ");
+    }
+
+    if (pdr->far) {
+        buf = stats_print_far(buf, pdr->far);
+    } else {
+        buf += sprintf(buf, "far: NULL ");
+    }
+
+    return buf;
+}
