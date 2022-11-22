@@ -91,9 +91,10 @@ static void timer_send_event(int timer_id, void *data)
         e->timer_id = timer_id;
         e->sess = data;
         break;
-    case SMF_TIMER_PFCP_SER:
-    case SMF_TIMER_PFCP_SDR:
-        e = smf_event_new(SMF_EVT_PFCP_TIMER);
+    case SMF_TIMEOUT_PFCP_SER:
+    case SMF_TIMEOUT_PFCP_SDR:
+    case SMF_TIMEOUT_PFCP_SMR:
+        e = smf_event_new(SMF_EVT_PFCP_TIMEOUT);
         ogs_assert(e);
         e->timer_id = timer_id;
         e->sess = data;
@@ -162,12 +163,17 @@ void smf_timer_gy_no_cca(void *data)
     timer_send_event(SMF_TIMER_GY_CCA, data);
 }
 
-void smf_timer_pfcp_no_ser(void *data)
+void smf_timeout_pfcp_no_ser(void *data)
 {
-    timer_send_event(SMF_TIMER_PFCP_SER, data);
+    timer_send_event(SMF_TIMEOUT_PFCP_SER, data);
 }
 
-void smf_timer_pfcp_no_sdr(void *data)
+void smf_timeout_pfcp_no_sdr(void *data)
 {
-    timer_send_event(SMF_TIMER_PFCP_SDR, data);
+    timer_send_event(SMF_TIMEOUT_PFCP_SDR, data);
+}
+
+void smf_timeout_pfcp_no_smr(void *data)
+{
+    timer_send_event(SMF_TIMEOUT_PFCP_SMR, data);
 }

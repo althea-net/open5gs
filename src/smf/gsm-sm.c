@@ -38,7 +38,6 @@
 
 #define SMF_SESS_GX_TIMEOUT ogs_time_from_sec(3)
 #define SMF_SESS_GY_TIMEOUT ogs_time_from_sec(3)
-#define SMF_SESS_PFCP_TIMEOUT ogs_time_from_sec(3)
 
 static uint8_t gtp_cause_from_diameter(uint8_t gtp_version,
         const uint32_t dia_err, const uint32_t *dia_exp_err)
@@ -257,14 +256,8 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                 smf_timer_gx_no_cca, sess);
         sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
                 smf_timer_gy_no_cca, sess);
-        sess->timer_pfcp_ser = ogs_timer_add(ogs_app()->timer_mgr,
-                smf_timer_pfcp_no_ser, sess);
-        sess->timer_pfcp_sdr = ogs_timer_add(ogs_app()->timer_mgr,
-                smf_timer_pfcp_no_sdr, sess);
         ogs_assert(sess->timer_gx_cca);
         ogs_assert(sess->timer_gy_cca);
-        ogs_assert(sess->timer_pfcp_ser);
-        ogs_assert(sess->timer_pfcp_sdr);
 
         break;
 
@@ -493,7 +486,6 @@ test_can_proceed:
 
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, &smf_gsm_state_wait_pfcp_establishment);
-            ogs_timer_start(sess->timer_pfcp_ser, SMF_SESS_PFCP_TIMEOUT);
             ogs_assert(OGS_OK ==
                 smf_epc_pfcp_send_session_establishment_request(
                     sess, e->gtp_xact));
@@ -633,7 +625,6 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
 
                     if (smf_npcf_smpolicycontrol_handle_create(
                             sess, stream, state, sbi_message) == true) {
-                        ogs_timer_start(sess->timer_pfcp_ser, SMF_SESS_PFCP_TIMEOUT);
                         OGS_FSM_TRAN(s,
                             &smf_gsm_state_wait_pfcp_establishment);
                     } else {
@@ -701,7 +692,6 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
-            ogs_timer_stop(sess->timer_pfcp_ser);
             if (pfcp_xact->epc) {
                 ogs_gtp_xact_t *gtp_xact = pfcp_xact->assoc_xact;
                 ogs_assert(gtp_xact);
@@ -770,10 +760,9 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
         }
         break;
 
-    case SMF_EVT_PFCP_TIMER:
+    case SMF_EVT_PFCP_TIMEOUT:
         switch(e->timer_id) {
-        case SMF_TIMER_PFCP_SER:
-            ogs_timer_stop(sess->timer_pfcp_ser);
+        case SMF_TIMEOUT_PFCP_SER:
             ogs_error("PFCP timeout waiting for Session Establishment Response");
             switch (e->gtp_xact->gtp_version) {
                 case 1:
@@ -787,7 +776,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
             break;
 
         default:
-            ogs_error("Unknown SMF_EVT_PFCP_TIMER timer id [%d]", e->timer_id);
+            ogs_error("Unknown SMF_EVT_PFCP_TIMEOUT timer id [%d]", e->timer_id);
         }
     }
 }
@@ -1286,7 +1275,6 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                 smf_5gc_pfcp_send_session_deletion_request(
                     sess, stream, e->sbi.state));
         }
-        ogs_timer_start(sess->timer_pfcp_sdr, SMF_SESS_PFCP_TIMEOUT);
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -1304,7 +1292,6 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
-            ogs_timer_stop(sess->timer_pfcp_sdr);
             if (pfcp_xact->epc) {
                 gtp_xact = pfcp_xact->assoc_xact;
 
@@ -1379,10 +1366,9 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
         }
         break;
 
-    case SMF_EVT_PFCP_TIMER:
+    case SMF_EVT_PFCP_TIMEOUT:
         switch(e->timer_id) {
-        case SMF_TIMER_PFCP_SDR:
-            ogs_timer_stop(sess->timer_pfcp_sdr);
+        case SMF_TIMEOUT_PFCP_SDR:
             ogs_error("PFCP timeout waiting for Session Deletion Response");
             switch (e->gtp_xact->gtp_version) {
                 case 1:
@@ -1396,7 +1382,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             break;
 
         default:
-            ogs_error("Unknown SMF_EVT_PFCP_TIMER timer id [%d]", e->timer_id);
+            ogs_error("Unknown SMF_EVT_PFCP_TIMEOUT timer id [%d]", e->timer_id);
         }
         break;
     }
@@ -1730,8 +1716,6 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
     case OGS_FSM_ENTRY_SIG:
         ogs_timer_delete(sess->timer_gx_cca);
         ogs_timer_delete(sess->timer_gy_cca);
-        ogs_timer_delete(sess->timer_pfcp_ser);
-        ogs_timer_delete(sess->timer_pfcp_sdr);
 
         SMF_SESS_CLEAR(sess);
         break;
@@ -1764,8 +1748,6 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
     case OGS_FSM_ENTRY_SIG:
         ogs_timer_delete(sess->timer_gx_cca);
         ogs_timer_delete(sess->timer_gy_cca);    
-        ogs_timer_delete(sess->timer_pfcp_ser);    
-        ogs_timer_delete(sess->timer_pfcp_sdr);
 
         ogs_error("[%s:%d] State machine exception", smf_ue->supi, sess->psi);
         SMF_SESS_CLEAR(sess);
@@ -1791,6 +1773,4 @@ void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
 
     ogs_timer_delete(sess->timer_gx_cca);
     ogs_timer_delete(sess->timer_gy_cca);    
-    ogs_timer_delete(sess->timer_pfcp_ser);    
-    ogs_timer_delete(sess->timer_pfcp_sdr);
 }

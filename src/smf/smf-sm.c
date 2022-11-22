@@ -337,7 +337,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_fsm_dispatch(&sess->sm, e);
         break;
 
-    case SMF_EVT_PFCP_TIMER:
+    case SMF_EVT_PFCP_TIMEOUT:
         ogs_assert(e);
         sess = e->sess;
         ogs_assert(sess);
