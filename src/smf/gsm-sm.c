@@ -36,6 +36,10 @@
 #include "ngap-path.h"
 #include "fd-path.h"
 
+#define SMF_SESS_GX_TIMEOUT ogs_time_from_sec(3)
+#define SMF_SESS_GY_TIMEOUT ogs_time_from_sec(3)
+#define SMF_SESS_PFCP_TIMEOUT ogs_time_from_sec(3)
+
 static uint8_t gtp_cause_from_diameter(uint8_t gtp_version,
         const uint32_t dia_err, const uint32_t *dia_exp_err)
 {
@@ -106,7 +110,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
     }
 
     sess->sm_data.gx_ccr_init_in_flight = true;
-    ogs_timer_start(sess->timer_gx_cca, ogs_time_from_sec(3));
+    ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
     smf_gx_send_ccr(sess, e->gtp_xact,
         OGS_DIAM_GX_CC_REQUEST_TYPE_INITIAL_REQUEST);
 
@@ -114,7 +118,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_init_in_flight = true;
-        ogs_timer_start(sess->timer_gy_cca, ogs_time_from_sec(3));
+        ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST);
     }
@@ -145,7 +149,7 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
     }
 
     sess->sm_data.gx_ccr_term_in_flight = true;
-    ogs_timer_start(sess->timer_gx_cca, ogs_time_from_sec(3));
+    ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
     smf_gx_send_ccr(sess, e->gtp_xact,
         OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
 
@@ -153,7 +157,7 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_term_in_flight = true;
-        ogs_timer_start(sess->timer_gy_cca, ogs_time_from_sec(3));
+        ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
     }
@@ -489,7 +493,7 @@ test_can_proceed:
 
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, &smf_gsm_state_wait_pfcp_establishment);
-            ogs_timer_start(sess->timer_pfcp_ser, ogs_time_from_sec(3));
+            ogs_timer_start(sess->timer_pfcp_ser, SMF_SESS_PFCP_TIMEOUT);
             ogs_assert(OGS_OK ==
                 smf_epc_pfcp_send_session_establishment_request(
                     sess, e->gtp_xact));
@@ -629,7 +633,7 @@ void smf_gsm_state_wait_5gc_sm_policy_association(ogs_fsm_t *s, smf_event_t *e)
 
                     if (smf_npcf_smpolicycontrol_handle_create(
                             sess, stream, state, sbi_message) == true) {
-                        ogs_timer_start(sess->timer_pfcp_ser, ogs_time_from_sec(3));
+                        ogs_timer_start(sess->timer_pfcp_ser, SMF_SESS_PFCP_TIMEOUT);
                         OGS_FSM_TRAN(s,
                             &smf_gsm_state_wait_pfcp_establishment);
                     } else {
@@ -1286,7 +1290,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                 smf_5gc_pfcp_send_session_deletion_request(
                     sess, stream, e->sbi.state));
         }
-        ogs_timer_start(sess->timer_pfcp_sdr, ogs_time_from_sec(3));
+        ogs_timer_start(sess->timer_pfcp_sdr, SMF_SESS_PFCP_TIMEOUT);
         break;
 
     case OGS_FSM_EXIT_SIG:
