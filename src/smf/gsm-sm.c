@@ -139,6 +139,10 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
                 OGS_GTP2_CAUSE_UE_NOT_AUTHORISED_BY_OCS_OR_EXTERNAL_AAA_SERVER;
         send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
         sess->teardown_gtp = false;
+
+        sess->teardown_gx = false;
+        sess->teardown_gy = false;
+
         return false;
     }
 
@@ -153,7 +157,6 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
         smf_gx_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
-        sess->teardown_gx = false;
     }
 
     if (sess->teardown_gy && use_gy == 1) {
@@ -163,8 +166,11 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
-        sess->teardown_gy = false;
     }
+
+    sess->teardown_gx = false;
+    sess->teardown_gy = false;
+
     return true;
 }
 
@@ -446,6 +452,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gx_ccr_init_in_flight = false;
                 ogs_timer_stop(sess->timer_gx_cca);
                 sess->sm_data.gx_cca_init_err = diam_err;
+                sess->teardown_gx = true;
                 goto test_can_proceed;
             }
             break;
@@ -466,6 +473,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gy_ccr_init_in_flight = false;
                 ogs_timer_stop(sess->timer_gy_cca);
                 sess->sm_data.gy_cca_init_err = diam_err;
+                sess->teardown_gy = true;
                 goto test_can_proceed;
             }
             break;
@@ -496,8 +504,6 @@ test_can_proceed:
     if (!sess->sm_data.gx_ccr_init_in_flight &&
         !sess->sm_data.gy_ccr_init_in_flight) {
         diam_err = ER_DIAMETER_SUCCESS;
-        sess->teardown_gx = true;
-        sess->teardown_gy = true;
         if (sess->sm_data.gx_cca_init_err != ER_DIAMETER_SUCCESS) {
             diam_err = sess->sm_data.gx_cca_init_err;
             sess->teardown_gx = false;
@@ -751,6 +757,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                 }
 
                 sess->teardown_pfcp = true;
+                sess->teardown_gtp = true;
 
                 switch (gtp_xact->gtp_version) {
                 case 1:
