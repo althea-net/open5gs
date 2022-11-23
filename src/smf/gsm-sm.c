@@ -148,18 +148,22 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
             OGS_DIAM_TERMINATION_CAUSE_DIAMETER_LOGOUT);
     }
 
-    sess->sm_data.gx_ccr_term_in_flight = true;
-    ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
-    smf_gx_send_ccr(sess, e->gtp_xact,
-        OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
+    if (sess->teardown_gx) {
+        sess->sm_data.gx_ccr_term_in_flight = true;
+        ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
+        smf_gx_send_ccr(sess, e->gtp_xact,
+            OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
+        sess->teardown_gx = false;
+    }
 
-    if (use_gy == 1) {
+    if (sess->teardown_gy && use_gy == 1) {
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_term_in_flight = true;
         ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
+        sess->teardown_gy = false;
     }
     return true;
 }
@@ -492,12 +496,16 @@ test_can_proceed:
     if (!sess->sm_data.gx_ccr_init_in_flight &&
         !sess->sm_data.gy_ccr_init_in_flight) {
         diam_err = ER_DIAMETER_SUCCESS;
-        if (sess->sm_data.gx_cca_init_err != ER_DIAMETER_SUCCESS)
+        sess->teardown_gx = true;
+        sess->teardown_gy = true;
+        if (sess->sm_data.gx_cca_init_err != ER_DIAMETER_SUCCESS) {
             diam_err = sess->sm_data.gx_cca_init_err;
-        if (sess->sm_data.gy_cca_init_err != ER_DIAMETER_SUCCESS)
+            sess->teardown_gx = false;
+        }
+        if (sess->sm_data.gy_cca_init_err != ER_DIAMETER_SUCCESS) {
             diam_err = sess->sm_data.gy_cca_init_err;
-
-        sess->teardown_diameter = true;
+            sess->teardown_gy = false;
+        }
 
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, &smf_gsm_state_wait_pfcp_establishment);
@@ -741,6 +749,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                     OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                     return;
                 }
+
                 sess->teardown_pfcp = true;
 
                 switch (gtp_xact->gtp_version) {
@@ -1298,8 +1307,7 @@ void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
             return;
         } 
 
-        if (sess->teardown_diameter) {
-            sess->teardown_diameter = false;
+        if (sess->teardown_gx || sess->teardown_gy) {
             OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_release);
             return;
         }
@@ -1478,6 +1486,8 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                     break;
             }
             send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
+            sess->teardown_gtp = false;
+            OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
             break;
 
         default:
@@ -1514,6 +1524,8 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
         // e->gtp_xact = gtp_xact;
         if (send_ccr_termination_req_gx_gy_s6b(sess, e) == false) {
             // we barfed and didn't send any messages
+            sess->teardown_gx = false;
+            sess->teardown_gy = false;            
             OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
         }
 
