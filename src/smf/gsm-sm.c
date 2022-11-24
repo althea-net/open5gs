@@ -286,12 +286,12 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                             &e->gtp1_message->create_pdp_context_request);
             if (gtp1_cause != OGS_GTP1_CAUSE_REQUEST_ACCEPTED) {
                 send_gtp_create_err_msg(sess, e->gtp_xact, gtp1_cause);
-                OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                 return;
             }
 
             if (send_ccr_init_req_gx_gy(sess, e) == false) {
-                OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                 return;
             }
 
@@ -311,14 +311,14 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                             &e->gtp2_message->create_session_request);
             if (gtp2_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
                 send_gtp_create_err_msg(sess, e->gtp_xact, gtp2_cause);
-                OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                 return;
             }
 
             switch (sess->gtp_rat_type) {
             case OGS_GTP2_RAT_TYPE_EUTRAN:
                 if (send_ccr_init_req_gx_gy(sess, e) == false) {
-                    OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
+                    OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                     break;
                 }
                 OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
@@ -1318,13 +1318,6 @@ void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
             // NOTE: we can't teardown gx/gy just yet because we
             // cue off of them to decide which messages to send
             OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_release);
-            return;
-        }
-
-        // 5GC LOGIC?!?!?!?
-        if (sess->teardown_5gc) {
-            sess->teardown_5gc = false;
-            OGS_FSM_TRAN(s, smf_gsm_state_wait_5gc_n1_n2_release);
             return;
         }
 

@@ -413,7 +413,6 @@ typedef struct smf_sess_s {
     bool teardown_pfcp;
     bool teardown_gx;
     bool teardown_gy;
-    bool teardown_5gc;
     bool teardown_gtp;
 } smf_sess_t;
 
