@@ -132,8 +132,6 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
 
     if (use_gy == -1) {
         ogs_error("No Gy Diameter Peer");
-        /* TODO: drop Gx connection here,
-         * possibly move to another "releasing" state! */
         uint8_t gtp_cause = (e->gtp_xact->gtp_version == 1) ?
                 OGS_GTP1_CAUSE_NO_RESOURCES_AVAILABLE :
                 OGS_GTP2_CAUSE_UE_NOT_AUTHORISED_BY_OCS_OR_EXTERNAL_AAA_SERVER;
@@ -516,8 +514,6 @@ test_can_proceed:
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, &smf_gsm_state_wait_pfcp_establishment);
         } else {
-            /* FIXME: tear down Gx/Gy session
-             * if its sm_data.*init_err == ER_DIAMETER_SUCCESS */
             uint8_t gtp_cause = gtp_cause_from_diameter(
                                     e->gtp_xact->gtp_version, diam_err, NULL);
             send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
@@ -748,7 +744,6 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                         sess, pfcp_xact,
                         &pfcp_message->pfcp_session_establishment_response);
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-                    /* FIXME: tear down Gy and Gx */
                     gtp_cause = gtp_cause_from_pfcp(
                                     pfcp_cause, gtp_xact->gtp_version);
                     send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
