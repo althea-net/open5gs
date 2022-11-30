@@ -1306,14 +1306,14 @@ void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
         if (sess->teardown_pfcp) {
             sess->teardown_pfcp = false;
             OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_deletion);
-            return;
+            break;
         } 
 
         if (sess->teardown_gx || sess->teardown_gy) {
             // NOTE: we can't teardown gx/gy just yet because we
             // cue off of them to decide which messages to send
             OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_release);
-            return;
+            break;
         }
 
         if (sess->teardown_gtp) {
@@ -1333,7 +1333,14 @@ void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
         }
 
         OGS_FSM_TRAN(s, smf_gsm_state_session_will_release);
-        return;
+        break;
+
+    case OGS_FSM_EXIT_SIG:
+        break;
+
+    default:
+        ogs_error("Unknown event %s", smf_event_get_name(e));
+        break;
     }
 }
 

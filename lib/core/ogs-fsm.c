@@ -61,13 +61,16 @@ void ogs_fsm_dispatch(void *sm, void *event)
     if (e)
         (*tmp)(s, e);
 
-    if (s->state != tmp) {
+    while (s->state != tmp) {
         if (e) {
             e->id = OGS_FSM_EXIT_SIG;
             (*tmp)(s, e);
         } else {
             (*tmp)(s, &exit_event);
         }
+
+        tmp = s->state;
+
         if (e) {
             e->id = OGS_FSM_ENTRY_SIG;
             (*s->state)(s, e);
