@@ -1318,17 +1318,19 @@ void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
 
         if (sess->teardown_gtp) {
             sess->teardown_gtp = false;
-            switch (e->gtp_xact->gtp_version) {
-            case 1:
-                ogs_assert(OGS_OK ==
-                        smf_gtp1_send_delete_pdp_context_response(
-                            sess, e->gtp_xact));
-                break;
-            case 2:
-                ogs_assert(OGS_OK ==
-                        smf_gtp2_send_delete_session_response(
-                            sess, e->gtp_xact));
-                break;
+            if (e->gtp_xact) {
+                switch (e->gtp_xact->gtp_version) {
+                case 1:
+                    ogs_assert(OGS_OK ==
+                            smf_gtp1_send_delete_pdp_context_response(
+                                sess, e->gtp_xact));
+                    break;
+                case 2:
+                    ogs_assert(OGS_OK ==
+                            smf_gtp2_send_delete_session_response(
+                                sess, e->gtp_xact));
+                    break;
+                }
             }
         }
 
