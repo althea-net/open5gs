@@ -1417,6 +1417,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                     sess->teardown_gtp = false;
                 }
 
+                e->gtp_xact = gtp_xact;
                 OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
                 break;
 
@@ -1525,7 +1526,6 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
         sess->sm_data.gy_cca_term_err = ER_DIAMETER_SUCCESS;
         sess->sm_data.s6b_sta_err = ER_DIAMETER_SUCCESS;
 
-        // e->gtp_xact = gtp_xact;
         if (send_ccr_termination_req_gx_gy_s6b(sess, e) == false) {
             // we barfed and didn't send any messages
             sess->teardown_gx = false;
