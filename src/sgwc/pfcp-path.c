@@ -162,22 +162,50 @@ void sgwc_pfcp_close(void)
     ogs_socknode_remove_all(&ogs_pfcp_self()->pfcp_list6);
 }
 
-static void sess_timeout(ogs_pfcp_xact_t *xact, void *data)
+static void sess_timeout(ogs_pfcp_xact_t *pfcp_xact, void *data)
 {
     uint8_t type;
+    uint8_t gtp_cause;
+    ogs_gtp_xact_t * s11_xact = NULL;
+    sgwc_sess_t *sess = data;
+    sgwc_ue_t *sgwc_ue = NULL;
 
-    ogs_assert(xact);
-    type = xact->seq[0].type;
+    ogs_assert(pfcp_xact);
+    ogs_assert(sess);
 
+    s11_xact = pfcp_xact->assoc_xact;
+    ogs_assert(s11_xact);
+
+    switch (s11_xact->gtp_version) {
+        case 1:
+            gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
+            break;
+        case 2:
+            gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+            break;
+    }
+
+    sgwc_ue = sess->sgwc_ue;
+
+    type = pfcp_xact->seq[0].type;
     switch (type) {
     case OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE:
-        ogs_error("No PFCP session establishment response");
+        ogs_error("Timeout: No PFCP session establishment response");
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, gtp_cause);
         break;
     case OGS_PFCP_SESSION_MODIFICATION_REQUEST_TYPE:
-        ogs_error("No PFCP session modification response");
+        ogs_error("Timeout: No PFCP session modification response");
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE, gtp_cause);
         break;
     case OGS_PFCP_SESSION_DELETION_REQUEST_TYPE:
-        ogs_error("No PFCP session deletion response");
+        ogs_error("Timeout: No PFCP session deletion response");
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp_cause);
         break;
     default:
         ogs_error("Not implemented [type:%d]", type);
