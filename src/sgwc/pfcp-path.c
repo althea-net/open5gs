@@ -206,6 +206,7 @@ static void sess_timeout(ogs_pfcp_xact_t *pfcp_xact, void *data)
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp_cause);
+        sgwc_sess_remove(sess);
         break;
     default:
         ogs_error("Not implemented [type:%d]", type);
