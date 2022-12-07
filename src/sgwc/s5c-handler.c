@@ -348,6 +348,9 @@ void sgwc_s5c_handle_delete_session_response(
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, cause_value);
+        // If we got here there was some error downstream of us,
+        // either smf, pcrf, or upf.
+        // SMS TODO: TEARDOWN PFCP???
         return;
     }
 
