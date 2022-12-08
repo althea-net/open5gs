@@ -3534,7 +3534,7 @@ void stats_update_mme_enbs(void)
     sprintf(num, "%d\n", ogs_list_count(&self.enb_list));
     ogs_write_file_value("mme/num_enbs", num);
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_list_count(&self.enb_list));
     ogs_list_for_each(&self.enb_list, enb) {
         ptr += sprintf(ptr, "ip:%s tac:%u",
             OGS_ADDR(enb->sctp.addr, buf),enb->supported_ta_list[0].tac);
@@ -3559,7 +3559,7 @@ void stats_update_mme_ues(void)
     sprintf(num, "%d\n", ogs_list_count(&self.mme_ue_list));
     ogs_write_file_value("mme/num_ues", num);
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_list_count(&self.mme_ue_list));
     ogs_list_for_each(&self.mme_ue_list, mme_ue) {
         ptr += sprintf(ptr, "imsi:%s enb:%s tac:%d\n", mme_ue->imsi_bcd,
             mme_ue->enb_ue ? OGS_ADDR(mme_ue->enb_ue->enb->sctp.addr, buf1) : "",
@@ -3588,7 +3588,7 @@ void stats_update_mme_sessions(void)
     sprintf(num, "%d\n", num_of_mme_sess);
     ogs_write_file_value("mme/num_sessions", num);
 
-    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * num_of_mme_sess);
     ogs_list_for_each(&self.mme_ue_list, mme_ue) {
         ogs_list_for_each(&mme_ue->sess_list, sess) {
             ptr += sprintf(ptr, "imsi:%s enb:%s tac:%d ", mme_ue->imsi_bcd,
