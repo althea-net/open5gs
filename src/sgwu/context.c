@@ -255,7 +255,7 @@ sgwu_sess_t *sgwu_sess_add_by_message(ogs_pfcp_message_t *message)
     return sess;
 }
 
-#define MAX_SESSION_STRING_LEN (22 + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_FAR_STRING_LEN))
+#define MAX_SESSION_STRING_LEN (22 + 16 + 16 + (OGS_MAX_NUM_OF_PDR * MAX_PDR_STRING_LEN))
 
 void stats_update_sgwu_sessions(void)
 {
@@ -268,7 +268,7 @@ void stats_update_sgwu_sessions(void)
     sprintf(num, "%d\n", ogs_list_count(&self.sess_list));
     ogs_write_file_value("sgwu/num_sessions", num);
 
-    ptr = buffer = ogs_calloc(1, MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_calloc(1, MAX_SESSION_STRING_LEN * ogs_list_count(&self.sess_list));
     ogs_list_for_each(&self.sess_list, sess) {
         ptr += sprintf(ptr, "seid_cp:0x%lx seid_up:0x%lx\n",
             (long)sess->sgwc_sxa_f_seid.seid, (long)sess->sgwu_sxa_seid);

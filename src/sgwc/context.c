@@ -898,7 +898,7 @@ void stats_update_sgwc_ues(void)
     sprintf(num, "%d\n", ogs_list_count(&self.sgw_ue_list));
     ogs_write_file_value("sgwc/num_ues", num);
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_list_count(&self.sgw_ue_list));
     ogs_list_for_each(&self.sgw_ue_list, sgwc_ue) {
         ptr += sprintf(ptr, "%s\n", sgwc_ue->imsi_bcd);
     }
@@ -950,7 +950,7 @@ void stats_update_sgwc_sessions(void) {
     sprintf(num, "%d\n", num_of_sgwc_sess);
     ogs_write_file_value("sgwc/num_sessions", num);
 
-    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * ogs_app()->max.ue);
+    ptr = buffer = ogs_malloc(MAX_SESSION_STRING_LEN * num_of_sgwc_sess);
     ogs_list_for_each(&self.sgw_ue_list, sgwc_ue) {
         ogs_list_for_each(&sgwc_ue->sess_list, sess) {
             ptr += sprintf(ptr, "imsi:%s apn:%s ip4:%s ip6:%s sgwu:%s seid_cp:0x%lx seid_up:0x%lx\n",
