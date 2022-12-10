@@ -130,6 +130,7 @@ void sgwc_s5c_handle_create_session_response(
 
     cause = rsp->cause.data;
     ogs_assert(cause);
+    cause_value = cause->value;
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED &&
         cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED_PARTIALLY &&
         cause_value !=
