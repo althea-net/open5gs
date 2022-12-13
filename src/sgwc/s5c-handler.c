@@ -115,12 +115,12 @@ void sgwc_s5c_handle_create_session_response(
         return;
     }
 
-    /********************
+    /*********************
      * Check Cause Value
-     ********************/
+     *********************/
     if (rsp->cause.presence == 0) {
         ogs_error("No Cause");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
+        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
@@ -185,9 +185,9 @@ void sgwc_s5c_handle_create_session_response(
         return;
     }
 
-    /***************************
+    /*****************************
      * Re-Examine Cause Value(s)
-     ***************************/
+     *****************************/
     ogs_assert(cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED);
 
     for (i = 0; i < OGS_BEARER_PER_UE; i++) {
