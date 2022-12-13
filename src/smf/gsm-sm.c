@@ -1836,8 +1836,12 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        ogs_timer_delete(sess->timer_gx_cca);
-        ogs_timer_delete(sess->timer_gy_cca);
+        if (sess->timer_gx_cca) {
+            ogs_timer_delete(sess->timer_gx_cca);
+        }
+        if (sess->timer_gy_cca) {
+            ogs_timer_delete(sess->timer_gy_cca);
+        }
 
         SMF_SESS_CLEAR(sess);
         break;
@@ -1868,8 +1872,12 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
-        ogs_timer_delete(sess->timer_gx_cca);
-        ogs_timer_delete(sess->timer_gy_cca);    
+        if (sess->timer_gx_cca) {
+            ogs_timer_delete(sess->timer_gx_cca);
+        }
+        if (sess->timer_gy_cca) {
+            ogs_timer_delete(sess->timer_gy_cca);
+        }
 
         ogs_error("[%s:%d] State machine exception", smf_ue->supi, sess->psi);
         SMF_SESS_CLEAR(sess);
@@ -1893,6 +1901,10 @@ void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
     sess = e->sess;
     ogs_assert(sess);
 
-    ogs_timer_delete(sess->timer_gx_cca);
-    ogs_timer_delete(sess->timer_gy_cca);    
+    if (sess->timer_gx_cca) {
+        ogs_timer_delete(sess->timer_gx_cca);
+    }
+    if (sess->timer_gy_cca) {
+        ogs_timer_delete(sess->timer_gy_cca);
+    }
 }
