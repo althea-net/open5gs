@@ -325,6 +325,10 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                 OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
                 break;
             case OGS_GTP2_RAT_TYPE_WLAN:
+                sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr,
+                        smf_timer_gx_no_cca, e);
+                ogs_assert(sess->timer_gx_cca);
+                ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
                 smf_s6b_send_aar(sess, e->gtp_xact);
                 OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
                 break;
