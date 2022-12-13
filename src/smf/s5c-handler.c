@@ -98,7 +98,7 @@ uint8_t smf_s5c_handle_create_session_request(
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
     // sender TEID must be VERY FIRST THING we check/set so that any 
-    // subsequent error-messages have the correct TEID for sgwc handling
+    // sent error-messages have the correct TEID for handling at sgwc
     if (req->sender_f_teid_for_control_plane.presence == 0) {
         ogs_error("No TEID");
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
