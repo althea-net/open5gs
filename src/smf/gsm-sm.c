@@ -120,6 +120,9 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_init_in_flight = true;
+        sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_gy_no_cca, e);
+        ogs_assert(sess->timer_gy_cca);
         ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST);
@@ -155,7 +158,6 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
 
     if (sess->teardown_gx) {
         sess->sm_data.gx_ccr_term_in_flight = true;
-
         sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr, smf_timer_gx_no_cca, e);
         ogs_assert(sess->timer_gx_cca);
         ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
@@ -167,6 +169,9 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_term_in_flight = true;
+        sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
+                smf_timer_gy_no_cca, e);
+        ogs_assert(sess->timer_gy_cca);
         ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
@@ -266,11 +271,6 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
         sess->sm_data.gy_ccr_init_in_flight = false;
         sess->sm_data.gx_cca_init_err = ER_DIAMETER_SUCCESS;
         sess->sm_data.gy_cca_init_err = ER_DIAMETER_SUCCESS;
-
-        sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
-                smf_timer_gy_no_cca, sess);
-        ogs_assert(sess->timer_gy_cca);
-
         break;
 
     case OGS_FSM_EXIT_SIG:
@@ -475,6 +475,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                                 gy_message, e->gtp_xact);
                 sess->sm_data.gy_ccr_init_in_flight = false;
                 ogs_timer_stop(sess->timer_gy_cca);
+                ogs_timer_delete(sess->timer_gy_cca);
                 sess->sm_data.gy_cca_init_err = diam_err;
                 sess->teardown_gy = true;
                 goto test_can_proceed;
@@ -496,6 +497,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("Gy timeout waiting for CCA Init");
             sess->sm_data.gy_ccr_init_in_flight = false;
             ogs_timer_stop(sess->timer_gy_cca);
+            ogs_timer_delete(sess->timer_gy_cca);
             sess->sm_data.gy_cca_init_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         }
@@ -1581,6 +1583,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
                                 gy_message, e->gtp_xact);
                 sess->sm_data.gy_ccr_term_in_flight = false;
                 ogs_timer_stop(sess->timer_gy_cca);
+                ogs_timer_delete(sess->timer_gy_cca);
                 sess->sm_data.gy_cca_term_err = diam_err;
                 goto test_can_proceed;
             }
@@ -1614,6 +1617,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("Gy timeout waiting for CCA Termination");
             sess->sm_data.gy_ccr_term_in_flight = false;
             ogs_timer_stop(sess->timer_gy_cca);
+            ogs_timer_delete(sess->timer_gy_cca);
             sess->sm_data.gy_cca_term_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         }

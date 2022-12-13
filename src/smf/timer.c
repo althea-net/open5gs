@@ -51,6 +51,7 @@ static void timer_send_event(int timer_id, void *data)
 {
     int rv;
     smf_event_t *e = NULL;
+    smf_event_t *old_e = NULL;
     ogs_assert(data);
 
     switch (timer_id) {
@@ -84,11 +85,16 @@ static void timer_send_event(int timer_id, void *data)
         e->timer_id = timer_id;
         e->sbi.data = data;
         break;
+    case SMF_TIMER_GX_CCA:
     case SMF_TIMER_GY_CCA:
+        old_e = data;
+
         e = smf_event_new(SMF_EVT_DIAMETER_TIMER);
         ogs_assert(e);
         e->timer_id = timer_id;
-        e->sess = data;
+        e->sess = old_e->sess;
+        e->gx_message = old_e->gx_message;
+        e->gtp_xact = old_e->gtp_xact;
         break;
     case SMF_TIMEOUT_PFCP_SER:
     case SMF_TIMEOUT_PFCP_SDR:
@@ -154,24 +160,7 @@ void smf_timer_sbi_client_wait_expire(void *data)
 
 void smf_timer_gx_no_cca(void *data)
 {
-    int rv;
-    smf_event_t *old_e = data;
-    smf_event_t *e = NULL;
-
-    e = smf_event_new(SMF_EVT_DIAMETER_TIMER);
-    ogs_assert(e);
-
-    e->timer_id = SMF_TIMER_GY_CCA;
-    e->sess = old_e->sess;
-    e->gx_message = old_e->gx_message;
-    e->gtp_xact = old_e->gtp_xact;
-
-    rv = ogs_queue_push(ogs_app()->queue, e);
-    if (rv != OGS_OK) {
-        ogs_warn("ogs_queue_push() failed [%d] in %s",
-                (int)rv, smf_timer_get_name(e->timer_id));
-        smf_event_free(e);
-    }
+    timer_send_event(SMF_TIMER_GX_CCA, data);
 }
 
 void smf_timer_gy_no_cca(void *data)
