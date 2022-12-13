@@ -204,11 +204,14 @@ static void sess_timeout(ogs_pfcp_xact_t *pfcp_xact, void *data)
         switch (s11_xact->seq[0].type) {
         case OGS_GTP2_MODIFY_BEARER_REQUEST_TYPE:
             gtp_type = OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE;
+            break;
         case OGS_GTP2_RELEASE_ACCESS_BEARERS_REQUEST_TYPE:
             gtp_type = OGS_GTP2_RELEASE_ACCESS_BEARERS_RESPONSE_TYPE;
+            break;
         default:
             ogs_error("GTP request type not implemented: %d", s11_xact->seq[0].type);
             gtp_type = OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE;
+            break;
         }
 
         ogs_gtp_send_error_message(
