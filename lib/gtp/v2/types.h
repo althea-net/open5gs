@@ -71,7 +71,7 @@ typedef struct ogs_gtp2_extension_header_s {
 /* 8.4 Cause */
 #define OGS_GTP2_CAUSE_UNDEFINED_VALUE 0
 #define OGS_GTP2_CAUSE_LOCAL_DETACH 2
-#define OGS_GTP2_CAUSE_COMPLETE_DETACH_3
+#define OGS_GTP2_CAUSE_COMPLETE_DETACH 3
 #define OGS_GTP2_CAUSE_RAT_CHANGED_FROM_3GPP_TO_NON_3GPP 4
 #define OGS_GTP2_CAUSE_ISR_DEACTIVATION 5
 #define OGS_GTP2_CAUSE_ERROR_INDICATION_RECEIVED 6
@@ -275,6 +275,8 @@ ED5(uint8_t spare1:1;,
     /* NOTE : The encoding in 3GPP TS 24.301 [23] and 3GPP TS 36.413 [10]
      * is different from the encoding within this specification.  */
 } __attribute__ ((packed)) ogs_gtp2_bearer_qos_t;
+
+const char *ogs_gtp2_cause_get_name(uint8_t cause);
 
 int16_t ogs_gtp2_parse_bearer_qos(
     ogs_gtp2_bearer_qos_t *bearer_qos, ogs_tlv_octet_t *octet);
