@@ -30,7 +30,11 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
     uint8_t gtp_cause;
 
     ogs_gtp_xact_t *s11_xact = xact->assoc_xact;
-    ogs_assert(s11_xact);
+
+    if (!s11_xact) {
+        ogs_error("No associated S11 GTP xact");
+        return;
+    }
 
     switch (s11_xact->gtp_version) {
         case 1:

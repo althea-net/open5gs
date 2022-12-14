@@ -332,17 +332,19 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_DIAMETER_TIMER:
         ogs_assert(e);
         sess = e->sess;
-        ogs_assert(sess);
-        ogs_assert(OGS_FSM_STATE(&sess->sm));
-        ogs_fsm_dispatch(&sess->sm, e);
+        if (sess) {
+            ogs_assert(OGS_FSM_STATE(&sess->sm));
+            ogs_fsm_dispatch(&sess->sm, e);            
+        }
         break;
 
     case SMF_EVT_PFCP_TIMEOUT:
         ogs_assert(e);
         sess = e->sess;
-        ogs_assert(sess);
-        ogs_assert(OGS_FSM_STATE(&sess->sm));
-        ogs_fsm_dispatch(&sess->sm, e);
+        if (sess) {
+            ogs_assert(OGS_FSM_STATE(&sess->sm));
+            ogs_fsm_dispatch(&sess->sm, e);            
+            }
         break;
 
     case SMF_EVT_S6B_MESSAGE:
