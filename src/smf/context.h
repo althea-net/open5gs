@@ -406,6 +406,14 @@ typedef struct smf_sess_s {
     ogs_pfcp_node_t *pfcp_node;
 
     smf_ue_t *smf_ue;
+
+    ogs_timer_t *timer_gx_cca;
+    ogs_timer_t *timer_gy_cca;
+
+    bool teardown_pfcp;
+    bool teardown_gx;
+    bool teardown_gy;
+    bool teardown_gtp;
 } smf_sess_t;
 
 void smf_context_init(void);
