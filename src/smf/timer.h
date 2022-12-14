@@ -39,6 +39,11 @@ typedef enum {
     SMF_TIMER_NF_INSTANCE_VALIDITY,
     SMF_TIMER_SUBSCRIPTION_VALIDITY,
     SMF_TIMER_SBI_CLIENT_WAIT,
+    SMF_TIMER_GX_CCA,
+    SMF_TIMER_GY_CCA,
+    SMF_TIMEOUT_PFCP_SER,
+    SMF_TIMEOUT_PFCP_SDR,
+    SMF_TIMEOUT_PFCP_SMR,
 
     MAX_NUM_OF_SMF_TIMER,
 
@@ -55,6 +60,12 @@ void smf_timer_nf_instance_no_heartbeat(void *data);
 void smf_timer_nf_instance_validity(void *data);
 void smf_timer_subscription_validity(void *data);
 void smf_timer_sbi_client_wait_expire(void *data);
+void smf_timer_gx_no_cca(void *data);
+void smf_timer_gy_no_cca(void *data);
+
+void smf_timeout_pfcp_no_ser(void *data);
+void smf_timeout_pfcp_no_sdr(void *data);
+void smf_timeout_pfcp_no_smr(void *data);
 
 #ifdef __cplusplus
 }

@@ -27,6 +27,23 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
     sgwc_sess_t *sess = data;
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
+    uint8_t gtp_cause;
+
+    ogs_gtp_xact_t *s11_xact = xact->assoc_xact;
+
+    if (!s11_xact) {
+        ogs_error("No associated S11 GTP xact");
+        return;
+    }
+
+    switch (s11_xact->gtp_version) {
+        case 1:
+            gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
+            break;
+        case 2:
+            gtp_cause = OGS_GTP2_CAUSE_PGW_NOT_RESPONDING;
+            break;
+    }
 
     ogs_assert(xact);
     ogs_assert(sess);
@@ -41,10 +58,19 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
         if (!sgwc_sess_cycle(sess)) {
             ogs_error("[%s] Session has already been removed",
                     sgwc_ue->imsi_bcd);
-            break;
+        } else {
+            ogs_assert(OGS_OK ==
+                sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
         }
+
+        ogs_gtp_send_error_message(s11_xact, sgwc_ue->mme_s11_teid,
+            OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp_cause);
+        break;
+    case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
         ogs_assert(OGS_OK ==
             sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+        ogs_gtp_send_error_message(s11_xact, sgwc_ue->mme_s11_teid,
+            OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, gtp_cause);
         break;
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
@@ -179,6 +205,24 @@ void sgwc_s11_handle_create_session_request(
         return;
     }
 
+    // sender TEID must be VERY FIRST THING we check/set so that any 
+    // sent error-messages have the correct TEID for handling at mme
+    if (req->sender_f_teid_for_control_plane.presence == 0) {
+        ogs_error("No Sender F-TEID");
+        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
+    }
+
+    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+        return;
+    }
+
+    mme_s11_teid = req->sender_f_teid_for_control_plane.data;
+    ogs_assert(mme_s11_teid);
+    sgwc_ue->mme_s11_teid = be32toh(mme_s11_teid->teid);
+
     /*****************************************
      * Check Mandatory/Conditional IE Missing
      *****************************************/
@@ -202,10 +246,6 @@ void sgwc_s11_handle_create_session_request(
     }
     if (req->access_point_name.presence == 0) {
         ogs_error("No APN");
-        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
-    }
-    if (req->sender_f_teid_for_control_plane.presence == 0) {
-        ogs_error("No Sender F-TEID");
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
     if (req->pgw_s5_s8_address_for_control_plane_or_pmip.presence == 0) {
@@ -361,11 +401,6 @@ void sgwc_s11_handle_create_session_request(
                             bearer_qos.pre_emption_vulnerability;
         }
     }
-
-    /* Receive Control Plane(DL) : MME-S11 */
-    mme_s11_teid = req->sender_f_teid_for_control_plane.data;
-    ogs_assert(mme_s11_teid);
-    sgwc_ue->mme_s11_teid = be32toh(mme_s11_teid->teid);
 
     /* Receive Control Plane(UL) : PGW-S5C */
     pgw_s5c_teid = req->pgw_s5_s8_address_for_control_plane_or_pmip.data;
