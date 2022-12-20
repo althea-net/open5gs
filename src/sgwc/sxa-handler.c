@@ -277,8 +277,6 @@ void sgwc_sxa_handle_session_establishment_response(
 
     ogs_assert(sess);
 
-    sess->pfcp_established = true;
-
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
 
@@ -349,6 +347,8 @@ void sgwc_sxa_handle_session_establishment_response(
     }
     /* Setup GTP Node */
     OGS_SETUP_GTP_NODE(sess, pgw);
+
+    sess->pfcp_established = true;
 
     /* Check Indication */
     if (create_session_request->indication_flags.presence &&
