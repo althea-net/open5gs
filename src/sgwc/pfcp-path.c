@@ -319,8 +319,10 @@ int sgwc_pfcp_resend_established_sessions(ogs_pfcp_node_t *node)
     ogs_list_for_each(&sgwc_self()->sgw_ue_list, sgwc_ue) {
         ogs_list_for_each(&sgwc_ue->sess_list, sess) {
             if (sess->pfcp_node == node) {
-                sess->sgwu_sxa_seid = 0;
-                sgwc_pfcp_send_session_establishment_request(sess, NULL, NULL);                
+                if (sess->pfcp_established) {
+                    sess->sgwu_sxa_seid = 0;
+                    sgwc_pfcp_send_session_establishment_request(sess, NULL, NULL);                
+                }
             }
         }
     }
