@@ -470,7 +470,9 @@ int smf_epc_pfcp_resend_established_sessions(ogs_pfcp_node_t *node)
     ogs_list_for_each(&smf_self()->smf_ue_list, smf_ue) {
         ogs_list_for_each(&smf_ue->sess_list, sess) {
             if (sess->pfcp_node == node) {
-                smf_epc_pfcp_send_session_establishment_request(sess, NULL);
+                if (sess->pfcp_established) {
+                    smf_epc_pfcp_send_session_establishment_request(sess, NULL);
+                }
             }
         }
     }
