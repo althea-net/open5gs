@@ -898,7 +898,7 @@ void stats_update_sgwc_ues(void)
     sprintf(num, "%d\n", ogs_list_count(&self.sgw_ue_list));
     ogs_write_file_value("sgwc/num_ues", num);
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_list_count(&self.sgw_ue_list));
+    ptr = buffer = ogs_malloc((OGS_MAX_IMSI_BCD_LEN + 2) * ogs_list_count(&self.sgw_ue_list));
     ogs_list_for_each(&self.sgw_ue_list, sgwc_ue) {
         ptr += sprintf(ptr, "%s\n", sgwc_ue->imsi_bcd);
     }

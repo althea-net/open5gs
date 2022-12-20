@@ -2899,7 +2899,7 @@ void stats_update_smf_ues(void)
     sprintf(num, "%d\n", ogs_list_count(&self.smf_ue_list));
     ogs_write_file_value("smf/num_ues", num);
 
-    ptr = buffer = ogs_malloc(OGS_MAX_IMSI_BCD_LEN * ogs_list_count(&self.smf_ue_list));
+    ptr = buffer = ogs_malloc((OGS_MAX_IMSI_BCD_LEN + 2) * ogs_list_count(&self.smf_ue_list));
     ogs_list_for_each(&self.smf_ue_list, smf_ue) {
         ptr += sprintf(ptr, "%s\n", smf_ue->imsi_bcd);
     }
