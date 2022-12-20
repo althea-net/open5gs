@@ -601,6 +601,17 @@ static void response_timeout(void *data)
                     ogs_app()->time.message.pfcp.t1_response_duration);
 
         pkbuf = xact->seq[xact->step-1].pkbuf;
+
+        if (!pkbuf) {
+            ogs_error("[%d] %s SPENCER Response Timeout "
+                    "for step %d type %d peer [%s]:%d",
+                    xact->xid,
+                    xact->org == OGS_PFCP_LOCAL_ORIGINATOR ? "LOCAL " : "REMOTE",
+                    xact->step, xact->seq[xact->step-1].type,
+                    OGS_ADDR(&xact->node->addr, buf),
+                    OGS_PORT(&xact->node->addr));
+        }
+
         ogs_assert(pkbuf);
 
         if (ogs_pfcp_sendto(xact->node, pkbuf) != OGS_OK) {
