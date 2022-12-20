@@ -112,8 +112,6 @@ void mme_s11_handle_create_session_response(
     ogs_assert(sess);
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
-    source_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(source_ue);
 
     if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
         target_ue = sgw_ue_cycle(source_ue->target_ue);
@@ -134,6 +132,12 @@ void mme_s11_handle_create_session_response(
     if (!mme_ue_from_teid) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    source_ue = sgw_ue_cycle(mme_ue->sgw_ue);
+    if (!source_ue) {
+        ogs_error("Cannot find source_ue context");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;        
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
