@@ -414,6 +414,7 @@ typedef struct smf_sess_s {
     bool teardown_gx;
     bool teardown_gy;
     bool teardown_gtp;
+    bool pfcp_established;
 } smf_sess_t;
 
 void smf_context_init(void);
