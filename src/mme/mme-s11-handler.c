@@ -113,14 +113,6 @@ void mme_s11_handle_create_session_response(
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
 
-    if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
-        target_ue = sgw_ue_cycle(source_ue->target_ue);
-        ogs_assert(target_ue);
-    } else {
-        target_ue = source_ue;
-        ogs_assert(target_ue);
-    }
-
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect_or_return(rv == OGS_OK);
 
@@ -138,6 +130,17 @@ void mme_s11_handle_create_session_response(
     if (!source_ue) {
         ogs_error("Cannot find source_ue context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;        
+    }
+
+    if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
+        // if source_ue == null we'll catch below
+        if (source_ue) {
+            target_ue = sgw_ue_cycle(source_ue->target_ue);
+            ogs_assert(target_ue);            
+        }
+    } else {
+        target_ue = source_ue;
+        // if source_ue == null we'll catch below
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
