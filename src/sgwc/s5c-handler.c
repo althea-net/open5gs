@@ -89,12 +89,13 @@ void sgwc_s5c_handle_create_session_response(
      * Check Transaction
      ********************/
     ogs_assert(s5c_xact);
+    s11_xact = s5c_xact->assoc_xact;
+
     rv = ogs_gtp_xact_commit(s5c_xact);
     ogs_expect(rv == OGS_OK);
 
-    s11_xact = s5c_xact->assoc_xact;
     if (!s11_xact) {
-        ogs_error("No associated s11_xact!");
+        ogs_error("SPENCER: No associated s11_xact!");
         return;
     }
 
