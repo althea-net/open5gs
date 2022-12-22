@@ -976,6 +976,7 @@ static ogs_pfcp_node_t *selected_upf_node(
             compare_ue_info(node, sess) == true) return node;
     }
 
+    // RR means we now just choose the next associated PFCP
     if (ogs_app()->parameter.no_pfcp_rr_select == 0) {
         /* continue search from current position */
         next = ogs_list_next(current);
@@ -991,8 +992,9 @@ static ogs_pfcp_node_t *selected_upf_node(
         }
     }
 
+    // If we get here, it means no suitable UPF can be found
     ogs_error("No UPFs are PFCP associated that are suited to RR");
-    return ogs_list_first(&ogs_pfcp_self()->pfcp_peer_list);
+    return NULL;
 }
 
 void smf_sess_select_upf(smf_sess_t *sess)
@@ -1012,6 +1014,11 @@ void smf_sess_select_upf(smf_sess_t *sess)
     /* setup GTP session with selected UPF */
     ogs_pfcp_self()->pfcp_node =
         selected_upf_node(ogs_pfcp_self()->pfcp_node, sess);
+
+    if (ogs_pfcp_self()->pfcp_node == NULL) {
+        return;
+    }
+
     ogs_assert(ogs_pfcp_self()->pfcp_node);
     OGS_SETUP_PFCP_NODE(sess, ogs_pfcp_self()->pfcp_node);
     ogs_debug("UE using UPF on IP[%s]",
