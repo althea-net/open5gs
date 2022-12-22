@@ -180,17 +180,15 @@ void sgwc_sxa_handle_session_establishment_response(
         return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);
     }
 
-    ogs_assert(pfcp_xact);
-    ogs_assert(pfcp_rsp);
-
     if (!recv_message) {
-        ogs_error("SMS recv_message! sess:%p", sess);
-        if (sess) {
-            ogs_error("\tpfcp_established:%u s5c_teid:%u pgw_s5c_teid:%u sgwc_sxa_seid:%llu sgwu_sxa_seid:%llu",
-                sess->pfcp_established,sess->sgw_s5c_teid, sess->pgw_s5c_teid, sess->sgwc_sxa_seid, sess->sgwu_sxa_seid);
-        }
+        ogs_error("recv_message is nil! Aborting...");
+        ogs_pfcp_xact_commit(pfcp_xact);
+        return;
     }
 
+
+    ogs_assert(pfcp_xact);
+    ogs_assert(pfcp_rsp);
     ogs_assert(recv_message);
 
     create_session_request = &recv_message->create_session_request;
