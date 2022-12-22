@@ -240,9 +240,13 @@ static void sess_5gc_timeout(ogs_pfcp_xact_t *xact, void *data)
 static void sess_epc_timeout(ogs_pfcp_xact_t *xact, void *data)
 {
     uint8_t type;
+    smf_sess_t *sess;
 
     ogs_assert(xact);
     type = xact->seq[0].type;
+
+    sess = data;
+    sess->timeout_xact = xact;
 
     switch (type) {
     case OGS_PFCP_SESSION_ESTABLISHMENT_REQUEST_TYPE:

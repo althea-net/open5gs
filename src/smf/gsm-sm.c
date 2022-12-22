@@ -712,6 +712,8 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
     ogs_pfcp_xact_t *pfcp_xact = NULL;
     ogs_pfcp_message_t *pfcp_message = NULL;
 
+    ogs_gtp_xact_t *gtp_xact = NULL;
+
     ogs_assert(s);
     ogs_assert(e);
 
@@ -830,7 +832,23 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
         switch(e->timer_id) {
         case SMF_TIMEOUT_PFCP_SER:
             ogs_error("PFCP timeout waiting for Session Establishment Response");
-            switch (e->gtp_xact->gtp_version) {
+
+            if (!sess) {
+                ogs_error("SPENCER sess=nil!");
+                return;
+            }
+            if (!sess->timeout_xact) {
+                ogs_error("SPENCER timeout_xact=nil!");
+                return;
+            }
+            if (!sess->timeout_xact->assoc_xact) {
+                ogs_error("SPENCER assoc_xact=nil!");
+                return;
+            }
+
+            gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;            
+
+            switch (gtp_xact->gtp_version) {
                 case 1:
                     gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
                     break;
@@ -838,7 +856,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                     gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
                     break;
             }
-            send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+            send_gtp_create_err_msg(sess, gtp_xact, gtp_cause);
             OGS_FSM_TRAN(s, smf_gsm_state_teardown);
             break;
 
@@ -1498,7 +1516,23 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
         switch(e->timer_id) {
         case SMF_TIMEOUT_PFCP_SDR:
             ogs_error("PFCP timeout waiting for Session Deletion Response");
-            switch (e->gtp_xact->gtp_version) {
+
+            if (!sess) {
+                ogs_error("SPENCER sess=nil!");
+                return;
+            }
+            if (!sess->timeout_xact) {
+                ogs_error("SPENCER timeout_xact=nil!");
+                return;
+            }
+            if (!sess->timeout_xact->assoc_xact) {
+                ogs_error("SPENCER assoc_xact=nil!");
+                return;
+            }
+
+            gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
+
+            switch (gtp_xact->gtp_version) {
                 case 1:
                     gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
                     break;
@@ -1506,7 +1540,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                     gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
                     break;
             }
-            send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
+            send_gtp_delete_err_msg(sess, gtp_xact, gtp_cause);
             sess->teardown_gtp = false;
             OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
             break;
