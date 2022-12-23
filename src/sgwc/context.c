@@ -368,7 +368,7 @@ static ogs_pfcp_node_t *selected_sgwu_node(
     }
 
     // If we get here, it means no suitable UPF can be found
-    ogs_error("No SGWUs are PFCP associated that are suited to RR");
+    ogs_error("No SGWUs are PFCP associated that are suited to RR for UE TAC %u", sess->sgwc_ue->e_tai.tac);
     return NULL;
 }
 
