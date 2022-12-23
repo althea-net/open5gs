@@ -416,6 +416,7 @@ typedef struct smf_sess_s {
     bool teardown_gtp;
     bool pfcp_established;
     ogs_pfcp_xact_t *timeout_xact;
+    bool active;
 
 } smf_sess_t;
 

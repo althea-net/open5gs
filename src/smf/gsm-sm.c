@@ -848,6 +848,11 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                 return;
             }
 
+            if (!sess->active) {
+                ogs_error("SPENCER !sess->active");
+                return;
+            }
+
             gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;            
 
             switch (gtp_xact->gtp_version) {
@@ -1529,6 +1534,11 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             }
             if (!sess->timeout_xact->assoc_xact) {
                 ogs_error("SPENCER assoc_xact=nil!");
+                return;
+            }
+
+            if (!sess->active) {
+                ogs_error("SPENCER !sess->active");
                 return;
             }
 
