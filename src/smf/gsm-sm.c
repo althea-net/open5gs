@@ -36,8 +36,8 @@
 #include "ngap-path.h"
 #include "fd-path.h"
 
-#define SMF_SESS_GX_TIMEOUT ogs_time_from_msec(50)
-#define SMF_SESS_GY_TIMEOUT ogs_time_from_msec(50)
+#define SMF_SESS_GX_TIMEOUT ogs_time_from_sec(1)
+#define SMF_SESS_GY_TIMEOUT ogs_time_from_sec(1)
 
 static uint8_t gtp_cause_from_diameter(uint8_t gtp_version,
         const uint32_t dia_err, const uint32_t *dia_exp_err)
