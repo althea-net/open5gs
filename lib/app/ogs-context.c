@@ -117,8 +117,6 @@ static void regenerate_all_timer_duration(void)
     self.time.message.sbi.nf_register_interval_in_exception =
                 ogs_time_from_msec(300);
 
-#define PFCP_N1_RESPONSE_RETRY_COUNT  3
-    self.time.message.pfcp.n1_response_rcount = PFCP_N1_RESPONSE_RETRY_COUNT;
     self.time.message.pfcp.t1_response_duration =
         (self.time.message.pfcp_duration /
          (self.time.message.pfcp.n1_response_rcount + 1));
@@ -139,8 +137,6 @@ static void regenerate_all_timer_duration(void)
         ogs_max(ogs_time_from_sec(10),
             self.time.message.sbi.client_wait_duration + ogs_time_from_sec(1));
 
-#define GTP_N3_RESPONSE_RETRY_COUNT  3
-    self.time.message.gtp.n3_response_rcount = GTP_N3_RESPONSE_RETRY_COUNT;
     self.time.message.gtp.t3_response_duration =
         (self.time.message.gtp_duration /
          (self.time.message.gtp.n3_response_rcount + 1));
@@ -223,6 +219,11 @@ static void app_context_prepare(void)
     self.time.message.sbi_duration = ogs_time_from_sec(10);
     self.time.message.gtp_duration = ogs_time_from_sec(10);
     self.time.message.pfcp_duration = ogs_time_from_sec(10);
+
+#define PFCP_N1_RESPONSE_RETRY_COUNT  3
+#define GTP_N3_RESPONSE_RETRY_COUNT  3
+    self.time.message.pfcp.n1_response_rcount = PFCP_N1_RESPONSE_RETRY_COUNT;
+    self.time.message.gtp.n3_response_rcount = GTP_N3_RESPONSE_RETRY_COUNT;
 
     /*
      * Handover Wait Duration : 300 ms (Default)
@@ -552,6 +553,18 @@ int ogs_app_context_parse_config(void)
                             if (v) {
                                 self.time.message.pfcp_duration =
                                     ogs_time_from_msec(atoll(v));
+                                regenerate_all_timer_duration();
+                            }
+                        } else if (!strcmp(msg_key, "pfcp_n1")) {
+                            const char *v = ogs_yaml_iter_value(&msg_iter);
+                            if (v) {
+                                self.time.message.pfcp.n1_response_rcount = atoi(v);
+                                regenerate_all_timer_duration();
+                            }
+                        } else if (!strcmp(msg_key, "gtp_n3")) {
+                            const char *v = ogs_yaml_iter_value(&msg_iter);
+                            if (v) {
+                                self.time.message.gtp.n3_response_rcount = atoi(v);
                                 regenerate_all_timer_duration();
                             }
                         } else
