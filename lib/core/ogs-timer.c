@@ -123,8 +123,10 @@ void ogs_timer_stop(ogs_timer_t *timer)
     manager = timer->manager;
     ogs_assert(manager);
 
-    if (timer->running == false)
+    if (timer->running == false) {
+	ogs_debug("TIMER ALREADY STOPPED");
         return;
+    }
 
     timer->running = false;
     ogs_rbtree_delete(&manager->tree, timer);

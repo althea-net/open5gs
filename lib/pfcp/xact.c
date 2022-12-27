@@ -593,6 +593,8 @@ static void response_timeout(void *data)
             OGS_ADDR(&xact->node->addr, buf),
             OGS_PORT(&xact->node->addr));
 
+    ogs_debug("RESPONSE TIMER:%p", xact->tm_response);
+
     if (--xact->response_rcount > 0) {
         ogs_pkbuf_t *pkbuf = NULL;
 
@@ -820,8 +822,10 @@ static int ogs_pfcp_xact_delete(ogs_pfcp_xact_t *xact)
     if (xact->seq[2].pkbuf)
         ogs_pkbuf_free(xact->seq[2].pkbuf);
 
-    if (xact->tm_response)
+    if (xact->tm_response) {
+	ogs_debug("DELETING TIMER %p", xact->tm_response);
         ogs_timer_delete(xact->tm_response);
+    }
     if (xact->tm_holding)
         ogs_timer_delete(xact->tm_holding);
     if (xact->tm_delayed_commit)

@@ -69,7 +69,7 @@ static void recalculate_pool_size(void)
     self.pool.bearer = self.pool.sess * OGS_MAX_NUM_OF_BEARER;
     self.pool.tunnel = self.pool.bearer * MAX_NUM_OF_TUNNEL;
 
-#define MAX_NUM_OF_TIMER        16
+#define MAX_NUM_OF_TIMER        128
     self.pool.timer = self.max.ue * MAX_NUM_OF_TIMER;
     self.pool.message = self.max.ue;
     self.pool.event = self.max.ue;
