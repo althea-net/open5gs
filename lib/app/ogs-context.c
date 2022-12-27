@@ -220,6 +220,7 @@ static void app_context_prepare(void)
      * It is recomended to set at least 9 seconds to reflect
      * the paging failure result to GTPv2-C or HTTP2(SBI).
      */
+    self.time.message.diameter_timeout = ogs_time_from_sec(3);
     self.time.message.sbi_duration = ogs_time_from_sec(10);
     self.time.message.gtp_duration = ogs_time_from_sec(10);
     self.time.message.pfcp_duration = ogs_time_from_sec(10);
@@ -533,7 +534,14 @@ int ogs_app_context_parse_config(void)
                             ogs_yaml_iter_key(&msg_iter);
                         ogs_assert(msg_key);
 
-                        if (!strcmp(msg_key, "sbi_duration")) {
+                        if (!strcmp(msg_key, "diameter_timeout")) {
+                            const char *v = ogs_yaml_iter_value(&msg_iter);
+                            if (v) {
+                                self.time.message.diameter_timeout =
+                                    ogs_time_from_msec(atoll(v));
+                                regenerate_all_timer_duration();
+                            }
+                        } else if (!strcmp(msg_key, "sbi_duration")) {
                             const char *v = ogs_yaml_iter_value(&msg_iter);
                             if (v) {
                                 self.time.message.sbi_duration =
