@@ -70,7 +70,7 @@ void ogs_timer_mgr_destroy(ogs_timer_mgr_t *manager)
     ogs_free(manager);
 }
 
-ogs_timer_t *ogs_timer_add(
+ogs_timer_t *ogs_timer_add_x(
         ogs_timer_mgr_t *manager, void (*cb)(void *data), void *data)
 {
     ogs_timer_t *timer = NULL;
@@ -88,7 +88,7 @@ ogs_timer_t *ogs_timer_add(
     return timer;
 }
 
-void ogs_timer_delete(ogs_timer_t *timer)
+void ogs_timer_delete_x(ogs_timer_t *timer)
 {
     ogs_timer_mgr_t *manager;
     ogs_assert(timer);
@@ -124,7 +124,6 @@ void ogs_timer_stop(ogs_timer_t *timer)
     ogs_assert(manager);
 
     if (timer->running == false) {
-	ogs_debug("TIMER ALREADY STOPPED");
         return;
     }
 

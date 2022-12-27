@@ -51,8 +51,9 @@ static void pfcp_node_fsm_fini(ogs_pfcp_node_t *node)
     ogs_fsm_fini(&node->sm, &e);
     ogs_fsm_delete(&node->sm);
 
-    if (node->t_association)
+    if (node->t_association) {
         ogs_timer_delete(node->t_association);
+    }
 }
 
 static void pfcp_recv_cb(short when, ogs_socket_t fd, void *data)

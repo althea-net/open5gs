@@ -1106,10 +1106,12 @@ static int ogs_gtp_xact_delete(ogs_gtp_xact_t *xact)
     if (xact->seq[2].pkbuf)
         ogs_pkbuf_free(xact->seq[2].pkbuf);
 
-    if (xact->tm_response)
+    if (xact->tm_response) {
         ogs_timer_delete(xact->tm_response);
-    if (xact->tm_holding)
+    }
+    if (xact->tm_holding) {
         ogs_timer_delete(xact->tm_holding);
+    }
 
     if (xact->assoc_xact)
         ogs_gtp_xact_deassociate(xact, xact->assoc_xact);

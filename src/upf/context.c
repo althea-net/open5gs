@@ -525,9 +525,10 @@ void upf_sess_urr_acc_time_threshold_setup(upf_sess_t *sess, ogs_pfcp_urr_t *urr
 
     ogs_debug("Installing URR time threshold timer");
     urr_acc->reporting_enabled = true;
-    if (!urr_acc->t_time_threshold)
+    if (!urr_acc->t_time_threshold) {
         urr_acc->t_time_threshold = ogs_timer_add(ogs_app()->timer_mgr,
                                         upf_sess_urr_acc_time_threshold_cb, urr);
+    }
     urr_acc->time_threshold_start = ogs_time_ntp32_now();
     ogs_timer_start(urr_acc->t_time_threshold, urr->time_threshold * OGS_USEC_PER_SEC);
 }

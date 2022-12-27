@@ -107,8 +107,9 @@ static void test1_func(abts_case *tc, void *data)
     ABTS_INT_EQUAL(tc, 1, expire_check[3]);
     ABTS_INT_EQUAL(tc, 1, expire_check[4]);
 
-    for(n = 0; n < sizeof(timer_duration)/sizeof(ogs_time_t); n++)
+    for(n = 0; n < sizeof(timer_duration)/sizeof(ogs_time_t); n++) {
         ogs_timer_delete(timer_array[n]);
+    }
 
     ogs_timer_mgr_destroy(timer);
     ogs_pollset_destroy(pollset);
@@ -149,8 +150,9 @@ static void test2_func(abts_case *tc, void *data)
         ABTS_INT_EQUAL(tc, tm_num[n], expire_check[n]);
     }
 
-    for(n = 0; n < TEST_TIMER_NUM; n++)
+    for(n = 0; n < TEST_TIMER_NUM; n++) {
         ogs_timer_delete(timer_array[n]);
+    }
 
     ogs_timer_mgr_destroy(timer);
 }
@@ -201,8 +203,9 @@ static void test3_func(abts_case *tc, void *data)
     }
 
     for(n = 0; n < TEST_TIMER_NUM; n++) {
-        if (timer_array[n])
+        if (timer_array[n]) {
             ogs_timer_delete(timer_array[n]);
+	}
     }
 
     ogs_timer_mgr_destroy(timer);

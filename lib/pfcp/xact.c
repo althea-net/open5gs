@@ -826,10 +826,12 @@ static int ogs_pfcp_xact_delete(ogs_pfcp_xact_t *xact)
 	ogs_debug("DELETING TIMER %p", xact->tm_response);
         ogs_timer_delete(xact->tm_response);
     }
-    if (xact->tm_holding)
+    if (xact->tm_holding) {
         ogs_timer_delete(xact->tm_holding);
-    if (xact->tm_delayed_commit)
+    }
+    if (xact->tm_delayed_commit) {
         ogs_timer_delete(xact->tm_delayed_commit);
+    }
 
     ogs_list_remove(xact->org == OGS_PFCP_LOCAL_ORIGINATOR ?
             &xact->node->local_list : &xact->node->remote_list, xact);

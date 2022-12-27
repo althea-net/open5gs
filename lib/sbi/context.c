@@ -1287,8 +1287,9 @@ void ogs_sbi_subscription_remove(ogs_sbi_subscription_t *subscription)
     if (subscription->req_nf_instance_id)
         ogs_free(subscription->req_nf_instance_id);
 
-    if (subscription->t_validity)
+    if (subscription->t_validity) {
         ogs_timer_delete(subscription->t_validity);
+    }
 
     if (subscription->client)
         ogs_sbi_client_remove(subscription->client);
