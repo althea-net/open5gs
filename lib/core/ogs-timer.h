@@ -44,8 +44,8 @@ typedef struct ogs_timer_s {
 ogs_timer_mgr_t *ogs_timer_mgr_create(unsigned int capacity);
 void ogs_timer_mgr_destroy(ogs_timer_mgr_t *manager);
 
-#define ogs_timer_add(x,y,z) ogs_timer_add_x(x,y,z); printf("TIMER ALLOC %s", __FUNCTION__)
-#define ogs_timer_delete(x) ogs_timer_delete_x(x); printf("TIMER FREE %s", __FUNCTION__)
+#define ogs_timer_add(x,y,z) ogs_timer_add_x(x,y,z); ogs_debug("TIMER ALLOC %s", __FUNCTION__)
+#define ogs_timer_delete(x) ogs_timer_delete_x(x); ogs_debug("TIMER FREE %s", __FUNCTION__)
 
 ogs_timer_t *ogs_timer_add_x(
         ogs_timer_mgr_t *manager, void (*cb)(void *data), void *data);
