@@ -79,10 +79,16 @@ ogs_timer_t *ogs_timer_add(
     ogs_pool_alloc(&manager->pool, &timer);
     ogs_assert(timer);
 
+    if(timer->assigned) {
+        // no way to recover here; we're overwriting an active timer
+        ogs_fatal("ogs_timer_add timer already assigned");
+        ogs_abort();
+    }
+
     memset(timer, 0, sizeof *timer);
     timer->cb = cb;
     timer->data = data;
-
+    timer->assigned = true;
     timer->manager = manager;
 
     return timer;
@@ -94,6 +100,13 @@ void ogs_timer_delete(ogs_timer_t *timer)
     ogs_assert(timer);
     manager = timer->manager;
     ogs_assert(manager);
+
+    // we can recover from double-free by just returning here
+    if (!timer->assigned) {
+        ogs_error("ogs_timer_delete double free");
+        return;
+    }
+    timer->assigned = false;
 
     ogs_timer_stop(timer);
 
