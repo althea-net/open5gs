@@ -456,6 +456,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gx_ccr_init_in_flight = false;
                 ogs_timer_stop(sess->timer_gx_cca);
                 ogs_timer_delete(sess->timer_gx_cca);
+                sess->timer_gx_cca = NULL;
 
                 sess->sm_data.gx_cca_init_err = diam_err;
                 sess->teardown_gx = true;
@@ -479,6 +480,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gy_ccr_init_in_flight = false;
                 ogs_timer_stop(sess->timer_gy_cca);
                 ogs_timer_delete(sess->timer_gy_cca);
+                sess->timer_gy_cca = NULL;
                 sess->sm_data.gy_cca_init_err = diam_err;
                 sess->teardown_gy = true;
                 goto test_can_proceed;
@@ -494,6 +496,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
             sess->sm_data.gx_ccr_init_in_flight = false;
             ogs_timer_stop(sess->timer_gx_cca);
             ogs_timer_delete(sess->timer_gx_cca);
+            sess->timer_gx_cca = NULL;
             sess->sm_data.gx_cca_init_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         case SMF_TIMER_GY_CCA:
@@ -501,6 +504,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
             sess->sm_data.gy_ccr_init_in_flight = false;
             ogs_timer_stop(sess->timer_gy_cca);
             ogs_timer_delete(sess->timer_gy_cca);
+            sess->timer_gy_cca = NULL;
             sess->sm_data.gy_cca_init_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         }
@@ -1612,6 +1616,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gx_ccr_term_in_flight = false;
                 ogs_timer_stop(sess->timer_gx_cca);
                 ogs_timer_delete(sess->timer_gx_cca);
+                sess->timer_gx_cca = NULL;
                 sess->sm_data.gx_cca_term_err = diam_err;
                 goto test_can_proceed;
             }
@@ -1633,6 +1638,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
                 sess->sm_data.gy_ccr_term_in_flight = false;
                 ogs_timer_stop(sess->timer_gy_cca);
                 ogs_timer_delete(sess->timer_gy_cca);
+                sess->timer_gy_cca = NULL;
                 sess->sm_data.gy_cca_term_err = diam_err;
                 goto test_can_proceed;
             }
@@ -1660,6 +1666,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
             sess->sm_data.gx_ccr_term_in_flight = false;
             ogs_timer_stop(sess->timer_gx_cca);
             ogs_timer_delete(sess->timer_gx_cca);
+            sess->timer_gx_cca = NULL;
             sess->sm_data.gx_cca_term_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         case SMF_TIMER_GY_CCA:
@@ -1667,6 +1674,7 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
             sess->sm_data.gy_ccr_term_in_flight = false;
             ogs_timer_stop(sess->timer_gy_cca);
             ogs_timer_delete(sess->timer_gy_cca);
+            sess->timer_gy_cca = NULL;
             sess->sm_data.gy_cca_term_err = ER_DIAMETER_UNABLE_TO_DELIVER;
             goto test_can_proceed;
         }
@@ -1883,9 +1891,11 @@ void smf_gsm_state_session_will_release(ogs_fsm_t *s, smf_event_t *e)
     case OGS_FSM_ENTRY_SIG:
         if (sess->timer_gx_cca) {
             ogs_timer_delete(sess->timer_gx_cca);
+            sess->timer_gx_cca = NULL;
         }
         if (sess->timer_gy_cca) {
             ogs_timer_delete(sess->timer_gy_cca);
+            sess->timer_gy_cca = NULL;
         }
 
         SMF_SESS_CLEAR(sess);
@@ -1919,9 +1929,11 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
     case OGS_FSM_ENTRY_SIG:
         if (sess->timer_gx_cca) {
             ogs_timer_delete(sess->timer_gx_cca);
+            sess->timer_gx_cca = NULL;            
         }
         if (sess->timer_gy_cca) {
             ogs_timer_delete(sess->timer_gy_cca);
+            sess->timer_gy_cca = NULL;
         }
 
         ogs_error("[%s:%d] State machine exception", smf_ue->supi, sess->psi);
@@ -1948,8 +1960,10 @@ void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
 
     if (sess->timer_gx_cca) {
         ogs_timer_delete(sess->timer_gx_cca);
+        sess->timer_gx_cca = NULL;        
     }
     if (sess->timer_gy_cca) {
         ogs_timer_delete(sess->timer_gy_cca);
+        sess->timer_gy_cca = NULL;
     }
 }
