@@ -1555,6 +1555,9 @@ void smf_sess_remove(smf_sess_t *sess)
 
     ogs_list_remove(&smf_ue->sess_list, sess);
 
+    if (!sess->active) {
+        ogs_error("smf_sess_remove double-free");
+    }
     sess->active = false;
 
     memset(&e, 0, sizeof(e));
