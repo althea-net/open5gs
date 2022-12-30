@@ -79,12 +79,6 @@ ogs_timer_t *ogs_timer_add_x(
     ogs_pool_alloc(&manager->pool, &timer);
     ogs_assert(timer);
 
-    if(timer->assigned) {
-        // no way to recover here; we're overwriting an active timer
-        ogs_fatal("ogs_timer_add timer already assigned");
-        ogs_abort();
-    }
-
     memset(timer, 0, sizeof *timer);
     timer->cb = cb;
     timer->data = data;
