@@ -927,7 +927,6 @@ void sgwc_s11_handle_update_bearer_response(
 
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess && sess->active);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -939,6 +938,11 @@ void sgwc_s11_handle_update_bearer_response(
 
     if (!sgwc_ue) {
         ogs_error("No Context in TEID");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    if (!sess || !sess->active) {
+        ogs_error("No Sess Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
 
@@ -1231,7 +1235,6 @@ void sgwc_s11_handle_downlink_data_notification_ack(
     bearer = s11_xact->data;
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess && sess->active);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1239,6 +1242,10 @@ void sgwc_s11_handle_downlink_data_notification_ack(
     /************************
      * Check SGWC-UE Context
      ************************/
+    if (!sess || !sess->active) {
+        ogs_error("No Sess Context");
+    }
+
     if (ack->cause.presence) {
         ogs_gtp2_cause_t *cause = ack->cause.data;
         ogs_assert(cause);
