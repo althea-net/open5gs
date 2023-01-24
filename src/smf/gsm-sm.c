@@ -53,7 +53,7 @@ static uint8_t gtp_cause_from_diameter(uint8_t gtp_version,
         case OGS_DIAM_UNKNOWN_SESSION_ID:
             return OGS_GTP2_CAUSE_APN_ACCESS_DENIED_NO_SUBSCRIPTION;
         case ER_DIAMETER_UNABLE_TO_DELIVER:
-            return OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+            return OGS_GTP2_CAUSE_UE_NOT_AUTHORISED_BY_OCS_OR_EXTERNAL_AAA_SERVER;
         }
         break;
     }
@@ -789,7 +789,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                     gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
                     break;
                 case 2:
-                    gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                    gtp_cause = OGS_GTP2_CAUSE_TIMED_OUT_REQUEST;
                     break;
             }
             send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
@@ -1400,7 +1400,7 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                     gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
                     break;
                 case 2:
-                    gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                    gtp_cause = OGS_GTP2_CAUSE_TIMED_OUT_REQUEST;
                     break;
             }
             send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
