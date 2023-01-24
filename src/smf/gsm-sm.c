@@ -36,9 +36,6 @@
 #include "ngap-path.h"
 #include "fd-path.h"
 
-#define SMF_SESS_GX_TIMEOUT ogs_time_from_sec(3)
-#define SMF_SESS_GY_TIMEOUT ogs_time_from_sec(3)
-
 static uint8_t gtp_cause_from_diameter(uint8_t gtp_version,
         const uint32_t dia_err, const uint32_t *dia_exp_err)
 {
@@ -112,7 +109,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
     sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr,
             smf_timer_gx_no_cca, e);
     ogs_assert(sess->timer_gx_cca);
-    ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
+    ogs_timer_start(sess->timer_gx_cca, ogs_app()->time.message.diameter_timeout);
     smf_gx_send_ccr(sess, e->gtp_xact,
         OGS_DIAM_GX_CC_REQUEST_TYPE_INITIAL_REQUEST);
 
@@ -123,7 +120,7 @@ static bool send_ccr_init_req_gx_gy(smf_sess_t *sess, smf_event_t *e)
         sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
                 smf_timer_gy_no_cca, e);
         ogs_assert(sess->timer_gy_cca);
-        ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
+        ogs_timer_start(sess->timer_gy_cca, ogs_app()->time.message.diameter_timeout);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_INITIAL_REQUEST);
     }
@@ -160,7 +157,7 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         sess->sm_data.gx_ccr_term_in_flight = true;
         sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr, smf_timer_gx_no_cca, e);
         ogs_assert(sess->timer_gx_cca);
-        ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
+        ogs_timer_start(sess->timer_gx_cca, ogs_app()->time.message.diameter_timeout);
         smf_gx_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
     }
@@ -172,7 +169,7 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         sess->timer_gy_cca = ogs_timer_add(ogs_app()->timer_mgr,
                 smf_timer_gy_no_cca, e);
         ogs_assert(sess->timer_gy_cca);
-        ogs_timer_start(sess->timer_gy_cca, SMF_SESS_GY_TIMEOUT);
+        ogs_timer_start(sess->timer_gy_cca, ogs_app()->time.message.diameter_timeout);
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
     }
@@ -328,7 +325,7 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr,
                         smf_timer_gx_no_cca, e);
                 ogs_assert(sess->timer_gx_cca);
-                ogs_timer_start(sess->timer_gx_cca, SMF_SESS_GX_TIMEOUT);
+                ogs_timer_start(sess->timer_gx_cca, ogs_app()->time.message.diameter_timeout);
                 smf_s6b_send_aar(sess, e->gtp_xact);
                 OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
                 break;
