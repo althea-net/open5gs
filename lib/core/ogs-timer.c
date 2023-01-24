@@ -94,7 +94,7 @@ ogs_timer_t *ogs_timer_add(
     memset(timer, 0, sizeof *timer);
     timer->cb = cb;
     timer->data = data;
-
+    timer->assigned = true;
     timer->manager = manager;
 
     return timer;
@@ -111,6 +111,13 @@ void ogs_timer_delete_debug(ogs_timer_t *timer, const char *file_line)
         ogs_fatal("ogs_timer_delete() failed in %s", file_line);
         ogs_assert_if_reached();
     }
+
+    // we can recover from double-free by just returning here
+    if (!timer->assigned) {
+        ogs_error("ogs_timer_delete double free");
+        return;
+    }
+    timer->assigned = false;
 
     ogs_timer_stop(timer);
 

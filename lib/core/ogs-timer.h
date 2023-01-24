@@ -39,6 +39,8 @@ typedef struct ogs_timer_s {
     ogs_timer_mgr_t *manager;
     bool running;
     ogs_time_t timeout;
+
+    bool assigned;
 } ogs_timer_t;
 
 ogs_timer_mgr_t *ogs_timer_mgr_create(unsigned int capacity);
