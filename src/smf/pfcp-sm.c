@@ -235,7 +235,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             if (!message->h.seid_presence)
                 ogs_error("No SEID");
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
                 ogs_assert(gtp_xact);
                 if (gtp_xact->gtp_version == 1)
@@ -272,7 +272,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
                 break;
             }
 
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_pkbuf_t *pkbuf = xact->seq[0].pkbuf;
                 ogs_pfcp_header_t *sent_hdr = (ogs_pfcp_header_t *) pkbuf->data;
                 if (sent_hdr->seid_presence && sent_hdr->seid != 0)
@@ -281,7 +281,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
                     e->sess = sess;
             }
 
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_warn("No session associated with Session Deletion Response");
                 break;
             }
