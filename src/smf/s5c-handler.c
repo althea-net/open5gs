@@ -443,7 +443,7 @@ void smf_s5c_handle_modify_bearer_request(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
@@ -620,7 +620,7 @@ void smf_s5c_handle_create_bearer_response(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
@@ -797,7 +797,7 @@ void smf_s5c_handle_update_bearer_response(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
@@ -1126,7 +1126,7 @@ void smf_s5c_handle_bearer_resource_command(
      ************************/
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     } else {
