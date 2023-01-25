@@ -1242,6 +1242,7 @@ smf_sess_t *smf_sess_add_by_apn(smf_ue_t *smf_ue, char *apn, uint8_t rat_type)
     e.sess = sess;
     ogs_fsm_init(&sess->sm, smf_gsm_state_initial, smf_gsm_state_final, &e);
 
+    sess->active = true;
     sess->smf_ue = smf_ue;
 
     ogs_list_add(&smf_ue->sess_list, sess);
@@ -1451,6 +1452,7 @@ smf_sess_t *smf_sess_add_by_psi(smf_ue_t *smf_ue, uint8_t psi)
     e.sess = sess;
     ogs_fsm_init(&sess->sm, smf_gsm_state_initial, smf_gsm_state_final, &e);
 
+    sess->active = true;
     sess->smf_ue = smf_ue;
 
     ogs_list_add(&smf_ue->sess_list, sess);
@@ -1727,6 +1729,11 @@ void smf_sess_remove(smf_sess_t *sess)
             sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
 
     ogs_list_remove(&smf_ue->sess_list, sess);
+
+    if (!sess->active) {
+        ogs_error("smf_sess_remove double-free");
+    }
+    sess->active = false;
 
     memset(&e, 0, sizeof(e));
     e.sess = sess;

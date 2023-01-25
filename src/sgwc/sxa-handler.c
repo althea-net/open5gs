@@ -128,7 +128,7 @@ static void sgwc_sxa_handle_session_reestablishment(
         sgwc_sess_t *sess, ogs_pfcp_xact_t *pfcp_xact,
         ogs_pfcp_session_establishment_response_t *pfcp_rsp)
 {
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
 
@@ -197,7 +197,7 @@ void sgwc_sxa_handle_session_establishment_response(
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
@@ -277,7 +277,7 @@ void sgwc_sxa_handle_session_establishment_response(
         return;
     }
 
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
 
     ogs_debug("    SGW_S5C_TEID[0x%x] PGW_S5C_TEID[0x%x]",
         sess->sgw_s5c_teid, sess->pgw_s5c_teid);
@@ -502,13 +502,19 @@ void sgwc_sxa_handle_session_modification_response(
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
     if (flags & OGS_PFCP_MODIFY_SESSION) {
-        if (!sess) {
-            ogs_error("No Context");
-
+        if (!sess || !sess->active) {
+            // sess pointer was expired; can we recover it from xact?
             sess = pfcp_xact->data;
-            ogs_assert(sess);
 
-            cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+            if (!sess || !sess->active) {
+                ogs_error("No Context");
+                cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+                // send gtp error?
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            } else {
+                ogs_warn("sess expired but pfcp_xact->sess active");
+            }
         }
 
         sgwc_ue = sess->sgwc_ue;
@@ -518,15 +524,20 @@ void sgwc_sxa_handle_session_modification_response(
         bearer = pfcp_xact->data;
         ogs_assert(bearer);
 
-        if (!sess) {
-            ogs_error("No Context");
-
+        if (!sess || !sess->active) {
+            // sess pointer was expired; can we recover it from bearer?
             sess = bearer->sess;
-            ogs_assert(sess);
 
-            cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+            if (!sess || !sess->active) {
+                ogs_error("No Context");
+                cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+                // send gtp error?
+                ogs_pfcp_xact_commit(pfcp_xact);
+                return;
+            } else {
+                ogs_warn("sess expired but bearer->sess active");
+            }
         }
-
         sgwc_ue = bearer->sgwc_ue;
         ogs_assert(sgwc_ue);
     }
@@ -551,7 +562,7 @@ void sgwc_sxa_handle_session_modification_response(
 
         OGS_LIST(pdr_to_create_list);
 
-        ogs_assert(sess);
+        ogs_assert(sess && sess->active);
 
         ogs_list_copy(&pdr_to_create_list, &pfcp_xact->pdr_to_create_list);
 
@@ -1306,7 +1317,7 @@ void sgwc_sxa_handle_session_deletion_response(
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
@@ -1378,7 +1389,7 @@ void sgwc_sxa_handle_session_deletion_response(
         return;
     }
 
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
 
@@ -1450,7 +1461,7 @@ void sgwc_sxa_handle_session_report_request(
      *
      * - Session could be deleted before a message is received from SMF.
      ************************/
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_error("No Context");
         cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
     }
@@ -1467,7 +1478,7 @@ void sgwc_sxa_handle_session_report_request(
         return;
     }
 
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
 
