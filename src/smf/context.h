@@ -411,6 +411,8 @@ typedef struct smf_sess_s {
     ogs_timer_t *timer_gx_cca;
     ogs_timer_t *timer_gy_cca;
 
+    bool active;
+
     smf_ue_t *smf_ue;
 } smf_sess_t;
 

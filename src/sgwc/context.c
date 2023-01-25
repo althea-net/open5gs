@@ -279,7 +279,10 @@ sgwc_sess_t *sgwc_sess_add(sgwc_ue_t *sgwc_ue, char *apn)
                     (long long)ogs_app()->pool.sess);
         return NULL;
     }
+
     memset(sess, 0, sizeof *sess);
+
+    sess->active = true;
 
     ogs_pfcp_pool_init(&sess->pfcp);
 
@@ -407,6 +410,11 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
     ogs_assert(sess);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
+
+    if (!sess->active) {
+        ogs_error("sgwc_sess_remove double-free");
+    }
+    sess->active = false;
 
     ogs_list_remove(&sgwc_ue->sess_list, sess);
 
