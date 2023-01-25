@@ -240,7 +240,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         case OGS_PFCP_SESSION_ESTABLISHMENT_RESPONSE_TYPE:
             if (!message->h.seid_presence) ogs_error("No SEID");
 
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
                 ogs_error("No Session");
                 if (!gtp_xact) {
@@ -275,7 +275,7 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
             if (!message->h.seid_presence) ogs_error("No SEID");
 
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_gtp_xact_t *gtp_xact = xact->assoc_xact;
                 ogs_error("No Session");
                 if (!gtp_xact) {

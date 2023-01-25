@@ -788,6 +788,11 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
         case SMF_TIMEOUT_PFCP_SER:
             ogs_error("PFCP timeout waiting for Session Establishment Response");
 
+            if (!sess->active) {
+                ogs_error("pfcp timeout: sess is not active");
+                return;
+            }
+
             gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;            
 
             switch (gtp_xact->gtp_version) {
@@ -1400,6 +1405,11 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
         switch(e->h.timer_id) {
         case SMF_TIMEOUT_PFCP_SDR:
             ogs_error("PFCP timeout waiting for Session Deletion Response");
+
+            if (!sess->active) {
+                ogs_error("pfcp timeout: sess is not active");
+                return;
+            }
 
             gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
 
