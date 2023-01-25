@@ -370,7 +370,7 @@ void smf_gn_handle_update_pdp_context_request(
         cause_value = OGS_GTP1_CAUSE_MANDATORY_IE_MISSING;
     }
 
-    if (!sess) {
+    if (!sess || !sess->active) {
         ogs_warn("No Context");
         cause_value = OGS_GTP1_CAUSE_NON_EXISTENT;
     }

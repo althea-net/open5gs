@@ -139,10 +139,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             if (gtp2_message.h.teid == 0) {
                 ogs_expect(!sess);
                 sess = smf_sess_add_by_gtp2_message(&gtp2_message);
-                if (sess)
+                if (sess && sess->active)
                     OGS_SETUP_GTP_NODE(sess, smf_gnode->gnode);
             }
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_error("No Session");
                 ogs_gtp2_send_error_message(gtp_xact, 0,
                         OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
@@ -156,7 +156,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             if (!gtp2_message.h.teid_presence) ogs_error("No TEID");
             smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_S5C_RX_DELETESESSIONREQ);
             smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_S5C_RX_DELETESESSIONREQ);
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_error("No Session");
                 ogs_gtp2_send_error_message(gtp_xact, 0,
                         OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE,
@@ -183,7 +183,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             break;
         case OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE:
             if (!gtp2_message.h.teid_presence) ogs_error("No TEID");
-            if (!sess) {
+            if (!sess || !sess->active) {
                 /* TODO: NACK the message */
                 ogs_error("TODO: NACK the message");
                 break;
@@ -247,7 +247,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 if (sess)
                     OGS_SETUP_GTP_NODE(sess, smf_gnode->gnode);
             }
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_gtp1_send_error_message(gtp_xact, 0,
                         OGS_GTP1_CREATE_PDP_CONTEXT_RESPONSE_TYPE,
                         OGS_GTP1_CAUSE_CONTEXT_NOT_FOUND);
@@ -259,7 +259,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         case OGS_GTP1_DELETE_PDP_CONTEXT_REQUEST_TYPE:
             smf_metrics_inst_global_inc(SMF_METR_GLOB_CTR_GN_RX_DELETEPDPCTXREQ);
             smf_metrics_inst_gtp_node_inc(smf_gnode->metrics, SMF_METR_GTP_NODE_CTR_GN_RX_DELETEPDPCTXREQ);
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_gtp1_send_error_message(gtp_xact, 0,
                         OGS_GTP1_DELETE_PDP_CONTEXT_RESPONSE_TYPE,
                         OGS_GTP1_CAUSE_NON_EXISTENT);
@@ -289,7 +289,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(gx_message);
 
         sess = e->sess;
-        ogs_assert(sess);
+        if (!sess || !sess->active) {
+            ogs_error("Gx Message: No session context");
+            break;
+        }
 
         switch(gx_message->cmd_code) {
         case OGS_DIAM_GX_CMD_CODE_CREDIT_CONTROL:
@@ -324,7 +327,10 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(gy_message);
 
         sess = e->sess;
-        ogs_assert(sess);
+        if (!sess || !sess->active) {
+            ogs_error("Gy Message: No session context");
+            break;
+        }
 
         switch(gy_message->cmd_code) {
         case OGS_DIAM_GY_CMD_CODE_CREDIT_CONTROL:
@@ -360,10 +366,14 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_DIAMETER_TIMER:
         ogs_assert(e);
         sess = e->sess;
-        if (sess) {
-            ogs_assert(OGS_FSM_STATE(&sess->sm));
-            ogs_fsm_dispatch(&sess->sm, e);            
+
+        if (!sess || !sess->active) {
+            ogs_error("Diameter Timer: No session context");
+            break;
         }
+
+        ogs_assert(OGS_FSM_STATE(&sess->sm));
+        ogs_fsm_dispatch(&sess->sm, e);            
         break;
 
     case SMF_EVT_S6B_MESSAGE:
@@ -372,6 +382,11 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
         ogs_assert(s6b_message);
         sess = e->sess;
         ogs_assert(sess);
+
+        if (!sess || !sess->active) {
+            ogs_error("S6b: No session context");
+            break;
+        }        
 
         switch(s6b_message->cmd_code) {
         case OGS_DIAM_S6B_CMD_SESSION_TERMINATION:
@@ -527,7 +542,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                         sess = smf_sess_find_by_sm_context_ref(
                                 sbi_message.h.resource.component[1]);
 
-                        if (!sess) {
+                        if (!sess || !sess->active) {
                             ogs_warn("Not found [%s]", sbi_message.h.uri);
                             smf_sbi_send_sm_context_update_error_log(
                                     stream, OGS_SBI_HTTP_STATUS_NOT_FOUND,
@@ -537,7 +552,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
                     DEFAULT
                         sess = smf_sess_add_by_sbi_message(&sbi_message);
-                        if (!sess) {
+                        if (!sess || !sess->active) {
                             ogs_error("smf_sess_add_by_sbi_message() failed");
                             smf_sbi_send_sm_context_create_error(stream,
                                     OGS_SBI_HTTP_STATUS_BAD_REQUEST,
@@ -604,7 +619,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
                 sess = smf_sess_find_by_sm_context_ref(
                         sbi_message.h.resource.component[1]);
 
-                if (!sess) {
+                if (!sess || !sess->active) {
                     ogs_warn("Not found [%s]", sbi_message.h.uri);
                     ogs_assert(true ==
                         ogs_sbi_server_send_error(stream,
@@ -804,7 +819,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_sbi_xact_remove(sbi_xact);
 
             sess = smf_sess_cycle(sess);
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_error("Session has already been removed");
                 break;
             }
@@ -843,7 +858,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_sbi_xact_remove(sbi_xact);
 
             sess = smf_sess_cycle(sess);
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_error("Session has already been removed");
                 break;
             }
@@ -1028,7 +1043,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
         ogs_assert(sess);
         sess = smf_sess_cycle(sess);
-        if (!sess) {
+        if (!sess || !sess->active) {
             ogs_error("Session has already been removed");
             ogs_pkbuf_free(pkbuf);
             break;
@@ -1051,7 +1066,7 @@ void smf_state_operational(ogs_fsm_t *s, smf_event_t *e)
 
         ogs_assert(sess);
         sess = smf_sess_cycle(sess);
-        if (!sess) {
+        if (!sess || !sess->active) {
             ogs_error("Session has already been removed");
             ogs_pkbuf_free(pkbuf);
             break;

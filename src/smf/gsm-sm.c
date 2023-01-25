@@ -723,6 +723,11 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("PFCP timeout waiting for Session Establishment Response");
 
             if (sess->timeout_xact->epc) {
+                if (!sess->active) {
+                    ogs_error("pfcp timeout: sess is not active");
+                    return;
+                }
+
                 ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
                 uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
                         OGS_GTP1_CAUSE_NETWORK_FAILURE :
@@ -1281,6 +1286,11 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("PFCP timeout waiting for Session Establishment Response");
 
             if (sess->timeout_xact->epc) {
+                if (!sess->active) {
+                    ogs_error("pfcp timeout: sess is not active");
+                    return;
+                }
+
                 ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
                 uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
                         OGS_GTP1_CAUSE_NETWORK_FAILURE :
@@ -1470,6 +1480,11 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("PFCP timeout waiting for Session Deletion Response");
 
             if (sess->timeout_xact->epc) {
+                if (!sess->active) {
+                    ogs_error("pfcp timeout: sess is not active");
+                    return;
+                }
+
                 ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
                 uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
                         OGS_GTP1_CAUSE_NETWORK_FAILURE :

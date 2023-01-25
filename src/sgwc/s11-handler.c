@@ -497,7 +497,7 @@ void sgwc_s11_handle_modify_bearer_request(
         }
 
         sess = bearer->sess;
-        ogs_assert(sess);
+        ogs_assert(sess && sess->active);
 
         ogs_list_for_each_entry(&pfcp_xact_list, pfcp_xact, tmpnode) {
             if (sess == pfcp_xact->data) {
@@ -635,7 +635,7 @@ void sgwc_s11_handle_delete_session_request(
 
         if (cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
             sess = sgwc_sess_find_by_ebi(sgwc_ue, req->linked_eps_bearer_id.u8);
-            if (!sess) {
+            if (!sess || !sess->active) {
                 ogs_error("Unknown EPS Bearer [IMSI:%s, EBI:%d]",
                         sgwc_ue->imsi_bcd, req->linked_eps_bearer_id.u8);
                 cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
@@ -675,7 +675,7 @@ void sgwc_s11_handle_delete_session_request(
      * Check ALL Context
      ********************/
     ogs_assert(sgwc_ue);
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     ogs_assert(sess->gnode);
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
@@ -756,7 +756,7 @@ void sgwc_s11_handle_create_bearer_response(
 
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -825,7 +825,7 @@ void sgwc_s11_handle_create_bearer_response(
      * Check ALL Context
      ********************/
     ogs_assert(sgwc_ue);
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     ogs_assert(bearer);
 
     /* Correlate with SGW-S1U-TEID */
@@ -899,7 +899,6 @@ void sgwc_s11_handle_update_bearer_response(
     sgwc_bearer_t *bearer = NULL;
     ogs_gtp2_update_bearer_response_t *rsp = NULL;
 
-    ogs_assert(sgwc_ue);
     ogs_assert(message);
     rsp = &message->update_bearer_response;
     ogs_assert(rsp);
@@ -921,10 +920,30 @@ void sgwc_s11_handle_update_bearer_response(
 
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
+
+    /************************
+     * Check SGWC-UE Context
+     ************************/
+    cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
+
+    if (!sgwc_ue) {
+        ogs_error("No Context in TEID");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    if (!sess || !sess->active) {
+        ogs_error("No Sess Context");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
+        ogs_gtp_send_error_message(s5c_xact, sess ? sess->pgw_s5c_teid : 0,
+                OGS_GTP2_UPDATE_BEARER_RESPONSE_TYPE, cause_value);
+        return;
+    }
 
     /*****************************************
      * Check Mandatory/Conditional IE Missing
@@ -984,7 +1003,7 @@ void sgwc_s11_handle_update_bearer_response(
      * Check ALL Context
      ********************/
     ogs_assert(sgwc_ue);
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
 
     ogs_debug("    MME_S11_TEID[%d] SGW_S11_TEID[%d]",
         sgwc_ue->mme_s11_teid, sgwc_ue->sgw_s11_teid);
@@ -1044,7 +1063,7 @@ void sgwc_s11_handle_delete_bearer_response(
 
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1209,7 +1228,6 @@ void sgwc_s11_handle_downlink_data_notification_ack(
     bearer = s11_xact->data;
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess);
 
     rv = ogs_gtp_xact_commit(s11_xact);
     ogs_expect(rv == OGS_OK);
@@ -1217,6 +1235,10 @@ void sgwc_s11_handle_downlink_data_notification_ack(
     /************************
      * Check SGWC-UE Context
      ************************/
+    if (!sess || !sess->active) {
+        ogs_error("No Sess Context");
+    }
+
     if (ack->cause.presence) {
         ogs_gtp2_cause_t *cause = ack->cause.data;
         ogs_assert(cause);
@@ -1508,7 +1530,7 @@ void sgwc_s11_handle_bearer_resource_command(
      ********************/
     ogs_assert(bearer);
     sess = bearer->sess;
-    ogs_assert(sess);
+    ogs_assert(sess && sess->active);
     ogs_assert(sess->gnode);
     ogs_assert(sgwc_ue);
 

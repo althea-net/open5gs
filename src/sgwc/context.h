@@ -95,6 +95,9 @@ typedef struct sgwc_sess_s {
     ogs_pfcp_node_t *pfcp_node;
 
     sgwc_ue_t       *sgwc_ue;
+
+    bool active;
+
 } sgwc_sess_t;
 
 typedef struct sgwc_bearer_s {
