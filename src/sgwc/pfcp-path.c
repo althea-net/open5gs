@@ -178,6 +178,11 @@ static void sess_timeout(ogs_pfcp_xact_t *pfcp_xact, void *data)
     s11_xact = pfcp_xact->assoc_xact;
     ogs_assert(s11_xact);
 
+    if (!s11_xact) {
+        ogs_error("sess_timeout: No s11 context");
+        return;
+    }
+
     switch (s11_xact->gtp_version) {
     case 1:
         gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
