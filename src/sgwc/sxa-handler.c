@@ -180,9 +180,14 @@ void sgwc_sxa_handle_session_establishment_response(
         return sgwc_sxa_handle_session_reestablishment(sess, pfcp_xact, pfcp_rsp);
     }
 
+    if (!recv_message) {
+        ogs_error("recv_message is nil! Aborting...");
+        ogs_pfcp_xact_commit(pfcp_xact);
+        return;
+    }
+
     ogs_assert(pfcp_xact);
     ogs_assert(pfcp_rsp);
-
     ogs_assert(recv_message);
 
     create_session_request = &recv_message->create_session_request;
