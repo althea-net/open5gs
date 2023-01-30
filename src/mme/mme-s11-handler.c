@@ -112,16 +112,6 @@ void mme_s11_handle_create_session_response(
     ogs_assert(sess);
     mme_ue = sess->mme_ue;
     ogs_assert(mme_ue);
-    source_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(source_ue);
-
-    if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
-        target_ue = sgw_ue_cycle(source_ue->target_ue);
-        ogs_assert(target_ue);
-    } else {
-        target_ue = source_ue;
-        ogs_assert(target_ue);
-    }
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect_or_return(rv == OGS_OK);
@@ -134,6 +124,23 @@ void mme_s11_handle_create_session_response(
     if (!mme_ue_from_teid) {
         ogs_error("No Context in TEID");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    source_ue = sgw_ue_cycle(mme_ue->sgw_ue);
+    if (!source_ue) {
+        ogs_error("Cannot find source_ue context");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;        
+    }
+
+    if (create_action == OGS_GTP_CREATE_IN_PATH_SWITCH_REQUEST) {
+        // if source_ue == null we'll catch below
+        if (source_ue) {
+            target_ue = sgw_ue_cycle(source_ue->target_ue);
+            ogs_assert(target_ue);            
+        }
+    } else {
+        target_ue = source_ue;
+        // if source_ue == null we'll catch below
     }
 
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
@@ -437,8 +444,6 @@ void mme_s11_handle_modify_bearer_response(
     modify_action = xact->modify_action;
     mme_ue = xact->data;
     ogs_assert(mme_ue);
-    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(sgw_ue);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect_or_return(rv == OGS_OK);
@@ -450,6 +455,12 @@ void mme_s11_handle_modify_bearer_response(
 
     if (!mme_ue_from_teid) {
         ogs_error("No Context in TEID");
+        cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
+    }
+
+    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
+    if (!sgw_ue) {
+        ogs_error("Cannot find sgw_ue context");
         cause_value = OGS_GTP2_CAUSE_CONTEXT_NOT_FOUND;
     }
 
@@ -1116,8 +1127,6 @@ void mme_s11_handle_release_access_bearers_response(
     ogs_assert(action);
     mme_ue = xact->data;
     ogs_assert(mme_ue);
-    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(sgw_ue);
 
     rv = ogs_gtp_xact_commit(xact);
     ogs_expect_or_return(rv == OGS_OK);
@@ -1127,6 +1136,15 @@ void mme_s11_handle_release_access_bearers_response(
      ***********************/
     if (!mme_ue_from_teid) {
         ogs_error("No Context in TEID");
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;        
+    }
+
+    sgw_ue = sgw_ue_cycle(mme_ue->sgw_ue);
+    if (!sgw_ue) {
+        ogs_error("Cannot find sgw_ue");
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;        
     }
 
     /********************
