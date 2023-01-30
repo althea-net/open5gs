@@ -131,6 +131,7 @@ int nas_eps_send_attach_reject(mme_ue_t *mme_ue,
     ogs_nas_emm_cause_t emm_cause, ogs_nas_esm_cause_t esm_cause)
 {
     int rv;
+    enb_ue_t *enb_ue = NULL;
     mme_sess_t *sess = NULL;
     ogs_pkbuf_t *esmbuf = NULL, *emmbuf = NULL;
 
@@ -138,6 +139,12 @@ int nas_eps_send_attach_reject(mme_ue_t *mme_ue,
 
     ogs_debug("[%s] Attach reject", mme_ue->imsi_bcd);
     ogs_debug("    Cause[%d]", emm_cause);
+
+    enb_ue = enb_ue_cycle(mme_ue->enb_ue);
+    if (!enb_ue) {
+        ogs_error("S1 context has already been removed");
+        return OGS_OK;
+    }
 
     sess = mme_sess_first(mme_ue);
     if (sess) {
