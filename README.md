@@ -35,3 +35,6 @@ When a UPS re-associates itself with the CPS after a period of disconnectivity, 
 
 ## Fine-Grained Timers
 Stock open5gs has one configurable parameter (`message.duration`) which sets the timeout value for *all* messages sent or received by the program in question. We turned this parameter into several different ones pertaining to each message protocol to allow us to have finer-grained control over these timers, which is highly recommended by the 3GPP. Specifically, `message.duration` has been replaced by `message.sbi_duration`, `message.gtp_duration`, `message.pfcp_duration` and `message.diameter_timeout`.
+
+## Stability Fixes
+We have caught and fixed a large number of small bugs that threaten stability, generally asserts() that are not always true. Our team is firmly committed to contributing all such fixes to the main open5gs project, and these commits are either already upstreamed or will be soon.
