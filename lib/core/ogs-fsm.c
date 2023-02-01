@@ -117,6 +117,7 @@ void ogs_fsm_dispatch(void *fsm, void *event)
     ogs_fsm_t *sm = fsm;
     fsm_event_t *e = event;
     ogs_fsm_handler_t tmp = NULL;
+    ogs_fsm_handler_t t2 = NULL;
 
     ogs_assert(sm);
 
@@ -126,8 +127,11 @@ void ogs_fsm_dispatch(void *fsm, void *event)
     if (e)
         (*tmp)(sm, e);
 
-    if (sm->state != tmp)
+    while (sm->state && sm->state != tmp) {
+        t2 = sm->state;
         fsm_change(fsm, tmp, sm->state, e);
+        tmp = t2;
+    }
 }
 
 void ogs_fsm_fini(void *fsm, void *event)
