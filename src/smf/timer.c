@@ -96,6 +96,14 @@ static void timer_send_event(int timer_id, void *data)
         e->gx_message = old_e->gx_message;
         e->gtp_xact = old_e->gtp_xact;
         break;
+    case SMF_TIMEOUT_PFCP_SER:
+    case SMF_TIMEOUT_PFCP_SDR:
+    case SMF_TIMEOUT_PFCP_SMR:
+        e = smf_event_new(SMF_EVT_PFCP_TIMEOUT);
+        ogs_assert(e);
+        e->timer_id = timer_id;
+        e->sess = data;
+        break;
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);
         ogs_assert_if_reached();
@@ -158,4 +166,19 @@ void smf_timer_gx_no_cca(void *data)
 void smf_timer_gy_no_cca(void *data)
 {
     timer_send_event(SMF_TIMER_GY_CCA, data);
+}
+
+void smf_timeout_pfcp_no_ser(void *data)
+{
+    timer_send_event(SMF_TIMEOUT_PFCP_SER, data);
+}
+
+void smf_timeout_pfcp_no_sdr(void *data)
+{
+    timer_send_event(SMF_TIMEOUT_PFCP_SDR, data);
+}
+
+void smf_timeout_pfcp_no_smr(void *data)
+{
+    timer_send_event(SMF_TIMEOUT_PFCP_SMR, data);
 }
