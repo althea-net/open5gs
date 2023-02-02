@@ -164,6 +164,47 @@ void mme_s11_handle_create_session_response(
         return;
     }
 
+    /*********************
+     * Check Cause Value
+     *********************/
+    if (rsp->cause.presence == 0) {
+        ogs_error("[%s] No Cause [VALUE:%d]", mme_ue->imsi_bcd, session_cause);
+        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
+    }
+
+    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
+        if (create_action == OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
+            ogs_error("[%s] Attach reject [Cause:%d]",
+                    mme_ue->imsi_bcd, session_cause);
+            r = nas_eps_send_attach_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_NETWORK_FAILURE,
+                    OGS_NAS_ESM_CAUSE_NETWORK_FAILURE);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        }
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;
+    }
+
+    if (session_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED &&
+        session_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED_PARTIALLY &&
+        session_cause !=
+            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_NETWORK_PREFERENCE &&
+        session_cause !=
+            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_SINGLE_ADDRESS_BEARER_ONLY) {
+        ogs_error("[%s] GTP Cause [VALUE:%d]", mme_ue->imsi_bcd, session_cause);
+        if (create_action == OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
+            ogs_error("[%s] Attach reject", mme_ue->imsi_bcd);
+            r = nas_eps_send_attach_reject(mme_ue,
+                    OGS_NAS_EMM_CAUSE_NETWORK_FAILURE,
+                    OGS_NAS_ESM_CAUSE_NETWORK_FAILURE);
+            ogs_expect(r == OGS_OK);
+            ogs_assert(r != OGS_ERROR);
+        }
+        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
+        return;
+    }
+
     /*****************************************
      * Check Mandatory/Conditional IE Missing
      *****************************************/
@@ -213,11 +254,6 @@ void mme_s11_handle_create_session_response(
         }
     }
 
-    if (rsp->cause.presence == 0) {
-        ogs_error("[%s] No Cause [VALUE:%d]", mme_ue->imsi_bcd, session_cause);
-        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
-    }
-
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         if (create_action == OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
             ogs_error("[%s] Attach reject [Cause:%d]",
@@ -232,9 +268,9 @@ void mme_s11_handle_create_session_response(
         return;
     }
 
-    /********************
-     * Check Cause Value
-     ********************/
+    /*****************************
+     * Re-Examine Cause Value(s)
+     *****************************/
     ogs_assert(cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED);
 
     for (i = 0; i < OGS_BEARER_PER_UE; i++) {
@@ -263,25 +299,6 @@ void mme_s11_handle_create_session_response(
             mme_send_delete_session_or_mme_ue_context_release(mme_ue);
             return;
         }
-    }
-
-    if (session_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED &&
-        session_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED_PARTIALLY &&
-        session_cause !=
-            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_NETWORK_PREFERENCE &&
-        session_cause !=
-            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_SINGLE_ADDRESS_BEARER_ONLY) {
-        ogs_error("[%s] GTP Cause [VALUE:%d]", mme_ue->imsi_bcd, session_cause);
-        if (create_action == OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
-            ogs_error("[%s] Attach reject", mme_ue->imsi_bcd);
-            r = nas_eps_send_attach_reject(mme_ue,
-                    OGS_NAS_EMM_CAUSE_NETWORK_FAILURE,
-                    OGS_NAS_ESM_CAUSE_NETWORK_FAILURE);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
-        }
-        mme_send_delete_session_or_mme_ue_context_release(mme_ue);
-        return;
     }
 
     /********************
