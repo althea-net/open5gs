@@ -179,6 +179,25 @@ void sgwc_s11_handle_create_session_request(
         return;
     }
 
+    // sender TEID must be VERY FIRST THING we check/set so that any 
+    // sent error-messages have the correct TEID for handling at mme
+    if (req->sender_f_teid_for_control_plane.presence == 0) {
+        ogs_error("No Sender F-TEID");
+        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
+    }
+
+    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+        return;
+    }
+
+    /* Receive Control Plane(DL) : MME-S11 */
+    mme_s11_teid = req->sender_f_teid_for_control_plane.data;
+    ogs_assert(mme_s11_teid);
+    sgwc_ue->mme_s11_teid = be32toh(mme_s11_teid->teid);
+
     /*****************************************
      * Check Mandatory/Conditional IE Missing
      *****************************************/
@@ -202,10 +221,6 @@ void sgwc_s11_handle_create_session_request(
     }
     if (req->access_point_name.presence == 0) {
         ogs_error("No APN");
-        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
-    }
-    if (req->sender_f_teid_for_control_plane.presence == 0) {
-        ogs_error("No Sender F-TEID");
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
     }
     if (req->pgw_s5_s8_address_for_control_plane_or_pmip.presence == 0) {
@@ -362,11 +377,6 @@ void sgwc_s11_handle_create_session_request(
                             bearer_qos.pre_emption_vulnerability;
         }
     }
-
-    /* Receive Control Plane(DL) : MME-S11 */
-    mme_s11_teid = req->sender_f_teid_for_control_plane.data;
-    ogs_assert(mme_s11_teid);
-    sgwc_ue->mme_s11_teid = be32toh(mme_s11_teid->teid);
 
     /* Receive Control Plane(UL) : PGW-S5C */
     pgw_s5c_teid = req->pgw_s5_s8_address_for_control_plane_or_pmip.data;

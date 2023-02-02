@@ -97,13 +97,24 @@ uint8_t smf_s5c_handle_create_session_request(
 
     cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
 
-    if (req->imsi.presence == 0) {
-        ogs_error("No IMSI");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
-    }
+    // sender TEID must be VERY FIRST THING we check/set so that any 
+    // sent error-messages have the correct TEID for handling at sgwc
     if (req->sender_f_teid_for_control_plane.presence == 0) {
         ogs_error("No TEID");
         cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
+        return cause_value;
+    }
+
+    /* Control Plane(DL) : SGW-S5C */
+    sgw_s5c_teid = req->sender_f_teid_for_control_plane.data;
+    ogs_assert(sgw_s5c_teid);
+    sess->sgw_s5c_teid = be32toh(sgw_s5c_teid->teid);
+    rv = ogs_gtp2_f_teid_to_ip(sgw_s5c_teid, &sess->sgw_s5c_ip);
+    ogs_assert(rv == OGS_OK);
+
+    if (req->imsi.presence == 0) {
+        ogs_error("No IMSI");
+        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
     }
     if (req->bearer_contexts_to_be_created[0].presence == 0) {
         ogs_error("No Bearer");
@@ -276,13 +287,6 @@ uint8_t smf_s5c_handle_create_session_request(
         sess->session.name,
         sess->ipv4 ? OGS_INET_NTOP(&sess->ipv4->addr, buf1) : "",
         sess->ipv6 ? OGS_INET6_NTOP(&sess->ipv6->addr, buf2) : "");
-
-    /* Control Plane(DL) : SGW-S5C */
-    sgw_s5c_teid = req->sender_f_teid_for_control_plane.data;
-    ogs_assert(sgw_s5c_teid);
-    sess->sgw_s5c_teid = be32toh(sgw_s5c_teid->teid);
-    rv = ogs_gtp2_f_teid_to_ip(sgw_s5c_teid, &sess->sgw_s5c_ip);
-    ogs_assert(rv == OGS_OK);
 
     ogs_debug("    SGW_S5C_TEID[0x%x] SMF_N4_TEID[0x%x]",
             sess->sgw_s5c_teid, sess->smf_n4_teid);
