@@ -115,6 +115,38 @@ void sgwc_s5c_handle_create_session_response(
         return;
     }
 
+    /*********************
+     * Check Cause Value
+     *********************/
+    if (rsp->cause.presence == 0) {
+        ogs_error("No Cause");
+        cause_value = OGS_GTP2_CAUSE_MANDATORY_IE_MISSING;
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+        ogs_assert(OGS_OK == sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+        return;
+    }
+
+    cause = rsp->cause.data;
+    ogs_assert(cause);
+    cause_value = cause->value;
+    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED &&
+        cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED_PARTIALLY &&
+        cause_value !=
+            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_NETWORK_PREFERENCE &&
+        cause_value !=
+            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_SINGLE_ADDRESS_BEARER_ONLY) {
+        ogs_error("GTP Failed [CAUSE:%d]", cause_value);
+        ogs_gtp_send_error_message(
+                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
+                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+        ogs_assert(OGS_OK == sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
+        return;
+    }
+
+    cause_value = OGS_GTP2_CAUSE_REQUEST_ACCEPTED;
+
     /*****************************************
      * Check Mandatory/Conditional IE Missing
      *****************************************/
@@ -140,11 +172,6 @@ void sgwc_s5c_handle_create_session_response(
         cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
     }
 
-    if (rsp->cause.presence == 0) {
-        ogs_error("No Cause");
-        cause_value = OGS_GTP2_CAUSE_CONDITIONAL_IE_MISSING;
-    }
-
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
@@ -153,7 +180,7 @@ void sgwc_s5c_handle_create_session_response(
     }
 
     /********************
-     * Check Cause Value
+     * Re-Examine Cause Value(s)
      ********************/
     ogs_assert(cause_value == OGS_GTP2_CAUSE_REQUEST_ACCEPTED);
 
@@ -172,22 +199,6 @@ void sgwc_s5c_handle_create_session_response(
                     OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
             return;
         }
-    }
-
-    cause = rsp->cause.data;
-    ogs_assert(cause);
-    cause_value = cause->value;
-    if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED &&
-        cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED_PARTIALLY &&
-        cause_value !=
-            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_NETWORK_PREFERENCE &&
-        cause_value !=
-            OGS_GTP2_CAUSE_NEW_PDN_TYPE_DUE_TO_SINGLE_ADDRESS_BEARER_ONLY) {
-        ogs_error("GTP Failed [CAUSE:%d]", cause_value);
-        ogs_gtp_send_error_message(
-                s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
-                OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
-        return;
     }
 
     /********************
