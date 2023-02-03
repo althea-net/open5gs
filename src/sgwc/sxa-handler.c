@@ -1391,6 +1391,9 @@ void sgwc_sxa_handle_session_deletion_response(
             ogs_gtp_send_error_message(
                     gtp_xact, teid, gtp_message->h.type, cause_value);
         }
+        if (sess) {
+            sgwc_sess_remove(sess);
+        }
         return;
     }
 
