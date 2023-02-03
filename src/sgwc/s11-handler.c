@@ -219,6 +219,7 @@ void sgwc_s11_handle_create_session_request(
         return;
     }
 
+    /* Receive Control Plane(DL) : MME-S11 */
     mme_s11_teid = req->sender_f_teid_for_control_plane.data;
     ogs_assert(mme_s11_teid);
     sgwc_ue->mme_s11_teid = be32toh(mme_s11_teid->teid);

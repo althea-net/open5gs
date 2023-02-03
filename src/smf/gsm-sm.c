@@ -1430,8 +1430,8 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
 
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
-            /* LTE */
             if (pfcp_xact->epc) {
+                /* LTE */
                 gtp_xact = pfcp_xact->assoc_xact;
 
                 pfcp_cause = smf_epc_n4_handle_session_deletion_response(
@@ -1449,9 +1449,8 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
                 e->gtp_xact = gtp_xact;
                 OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
                 break;
-
-            /* 5GC */
             } else {
+                /* 5GC */
                 int trigger;
 
                 stream = pfcp_xact->assoc_stream;
@@ -1924,7 +1923,7 @@ void smf_gsm_state_exception(ogs_fsm_t *s, smf_event_t *e)
 }
 
 void smf_gsm_state_final(ogs_fsm_t *s, smf_event_t *e)
-{ 
+{
     smf_sess_t *sess = NULL;
     ogs_assert(s);
     ogs_assert(e);

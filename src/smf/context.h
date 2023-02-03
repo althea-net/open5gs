@@ -404,20 +404,21 @@ typedef struct smf_sess_s {
 
     ogs_gtp_node_t  *gnode;
     ogs_pfcp_node_t *pfcp_node;
+    bool pfcp_established;
 
-    smf_ue_t *smf_ue;
-
+    ogs_pfcp_xact_t *timeout_xact;
+    
     ogs_timer_t *timer_gx_cca;
     ogs_timer_t *timer_gy_cca;
+
+    bool active;
 
     bool teardown_pfcp;
     bool teardown_gx;
     bool teardown_gy;
     bool teardown_gtp;
-    bool pfcp_established;
-    ogs_pfcp_xact_t *timeout_xact;
-    bool active;
 
+    smf_ue_t *smf_ue;
 } smf_sess_t;
 
 void smf_context_init(void);

@@ -139,6 +139,8 @@ static void sgwc_sxa_handle_session_reestablishment(
     ogs_assert(up_f_seid);
     sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
 
+    stats_update_sgwc_sessions();
+
     return;
 }
 
