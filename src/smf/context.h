@@ -434,6 +434,11 @@ typedef struct smf_sess_s {
 
     bool active;
 
+    bool teardown_pfcp;
+    bool teardown_gx;
+    bool teardown_gy;
+    bool teardown_gtp;
+
     smf_ue_t *smf_ue;
 
     bool n1_released;
