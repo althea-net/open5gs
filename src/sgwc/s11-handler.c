@@ -27,6 +27,23 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
     sgwc_sess_t *sess = data;
     sgwc_ue_t *sgwc_ue = NULL;
     uint8_t type = 0;
+    uint8_t gtp_cause;
+
+    ogs_gtp_xact_t *s11_xact = xact->assoc_xact;
+
+    if (!s11_xact) {
+        ogs_error("No associated S11 GTP xact");
+        return;
+    }
+
+    switch (s11_xact->gtp_version) {
+        case 1:
+            gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
+            break;
+        case 2:
+            gtp_cause = OGS_GTP2_CAUSE_PGW_NOT_RESPONDING;
+            break;
+    }
 
     ogs_assert(xact);
     ogs_assert(sess);
@@ -41,11 +58,20 @@ static void gtp_sess_timeout(ogs_gtp_xact_t *xact, void *data)
         if (!sgwc_sess_cycle(sess)) {
             ogs_error("[%s] Session has already been removed",
                     sgwc_ue->imsi_bcd);
-            break;
+        } else {
+            ogs_assert(OGS_OK ==
+                sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
         }
+
+        ogs_gtp_send_error_message(s11_xact, sgwc_ue->mme_s11_teid,
+            OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp_cause);
+        break;
+    case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
         ogs_assert(OGS_OK ==
             sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL));
-        break;
+        ogs_gtp_send_error_message(s11_xact, sgwc_ue->mme_s11_teid,
+            OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, gtp_cause);
+        break;        
     default:
         ogs_error("GTP Timeout : IMSI[%s] Message-Type[%d]",
                 sgwc_ue->imsi_bcd, type);
