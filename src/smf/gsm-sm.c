@@ -137,12 +137,15 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
 
     if (use_gy == -1) {
         ogs_error("No Gy Diameter Peer");
-        /* TODO: drop Gx connection here,
-         * possibly move to another "releasing" state! */
         uint8_t gtp_cause = (e->gtp_xact->gtp_version == 1) ?
                 OGS_GTP1_CAUSE_NO_RESOURCES_AVAILABLE :
                 OGS_GTP2_CAUSE_UE_NOT_AUTHORISED_BY_OCS_OR_EXTERNAL_AAA_SERVER;
         send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
+        sess->teardown_gtp = false;
+
+        sess->teardown_gx = false;
+        sess->teardown_gy = false;
+
         return false;
     }
 
@@ -152,14 +155,16 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
             OGS_DIAM_TERMINATION_CAUSE_DIAMETER_LOGOUT);
     }
 
-    sess->sm_data.gx_ccr_term_in_flight = true;
-    sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr, smf_timer_gx_no_cca, e);
-    ogs_assert(sess->timer_gx_cca);
-    ogs_timer_start(sess->timer_gx_cca, ogs_local_conf()->time.message.diameter_timeout);
-    smf_gx_send_ccr(sess, e->gtp_xact,
-        OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
+    if (sess->teardown_gx) {
+	sess->sm_data.gx_ccr_term_in_flight = true;
+        sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr, smf_timer_gx_no_cca, e);
+        ogs_assert(sess->timer_gx_cca);
+        ogs_timer_start(sess->timer_gx_cca, ogs_local_conf()->time.message.diameter_timeout);
+        smf_gx_send_ccr(sess, e->gtp_xact,
+            OGS_DIAM_GX_CC_REQUEST_TYPE_TERMINATION_REQUEST);
+    }
 
-    if (use_gy == 1) {
+    if (sess->teardown_gy && use_gy == 1) {
         /* Gy is available,
          * set up session for the bearer before accepting it towards the UE */
         sess->sm_data.gy_ccr_term_in_flight = true;
@@ -170,6 +175,10 @@ static bool send_ccr_termination_req_gx_gy_s6b(smf_sess_t *sess, smf_event_t *e)
         smf_gy_send_ccr(sess, e->gtp_xact,
             OGS_DIAM_GY_CC_REQUEST_TYPE_TERMINATION_REQUEST);
     }
+
+    sess->teardown_gx = false;
+    sess->teardown_gy = false;
+
     return true;
 }
 
@@ -220,10 +229,17 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                             &e->gtp1_message->create_pdp_context_request);
             if (gtp1_cause != OGS_GTP1_CAUSE_REQUEST_ACCEPTED) {
                 send_gtp_create_err_msg(sess, e->gtp_xact, gtp1_cause);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                 return;
             }
-            if (send_ccr_init_req_gx_gy(sess, e) == true)
-                OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
+
+            if (send_ccr_init_req_gx_gy(sess, e) == false) {
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
+                return;
+            }
+
+            OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
+            return;
         }
         break;
 
@@ -238,12 +254,17 @@ void smf_gsm_state_initial(ogs_fsm_t *s, smf_event_t *e)
                             &e->gtp2_message->create_session_request);
             if (gtp2_cause != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
                 send_gtp_create_err_msg(sess, e->gtp_xact, gtp2_cause);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                 return;
             }
+
             switch (sess->gtp_rat_type) {
             case OGS_GTP2_RAT_TYPE_EUTRAN:
-                if (send_ccr_init_req_gx_gy(sess, e) == true)
-                    OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
+                if (send_ccr_init_req_gx_gy(sess, e) == false) {
+                    OGS_FSM_TRAN(s, smf_gsm_state_teardown);
+                    break;
+                }
+                OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_initial);
                 break;
             case OGS_GTP2_RAT_TYPE_WLAN:
                 sess->timer_gx_cca = ogs_timer_add(ogs_app()->timer_mgr,
@@ -379,8 +400,8 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 ogs_timer_stop(sess->timer_gx_cca);
                 ogs_timer_delete(sess->timer_gx_cca);
                 sess->timer_gx_cca = NULL;
-
                 sess->sm_data.gx_cca_init_err = diam_err;
+                sess->teardown_gx = true;
                 goto test_can_proceed;
             }
             break;
@@ -404,6 +425,7 @@ void smf_gsm_state_wait_epc_auth_initial(ogs_fsm_t *s, smf_event_t *e)
                 sess->timer_gy_cca = NULL;
 
                 sess->sm_data.gy_cca_init_err = diam_err;
+                sess->teardown_gy = true;
                 goto test_can_proceed;
             }
             break;
@@ -438,22 +460,22 @@ test_can_proceed:
     if (!sess->sm_data.gx_ccr_init_in_flight &&
         !sess->sm_data.gy_ccr_init_in_flight) {
         diam_err = ER_DIAMETER_SUCCESS;
-        if (sess->sm_data.gx_cca_init_err != ER_DIAMETER_SUCCESS)
+        if (sess->sm_data.gx_cca_init_err != ER_DIAMETER_SUCCESS) {
             diam_err = sess->sm_data.gx_cca_init_err;
-        if (sess->sm_data.gy_cca_init_err != ER_DIAMETER_SUCCESS)
+            sess->teardown_gx = false;
+        }
+        if (sess->sm_data.gy_cca_init_err != ER_DIAMETER_SUCCESS) {
             diam_err = sess->sm_data.gy_cca_init_err;
+            sess->teardown_gy = false;
+        }
 
         if (diam_err == ER_DIAMETER_SUCCESS) {
             OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_establishment);
-            ogs_assert(OGS_OK ==
-                smf_epc_pfcp_send_session_establishment_request(
-                    sess, e->gtp_xact, 0));
         } else {
-            /* FIXME: tear down Gx/Gy session
-             * if its sm_data.*init_err == ER_DIAMETER_SUCCESS */
             uint8_t gtp_cause = gtp_cause_from_diameter(
                                     e->gtp_xact->gtp_version, diam_err, NULL);
             send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+            OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
         }
     }
 }
@@ -625,6 +647,15 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
 
     switch (e->h.id) {
     case OGS_FSM_ENTRY_SIG:
+        if (sess->epc) {
+            /* EPC */
+            ogs_assert(OGS_OK ==
+                smf_epc_pfcp_send_session_establishment_request(sess, e->gtp_xact, 0));
+        } else {
+            /* 5GC */
+            ogs_assert(OGS_OK ==
+                smf_5gc_pfcp_send_session_establishment_request(sess, 0));
+        }
         break;
 
     case SMF_EVT_N4_MESSAGE:
@@ -643,14 +674,16 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                         sess, pfcp_xact,
                         &pfcp_message->pfcp_session_establishment_response);
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-                    /* FIXME: tear down Gy and Gx */
                     gtp_cause = gtp_cause_from_pfcp(
                                     pfcp_cause, gtp_xact->gtp_version);
                     send_gtp_create_err_msg(sess, e->gtp_xact, gtp_cause);
+                    OGS_FSM_TRAN(s, smf_gsm_state_teardown);
                     return;
                 }
 
-                gtp_xact = pfcp_xact->assoc_xact;
+                sess->teardown_pfcp = true;
+                sess->teardown_gtp = true;
+
                 if (gtp_xact) {
                     switch (gtp_xact->gtp_version) {
                     case 1:
@@ -696,6 +729,9 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                     OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
                     return;
                 }
+
+                sess->teardown_pfcp = true;
+
                 memset(&param, 0, sizeof(param));
                 param.state = SMF_UE_REQUESTED_PDU_SESSION_ESTABLISHMENT;
                 param.n1smbuf =
@@ -733,6 +769,7 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
                         OGS_GTP1_CAUSE_NETWORK_FAILURE :
                         OGS_GTP2_CAUSE_TIMED_OUT_REQUEST;
                 send_gtp_create_err_msg(sess, gtp_xact, gtp_cause);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
             } else {
                 OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
             }
@@ -807,7 +844,7 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                         OGS_GTP1_DELETE_PDP_CONTEXT_RESPONSE_TYPE, gtp1_cause);
                 return;
             }
-            OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_deletion);
+            OGS_FSM_TRAN(s, smf_gsm_state_teardown);
         }
         break;
 
@@ -825,14 +862,14 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                         OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, gtp2_cause);
                 return;
             }
-            OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_deletion);
+            OGS_FSM_TRAN(s, smf_gsm_state_teardown);
             break;
         case OGS_GTP2_DELETE_BEARER_RESPONSE_TYPE:
             release = smf_s5c_handle_delete_bearer_response(
                 sess, e->gtp_xact, &e->gtp2_message->delete_bearer_response);
             if (release) {
                 e->gtp_xact = NULL;
-                OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_deletion);
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
             }
             break;
         case OGS_GTP2_CREATE_SESSION_REQUEST_TYPE:
@@ -1037,7 +1074,7 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
                             smf_namf_comm_send_n1_n2_message_transfer(sess, &param);
                         } else {
                             OGS_FSM_TRAN(&sess->sm,
-                                    &smf_gsm_state_wait_pfcp_deletion);
+                                    &smf_gsm_state_teardown);
                         }
                         break;
 
@@ -1312,6 +1349,63 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
     }
 }
 
+void smf_gsm_state_teardown(ogs_fsm_t *s, smf_event_t *e) {
+    smf_sess_t *sess = NULL;
+
+    ogs_assert(s);
+    ogs_assert(e);
+
+    smf_sm_debug(e);
+
+    sess = e->sess;
+    ogs_assert(sess);
+
+    switch (e->h.id) {
+    case OGS_FSM_ENTRY_SIG:
+        if (sess->teardown_pfcp) {
+            sess->teardown_pfcp = false;
+            OGS_FSM_TRAN(s, smf_gsm_state_wait_pfcp_deletion);
+            break;
+        } 
+
+        if (sess->teardown_gx || sess->teardown_gy) {
+            // NOTE: we can't teardown gx/gy just yet because we
+            // cue off of them to decide which messages to send
+            OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_release);
+            break;
+        }
+
+        if (sess->teardown_gtp) {
+            sess->teardown_gtp = false;
+            if (e->gtp_xact) {
+                switch (e->gtp_xact->gtp_version) {
+                case 1:
+                    ogs_assert(OGS_OK ==
+                            smf_gtp1_send_delete_pdp_context_response(
+                                sess, e->gtp_xact));
+                    break;
+                case 2:
+                    ogs_assert(OGS_OK ==
+                            smf_gtp2_send_delete_session_response(
+                                sess, e->gtp_xact));
+                    break;
+                }
+            }
+        }
+
+        OGS_FSM_TRAN(s, smf_gsm_state_epc_session_will_release);
+        break;
+
+    case OGS_FSM_EXIT_SIG:
+        break;
+
+    default:
+        ogs_error("Unknown event %s", smf_event_get_name(e));
+        break;
+    }
+}
+
+
 void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
 {
     int status;
@@ -1369,24 +1463,26 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
         switch (pfcp_message->h.type) {
         case OGS_PFCP_SESSION_DELETION_RESPONSE_TYPE:
             if (pfcp_xact->epc) {
+                /* LTE */
                 gtp_xact = pfcp_xact->assoc_xact;
 
                 pfcp_cause = smf_epc_n4_handle_session_deletion_response(
                             sess, pfcp_xact,
                             &pfcp_message->pfcp_session_deletion_response);
+
                 if (pfcp_cause != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-                    /* FIXME: tear down Gy and Gx */
                     ogs_assert(gtp_xact);
                     gtp_cause = gtp_cause_from_pfcp(
                             pfcp_cause, gtp_xact->gtp_version);
                     send_gtp_delete_err_msg(sess, gtp_xact, gtp_cause);
-                    break;
+                    sess->teardown_gtp = false;
                 }
+
                 e->gtp_xact = gtp_xact;
-                if (send_ccr_termination_req_gx_gy_s6b(sess, e) == true)
-                    OGS_FSM_TRAN(s, smf_gsm_state_wait_epc_auth_release);
-                /* else: free session? */
+                OGS_FSM_TRAN(s, smf_gsm_state_teardown);
+                break;
             } else {
+                /* 5GC */
                 int trigger;
 
                 stream = pfcp_xact->assoc_stream;
@@ -1493,6 +1589,8 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             } else {
                 ogs_error("5GC Session Deletion timeout not written");
             }
+            sess->teardown_gtp = false;
+            OGS_FSM_TRAN(s, smf_gsm_state_teardown);
             break;
 
         default:
@@ -1525,6 +1623,14 @@ void smf_gsm_state_wait_epc_auth_release(ogs_fsm_t *s, smf_event_t *e)
         sess->sm_data.gx_cca_term_err = ER_DIAMETER_SUCCESS;
         sess->sm_data.gy_cca_term_err = ER_DIAMETER_SUCCESS;
         sess->sm_data.s6b_sta_err = ER_DIAMETER_SUCCESS;
+
+        if (send_ccr_termination_req_gx_gy_s6b(sess, e) == false) {
+            // we barfed and didn't send any messages
+            sess->teardown_gx = false;
+            sess->teardown_gy = false;            
+            OGS_FSM_TRAN(s, &smf_gsm_state_teardown);
+        }
+
         break;
 
     case SMF_EVT_GN_MESSAGE:
@@ -1624,30 +1730,14 @@ test_can_proceed:
         if (sess->sm_data.s6b_sta_err != ER_DIAMETER_SUCCESS)
             diam_err = sess->sm_data.s6b_sta_err;
 
-        /* Initiated by peer request, let's answer: */
-        if (e->gtp_xact) {
-            if (diam_err == ER_DIAMETER_SUCCESS) {
-                /*
-                 * 1. MME sends Delete Session Request to SGW/SMF.
-                 * 2. SMF sends Delete Session Response to SGW/MME.
-                 */
-                switch (e->gtp_xact->gtp_version) {
-                case 1:
-                    smf_gtp1_send_delete_pdp_context_response(
-                                sess, e->gtp_xact);
-                    break;
-                case 2:
-                    smf_gtp2_send_delete_session_response(
-                                sess, e->gtp_xact);
-                    break;
-                }
-            } else {
-                uint8_t gtp_cause = gtp_cause_from_diameter(
-                                    e->gtp_xact->gtp_version, diam_err, NULL);
-                send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
-            }
+        if (diam_err != ER_DIAMETER_SUCCESS) {
+            uint8_t gtp_cause = gtp_cause_from_diameter(
+                                e->gtp_xact->gtp_version, diam_err, NULL);
+            send_gtp_delete_err_msg(sess, e->gtp_xact, gtp_cause);
+            sess->teardown_gtp = false;
         }
-        OGS_FSM_TRAN(s, smf_gsm_state_epc_session_will_release);
+
+        OGS_FSM_TRAN(s, smf_gsm_state_teardown);
     }
 }
 
