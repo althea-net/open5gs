@@ -1,30 +1,8 @@
-<p align="center"><a href="https://open5gs.org" target="_blank" rel="noopener noreferrer"><img width="100" src="https://open5gs.org/assets/img/open5gs-logo-only.png" alt="Open5GS logo"></a></p>
+# What Is This Repo?
 
-## Getting Started
+This is our (Althea's) branch of [open5gs](https://github.com/open5gs/open5gs). Our team is firmly committed to open-sourcing and upstreaming all our contributions to open5gs whenever possible and desired by the community; this repo only holds commits that are either (a) still under active testing/development or (b) not desired by the greater open5gs community. Every change from upstream open5gs will be explained/listed below.
 
-Please follow the [documentation](https://open5gs.org/open5gs/docs/) at [open5gs.org](https://open5gs.org/)!
+## Branches
+The `main` (default) branch contains our most stable version of open5gs, and is generally in active deployment by our team. `dev` and `hotfix` are sometimes used for rapid testing and deployment, but come with no guarantees w.r.t code stability or branch consistency (i.e. they could deleted).
 
-## Sponsors
-
-If you find Open5GS useful for work, please consider supporting this Open Source project by [Becoming a sponsor](https://github.com/sponsors/acetcom). To manage the funding transactions transparently, you can donate through [OpenCollective](https://opencollective.com/open5gs).
-
-<p align="center">
-  <a target="_blank" href="https://open5gs.org/#sponsors">
-      <img alt="sponsors" src="https://open5gs.org/assets/img/sponsors.svg">
-  </a>
-</p>
-
-## Community
-
-- Problem with Open5GS can be filed as [issues](https://github.com/open5gs/open5gs/issues) in this repository.
-- Other topics related to this project are happening on the [discussions](https://github.com/open5gs/open5gs/discussions).
-- Voice and text chat are available in Open5GS's [Discord](https://discordapp.com/) workspace. Use [this link](https://discord.gg/GreNkuc) to get started.
-
-## Contributing
-
-If you're contributing through a pull request to Open5GS project on GitHub, please read the [Contributor License Agreement](https://open5gs.org/open5gs/cla/) in advance.
-
-## License
-
-- Open5GS Open Source files are made available under the terms of the GNU Affero General Public License ([GNU AGPL v3.0](https://www.gnu.org/licenses/agpl-3.0.html)).
-- [Commercial licenses](https://open5gs.org/open5gs/support/) are also available from [NeoPlane](https://neoplane.io/)
+Tagged releases (e.g. `v2.4.7`) come straight from plain vanilla `open5gs` and can be considered a "starting off point" for our modifications. The corresponding branch with `_althea` at the end (e.g. `v2.4.7_althea`) is a tightly-curated (and sometimes rebased) branch that is designed to be easy for the open5gs community to read/follow. Whereas `main` might have multiple commits for a given feature as we expand utility over time and find/catch bugs, the `_althea` branch will have just one commit for a given issue.
