@@ -54,7 +54,7 @@ typedef struct amf_context_s {
     ogs_guami_t served_guami[MAX_NUM_OF_SERVED_GUAMI];
 
     /* Served TAI */
-    uint8_t num_of_served_tai;
+    uint16_t num_of_served_tai;
     struct {
         ogs_5gs_tai0_list_t list0;
         ogs_5gs_tai2_list_t list2;
@@ -129,7 +129,7 @@ typedef struct amf_gnb_s {
     uint16_t        max_num_of_ostreams;/* SCTP Max num of outbound streams */
     uint16_t        ostream_id;         /* gnb_ostream_id generator */
 
-    uint8_t         num_of_supported_ta_list;
+    uint16_t         num_of_supported_ta_list;
     struct {
         ogs_uint24_t tac;
         uint8_t num_of_bplmn_list;
