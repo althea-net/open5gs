@@ -1,100 +1,11 @@
-<h1 align="center">Open5GS</h1>
+# What Is This Repo?
 
-If you find Open5GS useful for work, please consider supporting this Open Source project by [Becoming a sponsor](https://github.com/sponsors/acetcom). To manage the funding transactions transparently, you can donate through [OpenCollective](https://opencollective.com/open5gs).
+This is our (Althea's) branch of [open5gs](https://github.com/open5gs/open5gs). Our team is firmly committed to open-sourcing and upstreaming all our contributions to open5gs whenever possible and desired by the community; this repo only holds commits that are either (a) still under active testing/development or (b) not desired by the greater open5gs community. Every change from upstream open5gs will be explained/listed below.
 
-<h3 align="center">Platinum Sponsors</h3>
-<table align="center">
-  <tbody>
-    <tr>
-      <td align="center" valign="middle">
-  <a href="https://teletresearch.com/" target="_blank">
-    <img width="400px" src="https://open5gs.org/assets/img/Telet-logo-v2.png">
-  </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
+## Branches
+The `main` (default) branch contains our most stable version of open5gs, and is generally in active deployment by our team. `dev` and `hotfix` are sometimes used for rapid testing and deployment, but come with no guarantees w.r.t code stability or branch consistency (i.e. they could deleted).
 
-<h3 align="center">Gold Sponsors</h3>
-<table align="center">
-  <tbody>
-    <tr>
-      <td align="center" valign="middle">
-  <a href="http://wavemobile.com/" target="_blank">
-    <img width="222px" src="https://open5gs.org/assets/img/Wavemobile-Logo-Mark-RGB.png">
-  </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
+Tagged releases (e.g. `v2.4.7`) come straight from plain vanilla `open5gs` and can be considered a "starting off point" for our modifications. The corresponding branch with `_althea` at the end (e.g. `v2.4.7_althea`) is a tightly-curated (and sometimes rebased) branch that is designed to be easy for the open5gs community to read/follow. Whereas `main` might have multiple commits for a given feature as we expand utility over time and find/catch bugs, the `_althea` branch will have just one commit for a given issue.
 
-<h3 align="center">Silver Sponsors</h3>
-<table align="center">
-  <tbody>
-    <tr>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://nextepc.com/" target="_blank">
-          <img src="https://open5gs.org/assets/img/nextepc_logo.jpg">
-        </a>
-      </td>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://www.wearetriple.com/" target="_blank">
-          <img src="https://open5gs.org/assets/img/triple_logo.png">
-        </a>
-      </td>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://sdr.eee.strath.ac.uk/" target="_blank">
-          <img src="https://open5gs.org/assets/img/strath.png">
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://skylarkwireless.com/" target="_blank">
-          <img src="https://open5gs.org/assets/img/SkylarkWireless-420x78-Web2-R.png">
-        </a>
-      </td>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://sysmocom.de/" target="_blank">
-          <img src="https://open5gs.org/assets/img/sysmocom-logo-only.png">
-        </a>
-      </td>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://www.p1sec.com/" target="_blank">
-          <img src="https://open5gs.org/assets/img/2021-logo-P1.svg">
-        </a>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" valign="middle" width="222px">
-        <a href="https://www.ng-voice.com/" target="_blank">
-          <img src="https://open5gs.org/assets/img/ng-voice-logo_color.png">
-        </a>
-      </td>
-      <td align="center" valign="middle" width="222px">
-        <a href="http://www.bristol.ac.uk/engineering/research/smart/" target="_blank">
-          <img src="https://open5gs.org/assets/img/smart-internet-lab.png">
-        </a>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-## Documentation
-
-If you don't understand something about Open5GS, the [https://open5gs.org/open5gs/docs/](https://open5gs.org/open5gs/docs/) is a great place to look for answers.
-
-## Community
-
-- Problem with Open5GS can be filed as [issues](https://github.com/open5gs/open5gs/issues) in this repository.
-- Other topics related to this project are happening on the [discussions](https://github.com/open5gs/open5gs/discussions).
-- Voice and text chat are available in Open5GS's [Discord](https://discordapp.com/) workspace. Use [this link](https://discord.gg/GreNkuc) to get started.
-
-## Contributing
-
-If you're contributing through a pull request to Open5GS project on GitHub, please read the [Contributor License Agreement](https://open5gs.org/open5gs/cla/) in advance.
-
-## License
-
-- Open5GS Open Source files are made available under the terms of the GNU Affero General Public License ([GNU AGPL v3.0](https://www.gnu.org/licenses/agpl-3.0.html)).
-- [Commercial licenses](https://open5gs.org/open5gs/support/) are also available from [NextEPC, Inc.](https://nextepc.com)
+## Number of Served TAC/TAI
+open5gs has a limit of 16 different served TAIs hard-coded in OGS_MAX_NUM_OF_SERVED_TAI. Althea's KeyLTE architecture relies on many more than that: each edge KeyLTE router has its own TAC/TAI. We have currently set OGS_MAX_NUM_OF_SERVED_TAI to 256; this might increase again in the future.
