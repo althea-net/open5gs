@@ -155,6 +155,7 @@ void sgwc_s5c_handle_create_session_response(
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, session_cause);
+        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
         return;
     }
 
@@ -188,6 +189,7 @@ void sgwc_s5c_handle_create_session_response(
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, cause_value);
+        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
         return;
     }
     
@@ -213,6 +215,7 @@ void sgwc_s5c_handle_create_session_response(
             ogs_gtp_send_error_message(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE, bearer_cause);
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
             return;
         }
     }
@@ -249,6 +252,7 @@ void sgwc_s5c_handle_create_session_response(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
                     OGS_GTP2_CAUSE_MANDATORY_IE_MISSING);
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
             return;
         }
 
@@ -269,6 +273,7 @@ void sgwc_s5c_handle_create_session_response(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_CREATE_SESSION_RESPONSE_TYPE,
                     OGS_GTP2_CAUSE_MANDATORY_IE_MISSING);
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
             return;
         }
 
@@ -397,6 +402,7 @@ void sgwc_s5c_handle_modify_bearer_response(
             ogs_gtp_send_error_message(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE, cause_value);
+        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
         return;
     }
 
@@ -415,6 +421,7 @@ void sgwc_s5c_handle_modify_bearer_response(
             ogs_gtp_send_error_message(
                     s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                     OGS_GTP2_MODIFY_BEARER_RESPONSE_TYPE, session_cause);
+        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
         return;
     }
 
@@ -512,6 +519,7 @@ void sgwc_s5c_handle_delete_session_response(
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, cause_value);
+        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
         return;
     }
 
