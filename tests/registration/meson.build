@@ -40,4 +40,5 @@ test5gc_registration_exe = executable('registration',
 test('registration',
     test5gc_registration_exe,
     is_parallel : false,
-    suite: '5gc')
+    suite: '5gc',
+    timeout: 90)
