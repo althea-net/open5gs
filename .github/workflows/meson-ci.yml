@@ -49,7 +49,7 @@ jobs:
 #
   ubuntu-latest:
     name: Build and Test on Ubuntu Latest
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     services:
       mongodb:
         image: mongo
