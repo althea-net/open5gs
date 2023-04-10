@@ -601,6 +601,7 @@ smf:
     sbi:
       - addr: 127.0.0.4
         port: 7777
+        bind_send: true
     pfcp:
       - addr: 127.0.0.4
       - addr: ::1

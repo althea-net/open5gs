@@ -308,6 +308,7 @@ nssf:
     sbi:
       - addr: 127.0.0.14
         port: 7777
+        bind_send: true
     nsi:
       - addr: 127.0.0.10
         port: 7777

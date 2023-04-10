@@ -89,6 +89,8 @@ bool ogs_sbi_client_send_via_scp(
         ogs_sbi_client_t *client, ogs_sbi_client_cb_f client_cb,
         ogs_sbi_request_t *request, void *data);
 
+extern char *sbi_send_interface;
+
 #ifdef __cplusplus
 }
 #endif

@@ -76,6 +76,8 @@ static void connection_free(connection_t *conn);
 static void connection_remove_all(ogs_sbi_client_t *client);
 static void connection_timer_expired(void *data);
 
+char *sbi_send_interface;
+
 void ogs_sbi_client_init(int num_of_sockinfo_pool, int num_of_connection_pool)
 {
     curl_global_init(CURL_GLOBAL_DEFAULT);
@@ -452,6 +454,9 @@ static connection_t *connection_add(
     curl_easy_setopt(conn->easy, CURLOPT_HEADERFUNCTION, header_cb);
     curl_easy_setopt(conn->easy, CURLOPT_HEADERDATA, conn);
     curl_easy_setopt(conn->easy, CURLOPT_ERRORBUFFER, conn->error);
+
+    if (sbi_send_interface)
+        curl_easy_setopt(conn->easy, CURLOPT_INTERFACE, sbi_send_interface);
 
     ogs_assert(client->multi);
     rc = curl_multi_add_handle(client->multi, conn->easy);

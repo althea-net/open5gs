@@ -264,6 +264,7 @@ pcf:
     sbi:
       - addr: 127.0.0.13
         port: 7777
+        bind_send: true
     metrics:
       - addr: 127.0.0.13
         port: 9090

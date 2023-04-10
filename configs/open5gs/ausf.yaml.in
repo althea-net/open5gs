@@ -255,6 +255,7 @@ ausf:
     sbi:
       - addr: 127.0.0.11
         port: 7777
+        bind_send: true
 
 #
 #  <SBI Client>>

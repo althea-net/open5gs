@@ -248,6 +248,7 @@ int ogs_sbi_context_parse_config(
 
                         ogs_sockopt_t option;
                         bool is_option = false;
+                        bool bind_send = false;
 
                         if (ogs_yaml_iter_type(&sbi_array) ==
                                 YAML_MAPPING_NODE) {
@@ -329,6 +330,8 @@ int ogs_sbi_context_parse_config(
                                     port = atoi(v);
                             } else if (!strcmp(sbi_key, "dev")) {
                                 dev = ogs_yaml_iter_value(&sbi_iter);
+                            } else if (!strcmp(sbi_key, "bind_send")) {
+                                bind_send = ogs_yaml_iter_bool(&sbi_iter);
                             } else if (!strcmp(sbi_key, "option")) {
                                 rv = ogs_app_config_parse_sockopt(
                                         &sbi_iter, &option);
@@ -343,6 +346,10 @@ int ogs_sbi_context_parse_config(
                             rv = ogs_addaddrinfo(&addr,
                                     family, hostname[i], port, 0);
                             ogs_assert(rv == OGS_OK);
+                        }
+
+                        if (bind_send) {
+                            sbi_send_interface = hostname[0];
                         }
 
                         ogs_list_init(&list);

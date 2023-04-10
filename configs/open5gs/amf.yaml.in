@@ -415,6 +415,7 @@ amf:
     sbi:
       - addr: 127.0.0.5
         port: 7777
+        bind_send: true
     ngap:
       - addr: 127.0.0.5
     metrics:

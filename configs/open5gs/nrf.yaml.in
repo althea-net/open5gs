@@ -194,6 +194,7 @@ nrf:
         - 127.0.0.10
         - ::1
         port: 7777
+        bind_send: true
 
 #
 #  <SBI Client>>
