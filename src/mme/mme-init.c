@@ -81,9 +81,9 @@ int mme_initialize()
     stats_update_mme_ues();
     stats_update_mme_sessions();
 
-    ogs_sockaddr_t addr;
-    mme_sgw_t *sgw = mme_sgw_add(&addr);
-    sgw_ue_add(sgw);
+    // ogs_sockaddr_t addr;
+    // enb_ue_t *enb_ue = enb_ue_add();
+    mme_ue_add(NULL);
 
     return OGS_OK;
 }
