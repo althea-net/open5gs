@@ -136,7 +136,11 @@ static void sgwc_sxa_handle_session_reestablishment(
 
     ogs_pfcp_f_seid_t *up_f_seid = NULL;
     up_f_seid = pfcp_rsp->up_f_seid.data;
-    ogs_assert(up_f_seid);
+
+    if (!up_f_seid) {
+        return;
+    }
+    //ogs_assert(up_f_seid);
     sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
 
     return;
