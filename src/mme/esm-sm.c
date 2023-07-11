@@ -230,10 +230,9 @@ void esm_state_inactive(ogs_fsm_t *s, mme_event_t *e)
                         "Stop retransmission", mme_ue->imsi_bcd);
                 OGS_FSM_TRAN(&bearer->sm, &esm_state_exception);
 
-                ogs_assert(OGS_OK ==
                     nas_eps_send_pdn_connectivity_reject(sess,
                         ESM_CAUSE_ESM_INFORMATION_NOT_RECEIVED,
-                        e->create_action));
+                        e->create_action);
             } else {
                 rv = nas_eps_send_esm_information_request(bearer);
                 if (rv == OGS_OK) {

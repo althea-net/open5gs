@@ -146,8 +146,10 @@ void mme_s11_handle_create_session_response(
     if (cause_value != OGS_GTP2_CAUSE_REQUEST_ACCEPTED) {
         if (create_action == OGS_GTP_CREATE_IN_ATTACH_REQUEST) {
             ogs_error("[%s] Attach reject", mme_ue->imsi_bcd);
-            ogs_assert(OGS_OK == nas_eps_send_attach_reject(mme_ue,
-                    EMM_CAUSE_NETWORK_FAILURE, ESM_CAUSE_NETWORK_FAILURE));
+            if (OGS_OK != nas_eps_send_attach_reject(mme_ue,
+                    EMM_CAUSE_NETWORK_FAILURE, ESM_CAUSE_NETWORK_FAILURE)) {
+                        return;
+                    }
         }
         mme_send_delete_session_or_mme_ue_context_release(mme_ue);
         return;
@@ -396,8 +398,7 @@ void mme_s11_handle_create_session_response(
         } else {
             ogs_assert(OGS_PDU_SESSION_TYPE_IS_VALID(
                         session->paa.session_type));
-            ogs_assert(OGS_OK ==
-                nas_eps_send_attach_accept(mme_ue));
+            nas_eps_send_attach_accept(mme_ue);
         }
 
     } else if (create_action == OGS_GTP_CREATE_IN_UPLINK_NAS_TRANSPORT) {

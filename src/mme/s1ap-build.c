@@ -497,7 +497,9 @@ ogs_pkbuf_t *s1ap_build_initial_context_setup_request(
         emmbuf = NULL;
     }
 
-    ogs_assert(E_RABToBeSetupListCtxtSUReq->list.count);
+    if(!E_RABToBeSetupListCtxtSUReq->list.count) {
+        return 0;
+    }
 
     ie = CALLOC(1, sizeof(S1AP_InitialContextSetupRequestIEs_t));
     ASN_SEQUENCE_ADD(&InitialContextSetupRequest->protocolIEs, ie);
