@@ -122,7 +122,6 @@ int ogs_pfcp_sendto(ogs_pfcp_node_t *node, ogs_pkbuf_t *pkbuf)
                     sock->fd, pkbuf->data, pkbuf->len,
                     OGS_ADDR(addr, buf), OGS_PORT(addr));
         }
-        return OGS_ERROR;
     }
 
     return OGS_OK;
