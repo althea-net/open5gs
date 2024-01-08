@@ -136,8 +136,12 @@ static void sgwc_sxa_handle_session_reestablishment(
 
     ogs_pfcp_f_seid_t *up_f_seid = NULL;
     up_f_seid = pfcp_rsp->up_f_seid.data;
-    ogs_assert(up_f_seid);
-    sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);
+    //ogs_assert(up_f_seid);
+    if (!up_f_seid) {
+        ogs_error("We do not have a stored F-SEID?!?");
+    } else {
+        sess->sgwu_sxa_seid = be64toh(up_f_seid->seid);        
+    }
 
     stats_update_sgwc_sessions();
 
