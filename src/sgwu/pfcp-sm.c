@@ -197,7 +197,7 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
              * cases, we still want to identify the local session which
              * originated the message, so try harder by using the SEID we
              * locally stored in xact when sending the original request: */
-            sess = sgwc_sess_find_by_seid(xact->local_seid);
+            sess = sgwu_sess_find_by_sgwu_sxa_seid(xact->local_seid);
         }
 
         switch (message->h.type) {
