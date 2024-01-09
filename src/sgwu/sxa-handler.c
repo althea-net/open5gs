@@ -444,27 +444,33 @@ void sgwu_sxa_handle_session_report_response(
 
     ogs_pfcp_xact_commit(xact);
 
-    ogs_debug("Session report resopnse");
+    ogs_debug("Session report response");
 
     cause_value = OGS_PFCP_CAUSE_REQUEST_ACCEPTED;
 
     if (!sess) {
-        ogs_warn("No Context");
+        ogs_error("No Context");
         cause_value = OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND;
+        return;
     }
 
-    if (rsp->cause.presence) {
-        if (rsp->cause.u8 != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-            ogs_error("PFCP Cause[%d] : Not Accepted", rsp->cause.u8);
-            cause_value = rsp->cause.u8;
-        }
-    } else {
+    if (!rsp->cause.presence) {
         ogs_error("No Cause");
         cause_value = OGS_PFCP_CAUSE_MANDATORY_IE_MISSING;
+        return;
+    }
+
+    cause_value = rsp->cause.u8;
+
+    if (cause_value == OGS_PFCP_CAUSE_SESSION_CONTEXT_NOT_FOUND) {
+        // we sent a Session-Report-Request but the CPS says
+        // the session doesn't exist, so we should remove it
+        sgwu_sess_remove(sess);
     }
 
     if (cause_value != OGS_PFCP_CAUSE_REQUEST_ACCEPTED) {
-        ogs_error("Cause request not accepted[%d]", cause_value);
-        return;
+        ogs_error("PFCP Cause[%d] : Not Accepted", cause_value);
     }
+
+    return;
 }

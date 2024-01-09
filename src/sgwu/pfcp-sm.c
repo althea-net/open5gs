@@ -191,6 +191,14 @@ void sgwu_pfcp_state_associated(ogs_fsm_t *s, sgwu_event_t *e)
 
         if (message->h.seid_presence && message->h.seid != 0)
             sess = sgwu_sess_find_by_sgwu_sxa_seid(message->h.seid);
+        else if (xact->local_seid) { /* rx no SEID or SEID=0 */
+            /* 3GPP TS 29.244 7.2.2.4.2: we receive SEID=0 under some
+             * conditions, such as cause "Session context not found". In those
+             * cases, we still want to identify the local session which
+             * originated the message, so try harder by using the SEID we
+             * locally stored in xact when sending the original request: */
+            sess = sgwc_sess_find_by_seid(xact->local_seid);
+        }
 
         switch (message->h.type) {
         case OGS_PFCP_HEARTBEAT_REQUEST_TYPE:
