@@ -59,7 +59,6 @@ void panic(const char *fmt, ...);
 #include <stdlib.h>	// bsearch
 #ifdef NEED_KERNEL
 #define _KERNEL
-#include <sys/cdefs.h>
 #include <sys/param.h>
 
 #define __user	// not defined here ?
