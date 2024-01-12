@@ -30,7 +30,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 __FBSDID("$FreeBSD: head/lib/libutil/humanize_number.c 220582 2011-04-12 22:48:03Z delphij $");
 
 #include <sys/types.h>

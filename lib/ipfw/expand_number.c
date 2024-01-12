@@ -25,7 +25,6 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
 __FBSDID("$FreeBSD: head/lib/libutil/expand_number.c 211343 2010-08-15 18:32:06Z des $");
 
 #include <sys/types.h>
