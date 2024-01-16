@@ -1539,6 +1539,9 @@ void mme_s11_handle_downlink_data_notification(
             enb_ue_t *enb_ue = enb_ue_cycle(mme_ue->enb_ue);
             ogs_assert(enb_ue);
 
+	    MME_STORE_PAGING_INFO(mme_ue,
+                MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION, bearer);	
+
             r = s1ap_send_ue_context_release_command(enb_ue,
                     S1AP_Cause_PR_nas, S1AP_CauseNas_normal_release,
                     S1AP_UE_CTX_REL_S1_PAGING, 0);
