@@ -485,7 +485,7 @@ void sgwc_s5c_handle_delete_session_response(
      * Check Transaction
      ********************/
     // if we don't have a transaction to delete, move on
-    if (!s5c_xact || !s11_xact) {
+    if (!s5c_xact) {
         ogs_error("Cannot find transaction to delete!");
         return;
     }
