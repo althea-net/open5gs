@@ -244,7 +244,17 @@ void s1ap_handle_s1_setup_request(mme_enb_t *enb, ogs_s1ap_message_t *message)
 
     stats_update_mme_enbs();
 
+    if (enb->state.s1_setup_success == true) {
+        // we have already associated with this eNB in the past, so
+        // something happened. Per 36.413.8.7.3.1 we need to clear
+        // all associated UE contexts similar to a Reset procedure.
+        ogs_warn("eNB was previously associated. Clearing all associated UE contexts.");
+
+        mme_gtp_send_release_all_ue_in_enb(
+                enb, OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_S1_SETUPREQ);
+    }
     enb->state.s1_setup_success = true;
+
     r = s1ap_send_s1_setup_response(enb);
     ogs_expect(r == OGS_OK);
     ogs_assert(r != OGS_ERROR);

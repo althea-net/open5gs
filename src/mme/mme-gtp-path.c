@@ -554,7 +554,8 @@ void mme_gtp_send_release_all_ue_in_enb(mme_enb_t *enb, int action)
         mme_ue = enb_ue->mme_ue;
 
         if (mme_ue) {
-            if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED) {
+            if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED ||
+                action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_S1_SETUPREQ) {
                 /*
                  * https://github.com/open5gs/open5gs/pull/1497
                  *
@@ -585,7 +586,8 @@ void mme_gtp_send_release_all_ue_in_enb(mme_enb_t *enb, int action)
                 enb_ue->enb_ue_s1ap_id, enb_ue->mme_ue_s1ap_id, action);
 
             if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED ||
-                action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_RESET_ALL) {
+                action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_RESET_ALL ||
+                action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_S1_SETUPREQ) {
                 enb_ue_remove(enb_ue);
             } else {
                 /* At this point, it does not support other action */
