@@ -106,7 +106,7 @@ extern "C" {
 #define OGS_MAX_NUM_OF_PLMN             12  /* maxnoofPLMNs(AMF): 12 */
 #define OGS_MAX_NUM_OF_BPLMN            OGS_MAX_NUM_OF_PLMN
 
-#define OGS_MAX_NUM_OF_TAI              16
+#define OGS_MAX_NUM_OF_TAI              256
 #define OGS_MAX_NUM_OF_SLICE            8
 
 #define OGS_NEXT_ID(__id, __min, __max) \

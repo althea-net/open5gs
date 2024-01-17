@@ -110,7 +110,7 @@ static int global_conf_prepare(void)
     global_conf.sockopt.no_delay = true;
 
 #define MAX_NUM_OF_UE               1024    /* Num of UEs */
-#define MAX_NUM_OF_PEER             64      /* Num of Peer */
+#define MAX_NUM_OF_PEER             256     /* Num of Peer */
 
     global_conf.max.ue = MAX_NUM_OF_UE;
     global_conf.max.peer = MAX_NUM_OF_PEER;

@@ -924,7 +924,7 @@ int mme_context_parse_config(void)
                                             OGS_MAX_NUM_OF_APN] = {NULL,};
                                         uint8_t num_of_apn = 0;
                                         uint16_t tac[OGS_MAX_NUM_OF_TAI] = {0,};
-                                        uint8_t num_of_tac = 0;
+                                        uint16_t num_of_tac = 0;
                                         uint32_t e_cell_id[
                                             OGS_MAX_NUM_OF_CELL_ID] = {0,};
                                         uint8_t num_of_e_cell_id = 0;
