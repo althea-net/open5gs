@@ -1330,7 +1330,8 @@ void mme_s11_handle_release_access_bearers_response(
         } else {
             ogs_error("ENB-S1 Context has already been removed");
         }
-    } else if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED) {
+    } else if (action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_LO_CONNREFUSED ||
+               action == OGS_GTP_RELEASE_S1_CONTEXT_REMOVE_BY_S1_SETUPREQ) {
     /* enb_ue_unlink() and enb_ue_remove() has already been executed.
      * So, there is no `enb_ue` context */
 
