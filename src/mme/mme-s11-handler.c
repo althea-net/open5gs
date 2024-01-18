@@ -1574,8 +1574,10 @@ void mme_s11_handle_downlink_data_notification(
             enb_ue_t *enb_ue = enb_ue_cycle(mme_ue->enb_ue);
             ogs_assert(enb_ue);
 
-            MME_STORE_PAGING_INFO(mme_ue,
-                MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION, bearer);            
+            mme_ue->paging.data = bearer;
+            // we are not calling MME_STORE_PAGING_INFO because we
+            // have not yet started paging, but we still need to keep
+            // a pointer to the relevant bearer to build the ACK later
 
             r = s1ap_send_ue_context_release_command(enb_ue,
                     S1AP_Cause_PR_nas, S1AP_CauseNas_normal_release,

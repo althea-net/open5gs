@@ -603,6 +603,11 @@ int mme_gtp_send_downlink_data_notification_ack(
         ogs_warn("GTP transaction(NOTIFY) has already been removed");
         return OGS_OK;
     }
+    if (xact->step != 1) {
+        ogs_error("Trying to re-send downlink data notification ack?!?");
+        return OGS_OK;        
+    }
+
     mme_ue = bearer->mme_ue;
     ogs_assert(mme_ue);
     sgw_ue = mme_ue->sgw_ue;
