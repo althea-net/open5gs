@@ -105,9 +105,18 @@ typedef uint32_t ogs_pool_id_t;
     if (((pool)->size != (pool)->avail)) \
         ogs_error("%d in '%s[%d]' were not released.", \
                 (pool)->size - (pool)->avail, (pool)->name, (pool)->size); \
-    ogs_free((pool)->free); \
-    ogs_free((pool)->array); \
-    ogs_free((pool)->index); \
+    if ((pool)->free) {\
+        ogs_free((pool)->free); \
+    (pool)->free = NULL; \
+    } \
+    if ((pool)->array) {\
+        ogs_free((pool)->array); \
+    (pool)->array = NULL; \
+    } \
+    if ((pool)->index) {\
+        ogs_free((pool)->index); \
+    (pool)->index = NULL; \
+    } \
 } while (0)
 
 #define ogs_pool_index(pool, node) (((node) - (pool)->array)+1)
