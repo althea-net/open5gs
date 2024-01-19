@@ -330,8 +330,21 @@ static void regenerate_all_timer_duration(void)
 {
     ogs_assert(local_conf.time.message.duration);
 
+    // if message.duration is set, it overrides the default for all 
+    // durations *except* any that were individually set
+    if (!local_conf.time.message.sbi_set) {
+        local_conf.time.message.sbi_duration = local_conf.time.message.duration;
+    }
+    if (!local_conf.time.message.gtp_set) {
+        local_conf.time.message.gtp_duration = local_conf.time.message.duration;
+    }
+    if (!local_conf.time.message.pfcp_set) {
+        local_conf.time.message.pfcp_duration = local_conf.time.message.duration;
+    }
+
+
     local_conf.time.message.sbi.client_wait_duration =
-        local_conf.time.message.duration;
+        local_conf.time.message.sbi_duration;
     local_conf.time.message.sbi.connection_deadline =
         local_conf.time.message.sbi.client_wait_duration + ogs_time_from_sec(1);
     local_conf.time.message.sbi.reconnect_interval =
@@ -341,11 +354,8 @@ static void regenerate_all_timer_duration(void)
     local_conf.time.message.sbi.reconnect_interval_in_exception =
                 ogs_time_from_sec(2);
 
-#define PFCP_N1_RESPONSE_RETRY_COUNT  3
-    local_conf.time.message.pfcp.n1_response_rcount =
-        PFCP_N1_RESPONSE_RETRY_COUNT;
     local_conf.time.message.pfcp.t1_response_duration =
-        (local_conf.time.message.duration /
+        (local_conf.time.message.pfcp_duration /
          (local_conf.time.message.pfcp.n1_response_rcount + 1));
     ogs_assert(local_conf.time.message.pfcp.t1_response_duration);
 
@@ -367,11 +377,8 @@ static void regenerate_all_timer_duration(void)
             local_conf.time.message.sbi.client_wait_duration +
             ogs_time_from_sec(1));
 
-#define GTP_N3_RESPONSE_RETRY_COUNT  3
-    local_conf.time.message.gtp.n3_response_rcount =
-        GTP_N3_RESPONSE_RETRY_COUNT;
     local_conf.time.message.gtp.t3_response_duration =
-        (local_conf.time.message.duration /
+        (local_conf.time.message.gtp_duration /
          (local_conf.time.message.gtp.n3_response_rcount + 1));
     ogs_assert(local_conf.time.message.gtp.t3_response_duration);
 
@@ -383,8 +390,11 @@ static void regenerate_all_timer_duration(void)
     ogs_assert(local_conf.time.message.gtp.t3_holding_duration);
 
 #if 0
-    ogs_trace("%lld, %lld, %lld, %d, %lld, %d %lld, %d, %lld, %d, %lld",
+    ogs_trace("%lld, %lld, %lld, %lld, %lld, %lld, %d, %lld, %d %lld, %d, %lld, %d, %lld",
         (long long)local_conf.time.message.duration,
+        (long long)local_conf.time.message.sbi_duration,
+        (long long)local_conf.time.message.gtp_duration,
+        (long long)local_conf.time.message.pfcp_duration,
         (long long)local_conf.time.message.sbi.client_wait_duration,
         (long long)local_conf.time.message.sbi.connection_deadline,
         local_conf.time.message.pfcp.n1_response_rcount,
@@ -413,7 +423,6 @@ static int local_conf_prepare(void)
 
     /* 86400 seconds = 1 day */
     local_conf.time.subscription.validity_duration = 86400;
-
     /*
      * Message Wait Duration : 10 seconds (Default)
      *
@@ -423,7 +432,15 @@ static int local_conf_prepare(void)
      * the paging failure result to GTPv2-C or HTTP2(SBI).
      */
     local_conf.time.message.duration = ogs_time_from_sec(10);
+    local_conf.time.message.sbi_set = false;
+    local_conf.time.message.gtp_set = false;
+    local_conf.time.message.pfcp_set = false;
 
+
+#define PFCP_N1_RESPONSE_RETRY_COUNT  3
+#define GTP_N3_RESPONSE_RETRY_COUNT  3
+    local_conf.time.message.pfcp.n1_response_rcount = PFCP_N1_RESPONSE_RETRY_COUNT;
+    local_conf.time.message.gtp.n3_response_rcount = GTP_N3_RESPONSE_RETRY_COUNT;
     /*
      * Handover Wait Duration : 300 ms (Default)
      *
@@ -586,6 +603,45 @@ int ogs_app_parse_local_conf(const char *local)
                                     if (v) {
                                         local_conf.time.message.duration =
                                             ogs_time_from_msec(atoll(v));
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "sbi_duration")) {
+                                    const char *v =
+                                        ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.sbi_set = true;
+                                        local_conf.time.message.sbi_duration =
+                                            ogs_time_from_msec(atoll(v));
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "gtp_duration")) {
+                                    const char *v =
+                                        ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.gtp_set = true;
+                                        local_conf.time.message.gtp_duration =
+                                            ogs_time_from_msec(atoll(v));
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "pfcp_duration")) {
+                                    const char *v =
+                                        ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.pfcp_set = true;
+                                        local_conf.time.message.pfcp_duration =
+                                            ogs_time_from_msec(atoll(v));
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "pfcp_n1")) {
+                                    const char *v = ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.pfcp.n1_response_rcount = atoi(v);
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "gtp_n3")) {
+                                    const char *v = ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.gtp.n3_response_rcount = atoi(v);
                                         regenerate_all_timer_duration();
                                     }
                                 } else

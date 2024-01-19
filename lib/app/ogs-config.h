@@ -94,6 +94,13 @@ typedef struct ogs_local_conf_s {
 
         struct {
             ogs_time_t duration;
+            ogs_time_t sbi_duration;
+            ogs_time_t gtp_duration;
+            ogs_time_t pfcp_duration;
+            bool sbi_set;
+            bool gtp_set;
+            bool pfcp_set;
+
             struct {
                 ogs_time_t client_wait_duration;
                 ogs_time_t connection_deadline;
