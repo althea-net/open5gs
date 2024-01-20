@@ -97,6 +97,7 @@ typedef struct ogs_local_conf_s {
             ogs_time_t sbi_duration;
             ogs_time_t gtp_duration;
             ogs_time_t pfcp_duration;
+            ogs_time_t diameter_timeout;
             bool sbi_set;
             bool gtp_set;
             bool pfcp_set;

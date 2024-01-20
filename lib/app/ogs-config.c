@@ -435,7 +435,7 @@ static int local_conf_prepare(void)
     local_conf.time.message.sbi_set = false;
     local_conf.time.message.gtp_set = false;
     local_conf.time.message.pfcp_set = false;
-
+    local_conf.time.message.diameter_timeout = ogs_time_from_sec(3);
 
 #define PFCP_N1_RESPONSE_RETRY_COUNT  3
 #define GTP_N3_RESPONSE_RETRY_COUNT  3
@@ -642,6 +642,13 @@ int ogs_app_parse_local_conf(const char *local)
                                     const char *v = ogs_yaml_iter_value(&msg_iter);
                                     if (v) {
                                         local_conf.time.message.gtp.n3_response_rcount = atoi(v);
+                                        regenerate_all_timer_duration();
+                                    }
+                                } else if (!strcmp(msg_key, "diameter_timeout")) {
+                                    const char *v = ogs_yaml_iter_value(&msg_iter);
+                                    if (v) {
+                                        local_conf.time.message.diameter_timeout =
+                                            ogs_time_from_msec(atoll(v));
                                         regenerate_all_timer_duration();
                                     }
                                 } else

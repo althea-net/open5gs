@@ -54,6 +54,7 @@ static void timer_send_event(int timer_id, void *data)
 {
     int rv;
     smf_event_t *e = NULL;
+    smf_event_t *old_e = NULL;
     ogs_assert(data);
 
     switch (timer_id) {
@@ -64,6 +65,19 @@ static void timer_send_event(int timer_id, void *data)
         e->h.timer_id = timer_id;
         e->pfcp_node = data;
         break;
+
+    case SMF_TIMER_GX_CCA:
+    case SMF_TIMER_GY_CCA:
+        old_e = data;
+
+        e = smf_event_new(SMF_EVT_DIAMETER_TIMER);
+        ogs_assert(e);
+        e->h.timer_id = timer_id;
+        e->sess = old_e->sess;
+        e->gx_message = old_e->gx_message;
+        e->gtp_xact = old_e->gtp_xact;
+        break;
+
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);
         ogs_assert_if_reached();
@@ -86,4 +100,14 @@ void smf_timer_pfcp_association(void *data)
 void smf_timer_pfcp_no_heartbeat(void *data)
 {
     timer_send_event(SMF_TIMER_PFCP_NO_HEARTBEAT, data);
+}
+
+void smf_timer_gx_no_cca(void *data)
+{
+    timer_send_event(SMF_TIMER_GX_CCA, data);
+}
+
+void smf_timer_gy_no_cca(void *data)
+{
+    timer_send_event(SMF_TIMER_GY_CCA, data);
 }
