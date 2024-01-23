@@ -66,6 +66,12 @@ void emm_state_de_registered(ogs_fsm_t *s, mme_event_t *e)
     mme_ue = e->mme_ue;
     ogs_assert(mme_ue);
 
+    mme_ue = mme_ue_cycle(mme_ue);
+    if (!mme_ue) {
+        ogs_warn("mme_ue context has already been removed");
+        return;
+    }
+
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
         CLEAR_SERVICE_INDICATOR(mme_ue);
