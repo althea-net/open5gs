@@ -33,6 +33,8 @@ typedef enum {
     SMF_TIMER_PFCP_ASSOCIATION,
     SMF_TIMER_PFCP_NO_HEARTBEAT,
     SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE,
+    SMF_TIMER_PFCP_NO_DELETION_RESPONSE,
+    SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE,
     SMF_TIMER_GX_CCA,
     SMF_TIMER_GY_CCA,
 
@@ -46,6 +48,10 @@ void smf_timer_pfcp_association(void *data);
 void smf_timer_pfcp_no_heartbeat(void *data);
 void smf_timer_gx_no_cca(void *data);
 void smf_timer_gy_no_cca(void *data);
+
+void smf_timeout_pfcp_no_establishment_response(void *data);
+void smf_timeout_pfcp_no_deletion_response(void *data);
+void smf_timeout_pfcp_no_modification_response(void *data);
 
 #ifdef __cplusplus
 }

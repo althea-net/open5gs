@@ -427,6 +427,8 @@ typedef struct smf_sess_s {
     ogs_pfcp_node_t *pfcp_node;
     bool pfcp_established;
     
+    ogs_pfcp_xact_t *timeout_xact;
+        
     ogs_timer_t *timer_gx_cca;
     ogs_timer_t *timer_gy_cca;
 

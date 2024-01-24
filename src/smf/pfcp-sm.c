@@ -117,6 +117,8 @@ void smf_pfcp_state_will_associate(ogs_fsm_t *s, smf_event_t *e)
             ogs_pfcp_cp_send_association_setup_request(node, node_timeout);
             break;
         case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+        case SMF_TIMER_PFCP_NO_DELETION_RESPONSE:
+        case SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE:
             sess = e->sess;
             sess = smf_sess_cycle(sess);
             if (!sess) {
@@ -399,6 +401,8 @@ void smf_pfcp_state_associated(ogs_fsm_t *s, smf_event_t *e)
                 ogs_pfcp_send_heartbeat_request(node, node_timeout));
             break;
         case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+        case SMF_TIMER_PFCP_NO_DELETION_RESPONSE:
+        case SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE:
             sess = e->sess;
             sess = smf_sess_cycle(sess);
             if (!sess) {

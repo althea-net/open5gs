@@ -720,8 +720,19 @@ void smf_gsm_state_wait_pfcp_establishment(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_N4_TIMER:
         switch (e->h.timer_id) {
         case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
-            OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+            ogs_error("PFCP timeout waiting for Session Establishment Response");
+
+            if (sess->timeout_xact->epc) {
+                ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
+                uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
+                        OGS_GTP1_CAUSE_NETWORK_FAILURE :
+                        OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                send_gtp_create_err_msg(sess, gtp_xact, gtp_cause);
+            } else {
+                OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+            }
             break;
+
         default:
             ogs_error("Unknown timer[%s:%d]",
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
@@ -1267,8 +1278,19 @@ void smf_gsm_state_operational(ogs_fsm_t *s, smf_event_t *e)
     case SMF_EVT_N4_TIMER:
         switch (e->h.timer_id) {
         case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
-            OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+            ogs_error("PFCP timeout waiting for Session Establishment Response");
+
+            if (sess->timeout_xact->epc) {
+                ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
+                uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
+                        OGS_GTP1_CAUSE_NETWORK_FAILURE :
+                        OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                send_gtp_create_err_msg(sess, gtp_xact, gtp_cause);
+            } else {
+                OGS_FSM_TRAN(s, smf_gsm_state_5gc_n1_n2_reject);
+            }
             break;
+
         default:
             ogs_error("Unknown timer[%s:%d]",
                     ogs_timer_get_name(e->h.timer_id), e->h.timer_id);
@@ -1440,6 +1462,28 @@ void smf_gsm_state_wait_pfcp_deletion(ogs_fsm_t *s, smf_event_t *e)
             ogs_error("cannot handle PFCP message type[%d]",
                     pfcp_message->h.type);
         }
+        break;
+
+    case SMF_EVT_N4_TIMER:
+        switch(e->h.timer_id) {
+        case SMF_TIMER_PFCP_NO_DELETION_RESPONSE:
+            ogs_error("PFCP timeout waiting for Session Deletion Response");
+
+            if (sess->timeout_xact->epc) {
+                ogs_gtp_xact_t *gtp_xact = (ogs_gtp_xact_t *) sess->timeout_xact->assoc_xact;
+                uint8_t gtp_cause = (gtp_xact->gtp_version == 1) ?
+                        OGS_GTP1_CAUSE_NETWORK_FAILURE :
+                        OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+                send_gtp_delete_err_msg(sess, gtp_xact, gtp_cause);
+            } else {
+                ogs_error("5GC Session Deletion timeout not written");
+            }
+            break;
+
+        default:
+                ogs_error("Unknown timer[%s:%d]",
+                        ogs_timer_get_name(e->h.timer_id), e->h.timer_id);        }
+        break;
     }
 }
 

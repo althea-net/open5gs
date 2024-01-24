@@ -42,6 +42,10 @@ const char *smf_timer_get_name(int timer_id)
         return "SMF_TIMER_PFCP_NO_HEARTBEAT";
     case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
         return "SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE";
+    case SMF_TIMER_PFCP_NO_DELETION_RESPONSE:
+        return "SMF_TIMER_PFCP_NO_DELETION_RESPONSE";
+    case SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE:
+        return "SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE";
     default: 
        break;
     }
@@ -78,6 +82,16 @@ static void timer_send_event(int timer_id, void *data)
         e->gtp_xact = old_e->gtp_xact;
         break;
 
+    case SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE:
+    case SMF_TIMER_PFCP_NO_DELETION_RESPONSE:
+    case SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE:
+        e = smf_event_new(SMF_EVT_N4_TIMER);
+        ogs_assert(e);
+        e->h.timer_id = timer_id;
+        e->sess = data;
+        e->pfcp_node = e->sess->pfcp_node;
+        break;
+
     default:
         ogs_fatal("Unknown timer id[%d]", timer_id);
         ogs_assert_if_reached();
@@ -110,4 +124,19 @@ void smf_timer_gx_no_cca(void *data)
 void smf_timer_gy_no_cca(void *data)
 {
     timer_send_event(SMF_TIMER_GY_CCA, data);
+}
+
+void smf_timeout_pfcp_no_establishment_response(void *data)
+{
+    timer_send_event(SMF_TIMER_PFCP_NO_ESTABLISHMENT_RESPONSE, data);
+}
+
+void smf_timeout_pfcp_no_deletion_response(void *data)
+{
+    timer_send_event(SMF_TIMER_PFCP_NO_DELETION_RESPONSE, data);
+}
+
+void smf_timeout_pfcp_no_modification_response(void *data)
+{
+    timer_send_event(SMF_TIMER_PFCP_NO_MODIFICATION_RESPONSE, data);
 }
