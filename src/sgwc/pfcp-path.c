@@ -189,7 +189,7 @@ static void sess_timeout(ogs_pfcp_xact_t *pfcp_xact, void *data)
         gtp_cause = OGS_GTP1_CAUSE_NETWORK_FAILURE;
         break;
     case 2:
-        gtp_cause = OGS_GTP2_CAUSE_REMOTE_PEER_NOT_RESPONDING;
+        gtp_cause = OGS_GTP2_CAUSE_TIMED_OUT_REQUEST;
         break;
     }    
 
