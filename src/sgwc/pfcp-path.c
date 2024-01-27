@@ -487,7 +487,10 @@ int sgwc_pfcp_send_session_deletion_request(
     ogs_pfcp_header_t h;
     ogs_pfcp_xact_t *xact = NULL;
 
-    ogs_assert(sess);
+    if (!sess) {
+        ogs_error("sess is null!");
+        return OGS_ERROR;
+    }
 
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
