@@ -136,6 +136,7 @@ void ogs_timer_start_debug(
     timer = ogs_timer_cycle(manager, timer);
     if (!timer) {
         ogs_fatal("ogs_timer_start() failed in %s", file_line);
+        return;
         ogs_assert_if_reached();
     }
 
