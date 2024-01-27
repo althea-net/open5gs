@@ -155,6 +155,7 @@ void ogs_timer_stop_debug(ogs_timer_t *timer, const char *file_line)
     timer = ogs_timer_cycle(manager, timer);
     if (!timer) {
         ogs_fatal("ogs_timer_stop() failed in %s", file_line);
+        return;
         //ogs_assert_if_reached();
     }
 
