@@ -407,6 +407,12 @@ int sgwc_sess_remove(sgwc_sess_t *sess)
 {
     sgwc_ue_t *sgwc_ue = NULL;
 
+    // good news the session is already null! do nothing
+    if (sess == NULL)
+    {
+        return OGS_OK;
+    }
+
     ogs_assert(sess);
     sgwc_ue = sess->sgwc_ue;
     ogs_assert(sgwc_ue);
