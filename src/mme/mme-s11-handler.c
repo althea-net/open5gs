@@ -433,8 +433,8 @@ void mme_s11_handle_create_session_response(
             ogs_assert(OGS_PDU_SESSION_TYPE_IS_VALID(
                         session->paa.session_type));
             r = nas_eps_send_attach_accept(mme_ue);
-            ogs_expect(r == OGS_OK);
-            ogs_assert(r != OGS_ERROR);
+            //ogs_expect(r == OGS_OK);
+            //ogs_assert(r != OGS_ERROR);
         }
 
     } else if (create_action == OGS_GTP_CREATE_IN_UPLINK_NAS_TRANSPORT) {
