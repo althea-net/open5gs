@@ -525,7 +525,9 @@ void sgwc_s5c_handle_delete_session_response(
         ogs_gtp_send_error_message(
                 s11_xact, sgwc_ue ? sgwc_ue->mme_s11_teid : 0,
                 OGS_GTP2_DELETE_SESSION_RESPONSE_TYPE, cause_value);
-        sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
+        if (sess) {
+            sgwc_pfcp_send_session_deletion_request(sess, NULL, NULL);
+        }
         return;
     }
 
