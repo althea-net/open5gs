@@ -109,7 +109,8 @@ void ogs_timer_delete_debug(ogs_timer_t *timer, const char *file_line)
     timer = ogs_timer_cycle(manager, timer);
     if (!timer) {
         ogs_fatal("ogs_timer_delete() failed in %s", file_line);
-        ogs_assert_if_reached();
+        //ogs_assert_if_reached();
+        return;
     }
 
     // we can recover from double-free by just returning here
