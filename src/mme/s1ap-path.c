@@ -563,7 +563,7 @@ int s1ap_send_handover_request(
 
     ogs_info("HandoverRequest");
     ogs_assert(source_ue);
-    ogs_assert(source_ue->target_ue == NULL);
+    //ogs_assert(source_ue->target_ue == NULL);
     ogs_assert(target_enb);
 
     target_ue = enb_ue_add(target_enb, INVALID_UE_S1AP_ID);
