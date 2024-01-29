@@ -1432,7 +1432,9 @@ void sgwc_sxa_handle_session_deletion_response(
     }
 
 cleanup:
-    sgwc_sess_remove(sess);
+    if (sess) {
+        sgwc_sess_remove(sess);
+    }
 }
 
 void sgwc_sxa_handle_session_set_deletion_response(
