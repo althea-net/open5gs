@@ -1663,15 +1663,6 @@ void s1ap_handle_ue_context_release_action(enb_ue_t *enb_ue)
         }
         enb_ue_unlink(mme_ue);
 
-        mme_bearer_t *bearer = mme_bearer_cycle(mme_ue->paging.data);
-        if (!bearer) {
-            ogs_error("Bearer is outdated, cannot page");
-            MME_CLEAR_PAGING_INFO(mme_ue);
-            return;
-        }
-
-        MME_STORE_PAGING_INFO(mme_ue,
-            MME_PAGING_TYPE_DOWNLINK_DATA_NOTIFICATION, bearer);
         r = s1ap_send_paging(mme_ue, S1AP_CNDomain_ps);
         ogs_expect(r == OGS_OK);
         ogs_assert(r != OGS_ERROR);
