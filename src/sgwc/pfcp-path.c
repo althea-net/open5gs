@@ -492,6 +492,11 @@ int sgwc_pfcp_send_session_deletion_request(
         return OGS_ERROR;
     }
 
+    if (!sess->pfcp_established) {
+        ogs_error("PFCP session not established");
+        return OGS_ERROR;
+    }
+
     xact = ogs_pfcp_xact_local_create(sess->pfcp_node, sess_timeout, sess);
     if (!xact) {
         ogs_error("ogs_pfcp_xact_local_create() failed");
