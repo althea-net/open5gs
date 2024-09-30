@@ -1,6 +1,6 @@
 #!/bin/bash
 
-version=0.10.3
+version=0.10.4
 
 display_help() {
     echo "open5gs-dbctl: Open5GS Database Configuration Tool ($version)"
@@ -20,6 +20,7 @@ display_help() {
     echo "   add_ue_with_apn {imsi key opc apn}: adds a user to the database with a specific apn,"
     echo "   add_ue_with_slice {imsi key opc apn sst sd}: adds a user to the database with a specific apn, sst and sd"
     echo "   update_apn {imsi apn slice_num}: adds an APN to the slice number slice_num of an existent UE"
+    echo "   update_apn {imsi apn ip slice_num}: adds an APN with static IPv4 address to the slice number slice_num of an existent UE"
     echo "   update_slice {imsi apn sst sd}: adds an slice to an existent UE"
     echo "   showall: shows the list of subscriber in the db"
     echo "   showpretty: shows the list of subscriber in the db in a pretty json tree format"
@@ -698,32 +699,70 @@ if [ "$1" = "update_apn" ]; then
         mongosh --eval "db.subscribers.updateOne({ \"imsi\": \"$IMSI\"}, 
             {\$push: { \"slice.$SLICE_NUM.session\":
                            {
-                            \"name\" : \"$APN\", 
-                            \"type\" : NumberInt(3), 
-                            \"_id\" : new ObjectId(), 
-                            \"pcc_rule\" : [],
-                            \"ambr\" : 
-                            { 
-                                \"uplink\" : { \"value\": NumberInt(1), \"unit\" : NumberInt(3) }, 
-                                \"downlink\" : { \"value\": NumberInt(1), \"unit\" : NumberInt(3) }, 
-                            }, 
                             \"qos\" : 
                             { 
-                                \"index\" : NumberInt(9), 
                                 \"arp\" : 
                                 { 
                                     \"priority_level\" : NumberInt(8), 
                                     \"pre_emption_capability\" : NumberInt(1), 
-                                    \"pre_emption_vulnerability\" : NumberInt(1), 
+                                    \"pre_emption_vulnerability\" : NumberInt(2), 
                                 }, 
+                                \"index\" : NumberInt(9), 
                             }, 
+                            \"ambr\" : 
+                            { 
+                                \"uplink\" : { \"value\": NumberInt(1000000000), \"unit\" : NumberInt(0) }, 
+                                \"downlink\" : { \"value\": NumberInt(1000000000), \"unit\" : NumberInt(0) }, 
+                            }, 
+                            \"_id\" : new ObjectId(), 
+                            \"name\" : \"$APN\", 
+                            \"type\" : NumberInt(3), 
+                            \"pcc_rule\" : [],
                            }
                     }   
             });" $DB_URI
         exit $?
     fi
 
-    echo "open5gs-dbctl: incorrect number of args, format is \"open5gs-dbctl update_apn imsi apn num_slice\""
+    if [ "$#" -eq 5 ]; then
+        IMSI=$2 
+        APN=$3
+        IP=$4
+        SLICE_NUM=$5
+        
+        mongosh --eval "db.subscribers.updateOne({ \"imsi\": \"$IMSI\"}, 
+            {\$push: { \"slice.$SLICE_NUM.session\":
+                           {
+                            \"qos\" : 
+                            { 
+                                \"arp\" : 
+                                { 
+                                    \"priority_level\" : NumberInt(8), 
+                                    \"pre_emption_capability\" : NumberInt(1), 
+                                    \"pre_emption_vulnerability\" : NumberInt(2), 
+                                }, 
+                                \"index\" : NumberInt(9), 
+                            }, 
+                            \"ambr\" : 
+                            { 
+                                \"uplink\" : { \"value\": NumberInt(1000000000), \"unit\" : NumberInt(0) }, 
+                                \"downlink\" : { \"value\": NumberInt(1000000000), \"unit\" : NumberInt(0) }, 
+                            }, 
+                            \"_id\" : new ObjectId(), 
+                            \"name\" : \"$APN\", 
+                            \"type\" : NumberInt(3), 
+                            \"ue\" : 
+                            {
+                                \"addr\" : \"$IP\",
+                            },
+                            \"pcc_rule\" : [],
+                           }
+                    }   
+            });" $DB_URI
+        exit $?
+    fi
+
+    echo "open5gs-dbctl: incorrect number of args, format is \"open5gs-dbctl update_apn imsi apn {ip} num_slice\""
     exit 1
 fi
 
