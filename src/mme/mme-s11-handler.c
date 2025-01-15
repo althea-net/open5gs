@@ -597,9 +597,14 @@ void mme_s11_handle_delete_session_response(
     sess = xact->data;
     ogs_assert(sess);
     mme_ue = sess->mme_ue;
-    ogs_assert(mme_ue);
+    if (!mme_ue_from_teid) {
+        ogs_error("No Context in TEID");
+    }
     target_ue = sgw_ue_cycle(mme_ue->sgw_ue);
-    ogs_assert(target_ue);
+    if (!target_ue) {
+        ogs_error("Cannot find target_ue context");
+        return;
+    }
 
     if (action == OGS_GTP_DELETE_IN_PATH_SWITCH_REQUEST) {
         source_ue = sgw_ue_cycle(target_ue->source_ue);
