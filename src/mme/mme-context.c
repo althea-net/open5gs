@@ -1801,10 +1801,14 @@ void mme_vlr_close(mme_vlr_t *vlr)
 {
     ogs_assert(vlr);
 
-    if (vlr->poll)
+    if (vlr->poll) {
         ogs_pollset_remove(vlr->poll);
-    if (vlr->sock)
+        vlr-> poll = NULL;
+    }
+    if (vlr->sock) {
         ogs_sctp_destroy(vlr->sock);
+        vlr->sock = NULL;
+    }
 }
 
 mme_vlr_t *mme_vlr_find_by_addr(ogs_sockaddr_t *addr)
