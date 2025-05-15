@@ -193,6 +193,8 @@ typedef struct mme_vlr_s {
     ogs_sockaddr_t  *addr;      /* VLR SGsAP Connected Socket Address */
     ogs_sockopt_t   *option;    /* VLR SGsAP Socket Option */
     ogs_poll_t      *poll;      /* VLR SGsAP Poll */
+
+    bool connected;             /* Can we send data to this VLR or not */
 } mme_vlr_t;
 
 typedef struct mme_csmap_s {

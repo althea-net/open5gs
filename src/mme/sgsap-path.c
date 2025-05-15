@@ -82,6 +82,13 @@ int sgsap_send_to_vlr_with_sid(
 
     ogs_assert(vlr);
     ogs_assert(pkbuf);
+
+    if (!vlr->connected) {
+        ogs_warn("VLR not connected, cannot send message");
+        ogs_pkbuf_free(pkbuf);
+        return OGS_OK;
+    }
+
     sock = vlr->sock;
     ogs_assert(sock);
 

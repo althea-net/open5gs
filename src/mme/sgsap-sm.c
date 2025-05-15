@@ -45,6 +45,7 @@ void sgsap_state_initial(ogs_fsm_t *s, mme_event_t *e)
         return;
     }
 
+    vlr->connected = false;
     OGS_FSM_TRAN(s, &sgsap_state_will_connect);
 }
 
@@ -135,8 +136,12 @@ void sgsap_state_connected(ogs_fsm_t *s, mme_event_t *e)
 
     switch (e->id) {
     case OGS_FSM_ENTRY_SIG:
+        vlr->connected = true;
+        ogs_error("SPENCER CONNECTED");
         break;
     case OGS_FSM_EXIT_SIG:
+        vlr->connected = false;
+        ogs_error("SPENCER DISCONNECTED");
         break;
     case MME_EVENT_SGSAP_LO_CONNREFUSED:
         mme_vlr_close(vlr);
