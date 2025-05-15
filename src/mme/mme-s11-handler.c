@@ -424,14 +424,12 @@ void mme_s11_handle_create_session_response(
         mme_csmap_t *csmap = mme_csmap_find_by_tai(&mme_ue->tai);
         mme_ue->csmap = csmap;
 
-        if (csmap) {
-            ogs_assert(OGS_PDU_SESSION_TYPE_IS_VALID(
-                        session->paa.session_type));
+        ogs_assert(OGS_PDU_SESSION_TYPE_IS_VALID(
+                    session->paa.session_type));
+        if (csmap && csmap->vlr && csmap->vlr->connected) {
             ogs_assert(OGS_OK ==
                 sgsap_send_location_update_request(mme_ue));
         } else {
-            ogs_assert(OGS_PDU_SESSION_TYPE_IS_VALID(
-                        session->paa.session_type));
             r = nas_eps_send_attach_accept(mme_ue);
             ogs_expect(r == OGS_OK);
             ogs_assert(r != OGS_ERROR);
